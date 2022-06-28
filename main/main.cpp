@@ -8,7 +8,7 @@ using namespace std;
 using namespace nbuss_server;
 
 
-void my_listener(int fd, enum job_type_t job_type) {
+static void my_listener(int fd, enum job_type_t job_type) {
 
 	switch(job_type) {
 	case CLOSE_SOCKET:

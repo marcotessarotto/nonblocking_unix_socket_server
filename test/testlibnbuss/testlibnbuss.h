@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
 #include "UnixSocketServer.h"
 
+#include "UnixSocketClient.h"
+
 // testing class NonblockingUnixSocketServer
 class NonblockingUnixSocketServerTest : public ::testing::Test {
 

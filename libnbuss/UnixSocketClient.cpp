@@ -30,6 +30,7 @@ void UnixSocketClient::connect(const std::string &sockname) {
 	this->sockname = sockname;
 
 
+	// open socket in blocking mode
     data_socket = socket(AF_UNIX, SOCK_STREAM, 0);  //  SOCK_SEQPACKET
     if (data_socket == -1) {
         perror("socket");
@@ -66,6 +67,17 @@ void UnixSocketClient::write(std::vector<char> data) {
 
 	// TODO: implement while
 	c = ::write(data_socket, p, data_size);
+
+	// TODO: if socket is in non-blocking mode, buffer could be full
+	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		// can this happen? no, because client socket is in blocking mode
+	}
+
+	// TODO: check
+	if (c == -1) {
+		perror("write");
+		throw std::runtime_error("write error");
+	}
 }
 
 void UnixSocketClient::write(std::string data) {
