@@ -45,7 +45,9 @@ int main(int argc, char *argv[])
 
 	cout << "starting non blocking unix socket server on socket " << socketName << endl;
 
-	UnixSocketServer server(socketName, 10);
+	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue
+
+	UnixSocketServer server("/tmp/mysocket.sock", 10); // calls constructor which moves string instance (rvalue)
 
 	server.setup();
 

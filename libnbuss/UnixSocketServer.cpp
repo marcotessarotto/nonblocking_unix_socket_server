@@ -21,10 +21,7 @@
 
 namespace nbuss_server {
 
-UnixSocketServer::UnixSocketServer(const std::string &sockname,
-		unsigned int backlog) :
-		sockname(sockname), backlog(backlog), stop_server(false) {
-
+void UnixSocketServer::init() {
 	if (sockname.empty()) {
 		throw std::invalid_argument("missing sockname");
 	}
@@ -34,8 +31,22 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname,
 	}
 }
 
+UnixSocketServer::UnixSocketServer(const std::string &sockname,	unsigned int backlog) :
+		sockname(sockname), backlog(backlog), stop_server(false) {
+//	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname,	unsigned int backlog)" << std::endl;
+	init();
+}
+
+UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog) :
+		sockname(std::move(sockname)), backlog(backlog), stop_server(false) {
+//	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
+//	std::cout << this->sockname << std::endl;
+
+	init();
+}
+
 UnixSocketServer::~UnixSocketServer() {
-	// TODO Auto-generated destructor stub
+
 }
 
 /**

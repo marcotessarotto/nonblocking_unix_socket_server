@@ -7,6 +7,8 @@ UnixSocketServer.cpp
 FileDescriptor.h
 Worker.cpp
 Worker.h
+UnixSocketClient.h
+UnixSocketClient.cpp
 )
 
 # Declare the library

@@ -76,11 +76,15 @@ class UnixSocketServer : public virtual IGenericServer {
 	 */
 	int open_unix_socket();
 
+	/// used by constructors to check parameters
+	void init();
+
 public:
 	/**
 	 * create instance; parameters are the name of the unix socket, on the file system, and backlog size
 	 */
 	UnixSocketServer(const std::string &sockname, unsigned int backlog);
+	UnixSocketServer(std::string &&sockname, unsigned int backlog);
 	virtual ~UnixSocketServer();
 
 
