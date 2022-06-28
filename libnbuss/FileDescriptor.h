@@ -1,6 +1,7 @@
 #ifndef LIBNBUSS_FILEDESCRIPTOR_H_
 #define LIBNBUSS_FILEDESCRIPTOR_H_
 
+#include <iostream>
 #include <unistd.h>
 
 // class for making file descriptors auto-closeable; use FileDescriptor as type of local variable

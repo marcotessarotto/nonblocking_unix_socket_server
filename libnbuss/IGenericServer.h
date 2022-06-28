@@ -11,6 +11,12 @@ enum job_type_t {
 	CLOSE_SOCKET // socket must be closed
 };
 
+
+/**
+ * IGenericServer defines an abstract class for a generic server.
+ * This will allow to introduce a TCP socket server class which will share the same methods.
+ *
+ */
 class IGenericServer {
 public:
 	IGenericServer();

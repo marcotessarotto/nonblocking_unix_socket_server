@@ -26,11 +26,11 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname,
 		sockname(sockname), backlog(backlog), stop_server(false) {
 
 	if (sockname.empty()) {
-		throw std::runtime_error("missing sockname");
+		throw std::invalid_argument("missing sockname");
 	}
 
 	if (backlog <= 0) {
-		throw std::runtime_error("backlog must be > 0");
+		throw std::invalid_argument("backlog must be > 0");
 	}
 }
 

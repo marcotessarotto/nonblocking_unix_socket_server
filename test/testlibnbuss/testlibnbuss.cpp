@@ -1,32 +1,39 @@
+#include <exception>
+#include <stdexcept>
 
 #include "testlibnbuss.h"
 
-
 //using ::testing::Return;
-
-//#include "UnixSocketServer.h"
 
 
 using namespace std;
 using namespace nbuss_server;
 
-
-
-
 NonblockingUnixSocketServerTest::NonblockingUnixSocketServerTest() {
-    // Have qux return true by default
-    //ON_CALL(m_bar,qux()).WillByDefault(Return(true));
-    // Have norf return false by default
-    //ON_CALL(m_bar,norf()).WillByDefault(Return(false));
+	// Have qux return true by default
+	//ON_CALL(m_bar,qux()).WillByDefault(Return(true));
+	// Have norf return false by default
+	//ON_CALL(m_bar,norf()).WillByDefault(Return(false));
 }
 
-NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {};
+NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {
+}
+;
 
-void NonblockingUnixSocketServerTest::SetUp() {};
+void NonblockingUnixSocketServerTest::SetUp() {
+}
+;
 
-void NonblockingUnixSocketServerTest::TearDown() {};
+void NonblockingUnixSocketServerTest::TearDown() {
+}
+;
 
+TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 
+	// expect exception
+
+	EXPECT_THROW( UnixSocketServer server("", 0) , std::invalid_argument );
+}
 
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {
 //    Foo foo(m_bar);

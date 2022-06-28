@@ -10,9 +10,13 @@
 namespace nbuss_server {
 
 /**
- * encapsulate an IGenericServer instance, creating a new thread which calls listen method
+ * encapsulate an IGenericServer instance; start method creates a new thread which then calls listen method
+ *
+ * the idea is to extend the same virtual class so to maintain the same methods but at the same
+ * time to extends the behaviour (start and stop methods).
+ *
  */
-class Worker {
+class Worker : public virtual IGenericServer {
 	IGenericServer &server;
 
 	bool terminate_worker;
@@ -28,8 +32,28 @@ class Worker {
 	void mainLoopWorker();
 
 public:
-	Worker(IGenericServer &server, std::function<void(int, enum job_type_t )> callback_function);
+	Worker(IGenericServer &server);
 	virtual ~Worker();
+
+    /**
+     * setup server and bind socket to listening address
+     *
+     * @throws std::runtime_error
+     */
+	virtual void setup();
+
+    /**
+     * listen for incoming connections; on incoming data, call callback_function
+     *
+     * returns only when another thread calls terminate method
+     *
+     * callback function is called when incoming data is ready.
+     * callback function parameters are: socket file descriptor and job type
+     *
+     * @throws std::runtime_error
+     */
+	virtual void listen(std::function<void(int, enum job_type_t )> callback_function);
+
 
     /**
      * starts a new thread which will listen for incoming connections and process them
@@ -39,12 +63,17 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start();
+	virtual void start(std::function<void(int, enum job_type_t )> callback_function);
 
 	/**
 	 * terminate server instance
 	 */
 	virtual void terminate();
+
+	/**
+	 * terminate server instance and waits for thread to stop
+	 */
+	virtual void stop();
 };
 
 } /* namespace nbuss_server */
