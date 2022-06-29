@@ -50,7 +50,7 @@ UnixSocketServer::~UnixSocketServer() {
 }
 
 /**
- * unlink socket, create and bind socket; returns server socket
+ * unlink socket, create and bind socket; return server socket else -1 on error
  *
  */
 int UnixSocketServer::open_unix_socket() {
@@ -110,7 +110,7 @@ static const char* interpret_event(int event) {
 
 void UnixSocketServer::setup() {
 
-	// listen_sock will be auto closed when returning
+	// listen_sock will be auto closed when returning from listen
 	listen_sock.fd = open_unix_socket();
 
 	if (listen_sock.fd == -1) {
@@ -126,17 +126,20 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
 		std::cout << "cleanup" << std::endl;
 
+		// close listening socket and epoll socket
 		srv->listen_sock.close();
 		srv->epollfd.close();
 
 		std::unique_lock<std::mutex> lk(srv->mtx, std::defer_lock);
 
-        if (lk.try_lock()) {
-            std::cout <<  "lock acquired.\n";
-        } else {
-            std::cout <<  "failed acquiring lock.\n";
-            return;
-        }
+//        if (lk.try_lock()) {
+//            std::cout <<  "lock acquired.\n";
+//        } else {
+//            std::cout <<  "failed acquiring lock.\n";
+//            return;
+//        }
+
+		lk.lock();
 
 		srv->is_listening = false;
 		lk.unlock();
@@ -321,6 +324,9 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 }
 
 void UnixSocketServer::terminate() {
+
+	std::cout << "UnixSocketServer::terminate()" << std::endl;
+
 	stop_server.store(true);
 
 	std::unique_lock<std::mutex> lk(mtx);
@@ -329,6 +335,7 @@ void UnixSocketServer::terminate() {
 
 	lk.unlock();
 
+	//
 	epollfd.close();
 	listen_sock.close();
 }
@@ -381,6 +388,7 @@ std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 
 int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 	// TODO: manage non blocking write calls
+	// possible solution: implement a write queue
 
 	char * p;
 	int c;
@@ -399,4 +407,4 @@ int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 	return c;
 }
 
-} /* namespace mt_cpp_server */
+} /* namespace nbuss_server */
