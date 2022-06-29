@@ -39,7 +39,7 @@ static void my_listener(int fd, enum job_type_t job_type) {
 }
 
 
-
+//const bool USE_THREAD_DECORATOR = true;
 #define USE_THREAD_DECORATOR
 
 int main(int argc, char *argv[])
@@ -60,7 +60,14 @@ int main(int argc, char *argv[])
 
 	threadedServer.setup();
 
-	threadedServer.listen(my_listener);
+	//threadedServer.listen(my_listener);
+
+	threadedServer.start(my_listener);
+
+	cout << "before pause" << endl;
+
+	pause();
+
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue

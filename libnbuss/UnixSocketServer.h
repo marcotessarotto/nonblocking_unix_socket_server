@@ -55,7 +55,7 @@ class UnixSocketServer : public virtual IGenericServer {
 		std::function<void(UnixSocketServer *)> func;
 		UnixSocketServer *server;
 
-		RunOnReturn(UnixSocketServer * server, std::function<void(UnixSocketServer *)> func) : server(server), func(func) {
+		RunOnReturn(UnixSocketServer * server, std::function<void(UnixSocketServer *)> func) : server{server}, func{func} {
 		}
 		~RunOnReturn() {
 			std::cout << "~RunOnReturn" << std::endl;
@@ -66,8 +66,6 @@ class UnixSocketServer : public virtual IGenericServer {
 	/// declared as field so that terminate method can operate on it
 	FileDescriptor listen_sock;
 	FileDescriptor epollfd;
-
-	//std::thread &worker;
 
 
 	/**

@@ -10,7 +10,7 @@ namespace nbuss_server {
 
 ThreadDecorator::ThreadDecorator(IGenericServer &server) :
 		terminate_worker(false), worker_is_running(false), callback_function{},
-		server(server), workerThread{} {
+		server{server}, workerThread{} {
 	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &server)" << std::endl;
 }
 
