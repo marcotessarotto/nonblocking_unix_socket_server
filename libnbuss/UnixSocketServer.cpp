@@ -37,7 +37,7 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int bac
 	init();
 }
 
-UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog) :
+UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
 		sockname(std::move(sockname)), backlog(backlog), stop_server(false) {
 	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
 //	std::cout << this->sockname << std::endl;

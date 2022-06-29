@@ -91,7 +91,7 @@ public:
 	 * create instance; parameters are the name of the unix socket, on the file system, and backlog size
 	 */
 	UnixSocketServer(const std::string &sockname, unsigned int backlog);
-	UnixSocketServer(std::string &&sockname, unsigned int backlog);
+	UnixSocketServer(const std::string &&sockname, unsigned int backlog);
 	virtual ~UnixSocketServer();
 
 
