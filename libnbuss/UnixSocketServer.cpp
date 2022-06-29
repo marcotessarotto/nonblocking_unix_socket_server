@@ -319,7 +319,7 @@ std::vector<std::vector<char>> UnixSocketServer::readAllData(int fd) {
 		int buffer_size = buffer.capacity();
 
 		// read from non blocking socket
-		c = read(fd, p, buffer_size);
+		c = ::read(fd, p, buffer_size);
 
 		// no data available to read
 		if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {

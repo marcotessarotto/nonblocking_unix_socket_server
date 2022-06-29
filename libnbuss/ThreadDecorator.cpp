@@ -1,26 +1,26 @@
+#include <ThreadDecorator.h>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 
-#include "Worker.h"
 
 namespace nbuss_server {
 
-Worker::Worker(IGenericServer &server) :
+ThreadDecorator::ThreadDecorator(IGenericServer &server) :
 		terminate_worker(false), worker_is_running(false), callback_function(),
 		server(server), workerThread() {
 }
 
-Worker::~Worker() {
+ThreadDecorator::~ThreadDecorator() {
 }
 
-void Worker::setup() {
+void ThreadDecorator::setup() {
 	server.setup();
 }
 
-void Worker::mainLoopWorker() {
+void ThreadDecorator::mainLoopWorker() {
 
 	std::cout << "mainLoopWorker starts" << std::endl;
 
@@ -40,21 +40,21 @@ void Worker::mainLoopWorker() {
 	// thread ends
 }
 
-void Worker::listen(std::function<void(int, enum job_type_t )> callback_function) {
+void ThreadDecorator::listen(std::function<void(int, enum job_type_t )> callback_function) {
 	server.listen(callback_function);
 }
 
-void Worker::start(std::function<void(int, enum job_type_t )> callback_function) {
+void ThreadDecorator::start(std::function<void(int, enum job_type_t )> callback_function) {
 	this->callback_function = callback_function;
 
-	workerThread = std::thread(&Worker::mainLoopWorker, this);
+	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);
 }
 
-void Worker::terminate() {
+void ThreadDecorator::terminate() {
 	server.terminate();
 }
 
-void Worker::stop() {
+void ThreadDecorator::stop() {
 
 	// tell the thread to terminate
 	server.terminate();

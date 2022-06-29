@@ -27,7 +27,8 @@ static void my_listener(int fd, enum job_type_t job_type) {
 
 		int counter = 0;
 		for (std::vector<char> item: data) {
-			cout << counter << ": " << item.data() << endl;
+			cout << counter << ": " << item.size() << " " << item.capacity() << endl;
+			cout << item.data() << endl;
 
 			UnixSocketServer::writeToSocket(fd, item);
 		}

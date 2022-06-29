@@ -14,7 +14,8 @@ enum job_type_t {
 
 /**
  * IGenericServer defines an abstract class for a generic server.
- * This will allow to introduce a TCP socket server class which will share the same methods.
+ *
+ * This allows to introduce different kind of servers i.e. unix socket server, TCP socket server ...
  *
  */
 class IGenericServer {

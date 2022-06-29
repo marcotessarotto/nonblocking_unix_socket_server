@@ -3,8 +3,7 @@
 
 #include "testlibnbuss.h"
 
-#include "Worker.h"
-
+#include <ThreadDecorator.h>
 #include "UnixSocketClient.h"
 
 //using ::testing::Return;

@@ -26,6 +26,7 @@ public:
 	void write(std::vector<char> data);
 	void write(std::string data);
 
+	std::vector<char> read();
 
 };
 

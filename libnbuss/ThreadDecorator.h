@@ -1,5 +1,5 @@
-#ifndef LIBNBUSS_WORKER_H_
-#define LIBNBUSS_WORKER_H_
+#ifndef LIBNBUSS_THREADDECORATOR_H_
+#define LIBNBUSS_THREADDECORATOR_H_
 
 #include <thread>
 #include <mutex>
@@ -10,13 +10,13 @@
 namespace nbuss_server {
 
 /**
- * encapsulate an IGenericServer instance; start method creates a new thread which then calls listen method
+ * decorator which encapsulates an IGenericServer instance; start method creates a new thread which then calls listen method
  *
  * the idea is to extend the same virtual class so to maintain the same methods but at the same
- * time to extends the behaviour (start and stop methods).
+ * time to extend the behavior (start and stop methods).
  *
  */
-class Worker : public virtual IGenericServer {
+class ThreadDecorator : public virtual IGenericServer {
 	IGenericServer &server;
 
 	bool terminate_worker;
@@ -32,8 +32,8 @@ class Worker : public virtual IGenericServer {
 	void mainLoopWorker();
 
 public:
-	Worker(IGenericServer &server);
-	virtual ~Worker();
+	ThreadDecorator(IGenericServer &server);
+	virtual ~ThreadDecorator();
 
     /**
      * setup server and bind socket to listening address
@@ -78,4 +78,4 @@ public:
 
 } /* namespace nbuss_server */
 
-#endif /* LIBNBUSS_WORKER_H_ */
+#endif /* LIBNBUSS_THREADDECORATOR_H_ */

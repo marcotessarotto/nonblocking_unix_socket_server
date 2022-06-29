@@ -84,6 +84,10 @@ void UnixSocketClient::write(std::string data) {
 	throw std::runtime_error("not implemented yet! sorry :|");
 }
 
+std::vector<char> UnixSocketClient::read() {
+	throw std::runtime_error("not implemented yet! sorry :|");
+}
+
 void UnixSocketClient::close() {
 	if (data_socket >= 0) {
 		::close(data_socket);
