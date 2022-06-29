@@ -122,7 +122,29 @@ void UnixSocketServer::setup() {
 
 void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback_function) {
 
-	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) { srv->listen_sock.close(); srv->epollfd.close(); });
+	// this lambda will be run before returning from listen function
+	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
+		std::cout << "cleanup" << std::endl;
+
+		srv->listen_sock.close();
+		srv->epollfd.close();
+
+		std::unique_lock<std::mutex> lk(srv->mtx, std::defer_lock);
+
+        if (lk.try_lock()) {
+            std::cout <<  "lock acquired.\n";
+        } else {
+            std::cout <<  "failed acquiring lock.\n";
+            return;
+        }
+
+		srv->is_listening = false;
+		lk.unlock();
+
+		std::cout << "cleanup finished" << std::endl;
+
+		srv->cv.notify_one();
+	});
 
 	struct epoll_event ev;
 	struct epoll_event events[MAX_EVENTS];
@@ -137,7 +159,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		throw std::runtime_error("error returned by listen syscall");
 	}
 
-	std::unique_lock<std::mutex> lk(m);
+	std::unique_lock<std::mutex> lk(mtx);
 	is_listening = true;
 	lk.unlock();
 
@@ -300,6 +322,12 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 void UnixSocketServer::terminate() {
 	stop_server.store(true);
+
+	std::unique_lock<std::mutex> lk(mtx);
+	while (is_listening)
+		cv.wait(lk);
+
+	lk.unlock();
 
 	epollfd.close();
 	listen_sock.close();

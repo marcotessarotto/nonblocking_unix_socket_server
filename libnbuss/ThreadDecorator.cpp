@@ -76,6 +76,8 @@ void ThreadDecorator::stop() {
 	while (worker_is_running)
 		cv.wait(lk);
 
+	lk.unlock();
+
 	// join thread
 	workerThread.join();
 }

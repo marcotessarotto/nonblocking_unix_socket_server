@@ -41,14 +41,16 @@ class UnixSocketServer : public virtual IGenericServer {
 	/// backlog for listening server socket
 	unsigned int backlog;
 
-	/// flag used to signal that server must close
+	/// flag used to notify that server must stop listening and close sockets
 	std::atomic<bool> stop_server;
 
-	/// flag which signals that server is listening
-	std::atomic<bool> is_serving;
+	/// flag which signals that server is listening for incoming connections
+	//std::atomic<bool> is_serving;
 	bool is_listening;
 
-	std::mutex m;
+	/// mutex is used to synchronize access to is_listening
+	std::mutex mtx;
+	/// used to wait for is_listening to become false
 	std::condition_variable cv;
 
 
