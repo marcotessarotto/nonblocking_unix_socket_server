@@ -81,7 +81,23 @@ void UnixSocketClient::write(std::vector<char> data) {
 }
 
 void UnixSocketClient::write(std::string data) {
-	throw std::runtime_error("not implemented yet! sorry :|");
+	if (data_socket == -1) {
+		throw std::invalid_argument("invalid socket descriptor");
+	}
+
+
+	int c;
+
+	int data_size = data.size();
+	const char * p = data.c_str();
+
+	// TODO: implement while
+	c = ::write(data_socket, p, data_size);
+
+	if (c == -1) {
+		perror("write");
+		throw std::runtime_error("write error");
+	}
 }
 
 std::vector<char> UnixSocketClient::read() {
