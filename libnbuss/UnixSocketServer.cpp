@@ -180,6 +180,16 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 	syslog(LOG_DEBUG, "epoll_create1 ok: epollfd=%d\n", epollfd.fd);
 
+	// monitor read side of pipe
+	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
+	ev.data.fd = commandPipe.getReadFd();
+	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
+		syslog(LOG_ERR, "epoll_ctl: listen_sock error (%s)", strerror(errno));
+
+		throw std::runtime_error("epoll_ctl error");
+	}
+
+
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = listen_sock.fd;
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, listen_sock.fd, &ev) == -1) {
@@ -328,6 +338,10 @@ void UnixSocketServer::terminate() {
 	std::cout << "UnixSocketServer::terminate()" << std::endl;
 
 	stop_server.store(true);
+
+	// send a char to the pipe; on the other side, the listening thread
+	// will wake up (if sleeping) and will check for termination flag
+	commandPipe.write('.');
 
 	std::unique_lock<std::mutex> lk(mtx);
 	while (is_listening)

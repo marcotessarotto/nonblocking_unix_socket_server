@@ -9,7 +9,7 @@
 namespace nbuss_server {
 
 ThreadDecorator::ThreadDecorator(IGenericServer &server) :
-		terminate_worker(false), worker_is_running(false), callback_function{},
+		terminate_worker{false}, worker_is_running{false}, callback_function{},
 		server{server}, workerThread{} {
 	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &server)" << std::endl;
 }
@@ -60,6 +60,8 @@ void ThreadDecorator::start(std::function<void(int, enum job_type_t )> callback_
 	this->callback_function = callback_function;
 
 	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);
+
+	// TODO: return when server is listening for incoming connections
 }
 
 void ThreadDecorator::terminate() {

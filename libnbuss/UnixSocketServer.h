@@ -19,6 +19,7 @@
 #include "IGenericServer.h"
 #include "FileDescriptor.h"
 #include "configuration.h"
+#include "UnixPipe.h"
 
 namespace nbuss_server {
 
@@ -45,7 +46,7 @@ class UnixSocketServer : public virtual IGenericServer {
 	std::atomic<bool> stop_server;
 
 	/// flag which signals that server is listening for incoming connections
-	//std::atomic<bool> is_serving;
+	/// we use bool (and not a std::atomic) because we synchronize through a condition variable
 	bool is_listening;
 
 	/// mutex is used to synchronize access to is_listening
@@ -81,6 +82,9 @@ class UnixSocketServer : public virtual IGenericServer {
 
 	/// used by constructors to check parameters
 	void init();
+
+	/// pipe used for signaling to listening thread that it must terminate
+	UnixPipe commandPipe;
 
 public:
 	/**

@@ -53,6 +53,8 @@ int main(int argc, char *argv[])
 
 #ifdef USE_THREAD_DECORATOR
 
+	// TODO: make a test case out of this example
+
 	UnixSocketServer u("/tmp/mysocket.sock", 10);
 
 	ThreadDecorator threadedServer(u);
@@ -69,6 +71,7 @@ int main(int argc, char *argv[])
 
 	//pause();
 
+	// we need to wait for the server thread to effectively listen for incoming connections
 	sleep(1);
 
 	UnixSocketClient usc;
@@ -79,7 +82,8 @@ int main(int argc, char *argv[])
 	std::vector<char> v(s.begin(), s.end());
 
 	usc.write(v);
-	// read server response
+
+	// TODO: read server response
 	//std::vector<char> response = usc.read();
 
 	sleep(1);
