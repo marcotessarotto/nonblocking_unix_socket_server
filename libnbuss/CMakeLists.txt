@@ -9,6 +9,8 @@ ThreadDecorator.cpp
 ThreadDecorator.h
 UnixSocketClient.h
 UnixSocketClient.cpp
+IThreadable.h
+IThreadable.cpp
 )
 
 # Declare the library

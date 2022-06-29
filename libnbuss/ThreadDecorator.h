@@ -6,17 +6,20 @@
 #include <condition_variable>
 
 #include "IGenericServer.h"
+#include "IThreadable.h"
 
 namespace nbuss_server {
 
 /**
  * decorator which encapsulates an IGenericServer instance; start method creates a new thread which then calls listen method
  *
+ * IThreadable extends IGenericServer by adding start and stop method (for controlling the server thread)
+ *
  * the idea is to extend the same virtual class so to maintain the same methods but at the same
  * time to extend the behavior (start and stop methods).
  *
  */
-class ThreadDecorator : public virtual IGenericServer {
+class ThreadDecorator : public virtual IThreadable {
 	IGenericServer &server;
 
 	bool terminate_worker;
