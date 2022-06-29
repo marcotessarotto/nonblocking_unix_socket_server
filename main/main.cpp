@@ -4,10 +4,11 @@
 
 #include "UnixSocketServer.h"
 #include "ThreadDecorator.h"
+#include "UnixSocketClient.h"
 
 using namespace std;
 using namespace nbuss_server;
-
+using namespace nbuss_client;
 
 static void my_listener(int fd, enum job_type_t job_type) {
 
@@ -64,10 +65,31 @@ int main(int argc, char *argv[])
 
 	threadedServer.start(my_listener);
 
-	cout << "before pause" << endl;
+	//cout << "before pause" << endl;
 
-	pause();
+	//pause();
 
+	sleep(1);
+
+	UnixSocketClient usc;
+
+	usc.connect(socketName);
+
+	std::string s = "test message";
+	std::vector<char> v(s.begin(), s.end());
+
+	usc.write(v);
+	// read server response
+	//std::vector<char> response = usc.read();
+
+	sleep(1);
+
+	usc.close();
+
+
+	threadedServer.stop();
+
+	cout << "finished!" << endl;
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue

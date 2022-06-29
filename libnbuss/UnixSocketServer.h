@@ -43,7 +43,10 @@ class UnixSocketServer : public virtual IGenericServer {
 
 	/// flag used to signal that server must close
 	std::atomic<bool> stop_server;
+
+	/// flag which signals that server is listening
 	std::atomic<bool> is_serving;
+	bool is_listening;
 
 	std::mutex m;
 	std::condition_variable cv;

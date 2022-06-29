@@ -137,6 +137,10 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		throw std::runtime_error("error returned by listen syscall");
 	}
 
+	std::unique_lock<std::mutex> lk(m);
+	is_listening = true;
+	lk.unlock();
+
 	syslog(LOG_DEBUG, "listen_sock=%d\n", listen_sock.fd);
 
 	// note: epoll is linux specific
@@ -161,12 +165,12 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 	int n, nfds, conn_sock;
 
-	while (!stop_server) {
+	while (!stop_server.load()) {
 
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
-		if (stop_server) {
+		if (stop_server.load()) {
 			return;
 		}
 
@@ -198,7 +202,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 					//conn_sock = accept(listen_sock.fd, NULL, NULL);
 
 					if (conn_sock == -1) {
-						if (stop_server) {
+						if (stop_server.load()) {
 							return;
 						}
 						syslog(LOG_ERR, "accept error (%s)", strerror(errno));
@@ -221,7 +225,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 					ev.data.fd = conn_sock;
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev)
 							== -1) {
-						if (stop_server) {
+						if (stop_server.load()) {
 							return;
 						}
 						syslog(LOG_ERR, "epoll_ctl error (%s)",
@@ -295,7 +299,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 }
 
 void UnixSocketServer::terminate() {
-	stop_server = true;
+	stop_server.store(true);
 
 	epollfd.close();
 	listen_sock.close();
@@ -361,7 +365,7 @@ int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 	if (c == -1) {
 		perror("read");
 	} else {
-		std::cout << "writeToSocket: " << c << " bytes have been written to socket" << std::endl;
+		std::cout << "write: " << c << " bytes have been written to socket" << std::endl;
 	}
 
 	return c;
