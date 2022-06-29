@@ -9,14 +9,26 @@
 namespace nbuss_server {
 
 ThreadDecorator::ThreadDecorator(IGenericServer &server) :
-		terminate_worker(false), worker_is_running(false), callback_function(),
-		server(server), workerThread() {
+		terminate_worker(false), worker_is_running(false), callback_function{},
+		server(server), workerThread{} {
+	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &server)" << std::endl;
 }
+
+//ThreadDecorator::ThreadDecorator(IGenericServer &&server) :
+//		terminate_worker(false), worker_is_running(false), callback_function{},
+//		server(server), workerThread{} {
+//
+//	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &&server) " << std::endl;
+//
+//	std::cout << typeid(server).name() << std::endl;
+//	std::cout << typeid(this->server).name() << std::endl;
+//}
 
 ThreadDecorator::~ThreadDecorator() {
 }
 
 void ThreadDecorator::setup() {
+	std::cout << "server.setup()" << std::endl;
 	server.setup();
 }
 

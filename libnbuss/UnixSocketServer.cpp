@@ -31,22 +31,22 @@ void UnixSocketServer::init() {
 	}
 }
 
-UnixSocketServer::UnixSocketServer(const std::string &sockname,	unsigned int backlog) :
+UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
 		sockname(sockname), backlog(backlog), stop_server(false) {
-//	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname,	unsigned int backlog)" << std::endl;
+	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
 	init();
 }
 
 UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog) :
 		sockname(std::move(sockname)), backlog(backlog), stop_server(false) {
-//	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
+	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
 //	std::cout << this->sockname << std::endl;
 
 	init();
 }
 
 UnixSocketServer::~UnixSocketServer() {
-
+	std::cout << "UnixSocketServer::~UnixSocketServer()" << std::endl;
 }
 
 /**
@@ -305,7 +305,7 @@ void UnixSocketServer::terminate() {
  * read all data available on socket and return it as a vector of vector<char>
  *
  */
-std::vector<std::vector<char>> UnixSocketServer::readAllData(int fd) {
+std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 	std::vector<std::vector<char>> result;
 
 	int counter = 0;
@@ -347,7 +347,7 @@ std::vector<std::vector<char>> UnixSocketServer::readAllData(int fd) {
 }
 
 
-int UnixSocketServer::writeToSocket(int fd, std::vector<char> buffer) {
+int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 	// TODO: manage non blocking write calls
 
 	char * p;
@@ -356,7 +356,7 @@ int UnixSocketServer::writeToSocket(int fd, std::vector<char> buffer) {
 	p = buffer.data();
 	int buffer_size = buffer.size();
 
-	c = write(fd, p, buffer_size);
+	c = ::write(fd, p, buffer_size);
 
 	if (c == -1) {
 		perror("read");

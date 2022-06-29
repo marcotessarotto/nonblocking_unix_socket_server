@@ -88,6 +88,7 @@ public:
 	virtual ~UnixSocketServer();
 
 
+
     /**
      * setup server and bind socket to listening address
      *
@@ -116,12 +117,12 @@ public:
 	/**
 	 * read all available data from socket and return vector of vectors
 	 */
-	static std::vector<std::vector<char>> readAllData(int fd);
+	static std::vector<std::vector<char>> read(int fd);
 
 	/**
 	 * write data to the socket
 	 */
-	static int writeToSocket(int fd, std::vector<char> item);
+	static int write(int fd, std::vector<char> item);
 
 };
 

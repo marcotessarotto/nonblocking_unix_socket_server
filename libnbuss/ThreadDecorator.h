@@ -33,6 +33,9 @@ class ThreadDecorator : public virtual IGenericServer {
 
 public:
 	ThreadDecorator(IGenericServer &server);
+
+	//ThreadDecorator(IGenericServer &&server);
+
 	virtual ~ThreadDecorator();
 
     /**

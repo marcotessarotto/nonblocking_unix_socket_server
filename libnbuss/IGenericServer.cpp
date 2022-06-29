@@ -1,14 +1,18 @@
 #include "IGenericServer.h"
+#include <iostream>
 
 namespace nbuss_server {
 
 IGenericServer::IGenericServer() {
-	// TODO Auto-generated constructor stub
+
+	std::cout << "IGenericServer::IGenericServer" << std::endl;
 
 }
 
 IGenericServer::~IGenericServer() {
-	// TODO Auto-generated destructor stub
+
+	std::cout << "IGenericServer::~IGenericServer()" << std::endl;
+
 }
 
 }

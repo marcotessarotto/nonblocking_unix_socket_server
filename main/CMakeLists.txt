@@ -1,6 +1,9 @@
 set(Main_SRCS
     main.cpp
 )
+ 
+set(CMAKE_CXX_FLAGS -pthread)
+ 
 
 add_executable(nbuss_server
     ${Main_SRCS}
@@ -10,5 +13,7 @@ add_executable(nbuss_server
 target_link_libraries(nbuss_server
     libnbuss
 )
+
+
 
 install(TARGETS nbuss_server DESTINATION bin)

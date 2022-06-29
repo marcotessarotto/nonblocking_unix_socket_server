@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "UnixSocketServer.h"
+#include "ThreadDecorator.h"
 
 using namespace std;
 using namespace nbuss_server;
@@ -21,22 +22,25 @@ static void my_listener(int fd, enum job_type_t job_type) {
 		cout << "incoming data fd=" << fd  << endl;
 
 		// read all data from socket
-		auto data = UnixSocketServer::readAllData(fd);
+		auto data = UnixSocketServer::read(fd);
 
 		cout << "size of data: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item: data) {
-			cout << counter << ": " << item.size() << " " << item.capacity() << endl;
-			cout << item.data() << endl;
+			cout << "item " << counter << ": " << item.size() << " bytes" << endl;
+			// cout << item.data() << endl;
 
-			UnixSocketServer::writeToSocket(fd, item);
+			UnixSocketServer::write(fd, item);
 		}
 
 	}
 
 }
 
+
+
+#define USE_THREAD_DECORATOR
 
 int main(int argc, char *argv[])
 {
@@ -46,6 +50,19 @@ int main(int argc, char *argv[])
 
 	cout << "starting non blocking unix socket server on socket " << socketName << endl;
 
+#ifdef USE_THREAD_DECORATOR
+
+	UnixSocketServer u("/tmp/mysocket.sock", 10);
+
+	ThreadDecorator threadedServer(u);
+
+	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+
+	threadedServer.setup();
+
+	threadedServer.listen(my_listener);
+
+#else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue
 
 	UnixSocketServer server("/tmp/mysocket.sock", 10); // calls constructor which moves string instance (rvalue)
@@ -54,6 +71,12 @@ int main(int argc, char *argv[])
 
 	// this call does not return
 	server.listen(my_listener);
+
+#endif
+
+
+
+
 
 	return 0;
 }

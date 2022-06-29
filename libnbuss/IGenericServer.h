@@ -22,7 +22,8 @@ class IGenericServer {
 public:
 	IGenericServer();
 	virtual ~IGenericServer();
-	
+
+
 	// pure virtual methods
 
     /**

@@ -53,7 +53,7 @@ static void my_listener(int fd, enum job_type_t job_type) {
 		cout << "incoming data fd=" << fd  << endl;
 
 		// read all data from socket
-		auto data = UnixSocketServer::readAllData(fd);
+		auto data = UnixSocketServer::read(fd);
 
 		cout << "size of data: " << data.size() << endl;
 
@@ -61,7 +61,7 @@ static void my_listener(int fd, enum job_type_t job_type) {
 		for (std::vector<char> item: data) {
 			cout << counter << ": " << item.data() << endl;
 
-			UnixSocketServer::writeToSocket(fd, item);
+			UnixSocketServer::write(fd, item);
 		}
 
 	}
