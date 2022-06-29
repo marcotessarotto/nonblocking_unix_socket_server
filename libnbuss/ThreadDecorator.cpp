@@ -28,7 +28,7 @@ ThreadDecorator::~ThreadDecorator() {
 }
 
 void ThreadDecorator::setup() {
-	std::cout << "server.setup()" << std::endl;
+	//std::cout << "server.setup()" << std::endl;
 	server.setup();
 }
 
@@ -61,11 +61,17 @@ void ThreadDecorator::start(std::function<void(int, enum job_type_t )> callback_
 
 	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);
 
-	// TODO: return when server is listening for incoming connections
+	// return when server is listening for incoming connections
+
+	server.waitForListen();
 }
 
 void ThreadDecorator::terminate() {
 	server.terminate();
+}
+
+void ThreadDecorator::waitForListen() {
+	server.waitForListen();
 }
 
 void ThreadDecorator::stop() {

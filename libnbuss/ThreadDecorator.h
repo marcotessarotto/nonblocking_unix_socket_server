@@ -77,6 +77,11 @@ public:
 	virtual void terminate();
 
 	/**
+	 * wait for server to start listening for incoming connections
+	 */
+	virtual void waitForListen();
+
+	/**
 	 * terminate server instance and waits for thread to stop
 	 */
 	virtual void stop();

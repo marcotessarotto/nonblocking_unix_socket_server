@@ -51,6 +51,11 @@ public:
      */
 	virtual void terminate() = 0;
 
+	/**
+	 * wait for server to start listening for incoming connections
+	 */
+	virtual void waitForListen() = 0;
+
 };
 
 }

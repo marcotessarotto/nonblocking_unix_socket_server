@@ -65,14 +65,13 @@ int main(int argc, char *argv[])
 
 	//threadedServer.listen(my_listener);
 
+	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
 	//cout << "before pause" << endl;
 
 	//pause();
 
-	// we need to wait for the server thread to effectively listen for incoming connections
-	sleep(1);
 
 	UnixSocketClient usc;
 

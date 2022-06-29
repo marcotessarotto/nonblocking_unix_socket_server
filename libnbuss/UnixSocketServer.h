@@ -122,6 +122,11 @@ public:
 	virtual void terminate();
 
 	/**
+	 * wait for server to start listening for incoming connections
+	 */
+	virtual void waitForListen();
+
+	/**
 	 * read all available data from socket and return vector of vectors
 	 */
 	static std::vector<std::vector<char>> read(int fd);

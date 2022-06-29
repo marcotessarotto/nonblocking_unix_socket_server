@@ -122,6 +122,8 @@ void UnixSocketServer::setup() {
 
 void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback_function) {
 
+	std::cout << "UnixSocketServer::listen" << std::endl;
+
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
 		std::cout << "cleanup" << std::endl;
@@ -165,6 +167,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 	std::unique_lock<std::mutex> lk(mtx);
 	is_listening = true;
 	lk.unlock();
+	cv.notify_one();
 
 	syslog(LOG_DEBUG, "listen_sock=%d\n", listen_sock.fd);
 
@@ -332,6 +335,20 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 	} // for (;;)
 
 }
+
+/**
+ * wait for server starting to listen for incoming connections
+ */
+void UnixSocketServer::waitForListen() {
+
+	//std::cout << "waitForListen " << is_listening << std::endl;
+	std::unique_lock<std::mutex> lk(mtx);
+	while (!is_listening)
+		cv.wait(lk);
+
+	lk.unlock();
+}
+
 
 void UnixSocketServer::terminate() {
 
