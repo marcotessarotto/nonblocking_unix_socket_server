@@ -81,10 +81,18 @@ class UnixSocketServer : public virtual IGenericServer {
 	int open_unix_socket();
 
 	/// used by constructors to check parameters
-	void init();
+	void checkParameters();
 
 	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
+
+
+    /**
+     * setup server and bind socket to listening address (but do not call listen syscall)
+     *
+     * @throws std::runtime_error
+     */
+	virtual void setup();
 
 public:
 	/**
@@ -94,14 +102,6 @@ public:
 	UnixSocketServer(const std::string &&sockname, unsigned int backlog);
 	virtual ~UnixSocketServer();
 
-
-
-    /**
-     * setup server and bind socket to listening address
-     *
-     * @throws std::runtime_error
-     */
-	virtual void setup();
 
     /**
      * listen for incoming connections; on incoming data, call callback_function

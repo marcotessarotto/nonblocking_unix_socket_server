@@ -42,13 +42,6 @@ public:
 	virtual ~ThreadDecorator();
 
     /**
-     * setup server and bind socket to listening address
-     *
-     * @throws std::runtime_error
-     */
-	virtual void setup();
-
-    /**
      * listen for incoming connections; on incoming data, call callback_function
      *
      * returns only when another thread calls terminate method

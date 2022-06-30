@@ -27,10 +27,6 @@ ThreadDecorator::ThreadDecorator(IGenericServer &server) :
 ThreadDecorator::~ThreadDecorator() {
 }
 
-void ThreadDecorator::setup() {
-	//std::cout << "server.setup()" << std::endl;
-	server.setup();
-}
 
 void ThreadDecorator::mainLoopWorker() {
 

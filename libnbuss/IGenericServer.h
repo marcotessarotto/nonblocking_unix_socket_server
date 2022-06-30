@@ -31,7 +31,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void setup() = 0;
+	//virtual void setup() = 0;
 	
     /**
      * starts a new thread which will listen for incoming connections and process them

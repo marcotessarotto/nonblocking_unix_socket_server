@@ -61,16 +61,12 @@ int main(int argc, char *argv[])
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
-	threadedServer.setup();
+	//threadedServer.setup();
 
 	//threadedServer.listen(my_listener);
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
-
-	//cout << "before pause" << endl;
-
-	//pause();
 
 
 	UnixSocketClient usc;
