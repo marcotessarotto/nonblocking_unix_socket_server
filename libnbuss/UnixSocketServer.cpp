@@ -132,7 +132,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
-		std::cout << "cleanup" << std::endl;
+		std::cout << "listen cleanup" << std::endl;
 
 		// close listening socket and epoll socket
 		srv->listen_sock.close();
@@ -142,7 +142,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		srv->is_listening = false;
 		lk.unlock();
 
-		std::cout << "cleanup finished" << std::endl;
+		std::cout << "listen cleanup finished" << std::endl;
 
 		srv->cv.notify_one();
 	});
@@ -357,9 +357,7 @@ void UnixSocketServer::terminate() {
 
 	lk.unlock();
 
-	// unncessary
-	epollfd.close();
-	listen_sock.close();
+	std::cout << "UnixSocketServer::terminate() finished" << std::endl;
 }
 
 /**
