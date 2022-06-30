@@ -147,7 +147,9 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		srv->cv.notify_one();
 	});
 
-	struct epoll_event ev;
+	// initialization added after check with:
+	// valgrind -s --leak-check=yes default/main/nbuss_server
+	struct epoll_event ev = {0};
 	struct epoll_event events[MAX_EVENTS];
 
 	// start listening for incoming connections
