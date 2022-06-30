@@ -124,7 +124,7 @@ public:
 	/**
 	 * wait for server to start listening for incoming connections
 	 */
-	virtual void waitForListen();
+	virtual void waitForServerReady();
 
 	/**
 	 * read all available data from socket and return vector of vectors

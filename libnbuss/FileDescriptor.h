@@ -15,13 +15,14 @@ public:
 
 	void close() {
 		if (fd >= 0) {
+			std::cout << "FileDescriptor::close fd=" << fd << std::endl;
 			::close(fd);
 			fd = -1;
 		}
 	}
 
 	~FileDescriptor() {
-		std::cout << "~FileDescriptor " << fd << std::endl;
+		//std::cout << "~FileDescriptor " << fd << std::endl;
 		close();
 	}
 };

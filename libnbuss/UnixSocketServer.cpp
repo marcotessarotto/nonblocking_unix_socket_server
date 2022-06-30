@@ -126,29 +126,23 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 	std::cout << "UnixSocketServer::listen" << std::endl;
 
+	if (listen_sock.fd == -1) {
+		throw std::runtime_error("server socket is not open");
+	}
+
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
-		std::cout << "cleanup" << std::endl;
+		std::cout << "listen cleanup" << std::endl;
 
 		// close listening socket and epoll socket
 		srv->listen_sock.close();
 		srv->epollfd.close();
 
-		std::unique_lock<std::mutex> lk(srv->mtx, std::defer_lock);
-
-//        if (lk.try_lock()) {
-//            std::cout <<  "lock acquired.\n";
-//        } else {
-//            std::cout <<  "failed acquiring lock.\n";
-//            return;
-//        }
-
-		lk.lock();
-
+		std::unique_lock<std::mutex> lk(srv->mtx);
 		srv->is_listening = false;
 		lk.unlock();
 
-		std::cout << "cleanup finished" << std::endl;
+		std::cout << "listen cleanup finished" << std::endl;
 
 		srv->cv.notify_one();
 	});
@@ -156,16 +150,13 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 	struct epoll_event ev;
 	struct epoll_event events[MAX_EVENTS];
 
-	if (listen_sock.fd == -1) {
-		throw std::runtime_error("server socket is not open");
-	}
-
-	// call man 2 listen
+	// start listening for incoming connections
 	if (::listen(listen_sock.fd, backlog) == -1) {
 		syslog(LOG_ERR, "listen");
 		throw std::runtime_error("error returned by listen syscall");
 	}
 
+	// change state and notify that we are listening for incoming connections
 	std::unique_lock<std::mutex> lk(mtx);
 	is_listening = true;
 	lk.unlock();
@@ -238,8 +229,6 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 				if (events[n].events & EPOLLIN) {
 
 					conn_sock = accept4(listen_sock.fd, NULL, NULL,	SOCK_NONBLOCK);
-
-					//conn_sock = accept(listen_sock.fd, NULL, NULL);
 
 					if (conn_sock == -1) {
 						if (stop_server.load()) {
@@ -341,7 +330,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 /**
  * wait for server starting to listen for incoming connections
  */
-void UnixSocketServer::waitForListen() {
+void UnixSocketServer::waitForServerReady() {
 
 	std::cout << "waitForListen " << is_listening << std::endl;
 	std::unique_lock<std::mutex> lk(mtx);
@@ -368,9 +357,7 @@ void UnixSocketServer::terminate() {
 
 	lk.unlock();
 
-	//
-	epollfd.close();
-	listen_sock.close();
+	std::cout << "UnixSocketServer::terminate() finished" << std::endl;
 }
 
 /**

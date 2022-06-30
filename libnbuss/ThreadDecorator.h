@@ -2,8 +2,6 @@
 #define LIBNBUSS_THREADDECORATOR_H_
 
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 
 #include "IGenericServer.h"
 #include "IThreadable.h"
@@ -22,11 +20,8 @@ namespace nbuss_server {
 class ThreadDecorator : public virtual IThreadable {
 	IGenericServer &server;
 
-	bool terminate_worker;
+	//bool terminate_worker;
 	bool worker_is_running;
-
-	std::mutex m;
-	std::condition_variable cv;
 
 	std::thread workerThread;
 
@@ -36,8 +31,6 @@ class ThreadDecorator : public virtual IThreadable {
 
 public:
 	ThreadDecorator(IGenericServer &server);
-
-	//ThreadDecorator(IGenericServer &&server);
 
 	virtual ~ThreadDecorator();
 
@@ -72,7 +65,7 @@ public:
 	/**
 	 * wait for server to start listening for incoming connections
 	 */
-	virtual void waitForListen();
+	virtual void waitForServerReady();
 
 	/**
 	 * terminate server instance and waits for thread to stop
