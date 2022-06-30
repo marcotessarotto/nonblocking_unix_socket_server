@@ -69,7 +69,7 @@ class UnixSocketServer : public virtual IGenericServer {
 		}
 	};
 
-	/// declared as field so that terminate method can operate on it
+	/// declared as fields so that RunOnReturn instance in listen method can operate on them
 	FileDescriptor listen_sock;
 	FileDescriptor epollfd;
 
