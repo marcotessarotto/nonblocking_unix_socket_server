@@ -62,7 +62,7 @@ int UnixSocketServer::open_unix_socket() {
 
 	unlink(sockname.c_str());
 
-	syslog(LOG_DEBUG, "using non blocking socket\n");
+	// syslog(LOG_DEBUG, "using non blocking socket\n");
 
 	sfd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0); // | SOCK_SEQPACKET
 
@@ -79,7 +79,7 @@ int UnixSocketServer::open_unix_socket() {
 	strncpy(addr.sun_path, sockname.c_str(), sizeof(addr.sun_path) - 1);
 
 	if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr_un)) == -1) {
-		syslog(LOG_ERR, "bind");
+		syslog(LOG_ERR, "bind error");
 		return -1;
 	}
 
@@ -156,7 +156,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		throw std::runtime_error("error returned by listen syscall");
 	}
 
-	// change state and notify that we are listening for incoming connections
+	// change state and notify that we are now listening for incoming connections
 	std::unique_lock<std::mutex> lk(mtx);
 	is_listening = true;
 	lk.unlock();
@@ -201,6 +201,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
+		// check if server must stop
 		if (stop_server.load()) {
 			return;
 		}
@@ -348,13 +349,13 @@ void UnixSocketServer::terminate() {
 	stop_server.store(true);
 
 	// send a char to the pipe; on the other side, the listening thread
-	// will wake up (if sleeping) and will check for termination flag
+	// this will wake up the thread (if sleeping) and then it will check for termination flag
 	commandPipe.write('.');
 
+	// wait for server thread to stop listening for incoming connections
 	std::unique_lock<std::mutex> lk(mtx);
 	while (is_listening)
 		cv.wait(lk);
-
 	lk.unlock();
 
 	std::cout << "UnixSocketServer::terminate() finished" << std::endl;

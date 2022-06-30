@@ -28,7 +28,7 @@ namespace nbuss_server {
 /**
  * implement a non blocking unix socket server (although it blocks on epoll_wait syscall)
  *
- * constructor needs then name of the socket on file system and backlog size.
+ * constructor needs the name of the socket on file system and backlog size.
  *
  * incoming data is passed using a callback.
  *
@@ -96,7 +96,7 @@ class UnixSocketServer : public virtual IGenericServer {
 
 public:
 	/**
-	 * create instance; parameters are the name of the unix socket, on the file system, and backlog size
+	 * create instance; parameters are the name of the unix socket on the file system and backlog size
 	 */
 	UnixSocketServer(const std::string &sockname, unsigned int backlog);
 	UnixSocketServer(const std::string &&sockname, unsigned int backlog);
