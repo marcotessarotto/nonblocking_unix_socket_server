@@ -33,7 +33,6 @@ void NonblockingUnixSocketServerTest::TearDown() {
 ;
 
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
-
 	// expect exception
 
 	EXPECT_THROW( UnixSocketServer server("", 0) , std::invalid_argument );
@@ -69,33 +68,44 @@ static void my_listener(int fd, enum job_type_t job_type) {
 }
 
 
-//TEST_F(NonblockingUnixSocketServerTest, CreateServerAndConnect) {
-//
-//	std::string socketName{"/tmp/testsocket"};
-//
-//	UnixSocketServer server(socketName, 1);
-//
-//	Worker worker(server);
-//
-//	//server.setup();
-//	worker.setup();
-//
-//	worker.start(my_listener);
-//
-//	UnixSocketClient client;
-//
-//	client.connect(socketName);
-//
-//	client.write( something....)
-//
-//	// wait for server answer
-//
-//	// close client
-//
-//	// close server
-//
-//
-//}
+TEST_F(NonblockingUnixSocketServerTest, ServerClientReadWriteTest) {
+
+	string socketName = "/tmp/mysocket_test.sock";
+
+	UnixSocketServer uss(socketName, 10);
+
+	ThreadDecorator threadedServer(uss);
+
+	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(my_listener);
+
+	UnixSocketClient usc;
+
+	usc.connect(socketName);
+
+	std::string s = "test message";
+	std::vector<char> v(s.begin(), s.end());
+
+	cout << "[client] writing to socket\n";
+	usc.write(v);
+
+	cout << "[client] reading from socket\n";
+	// read server response
+	auto response = usc.read(1024);
+
+	cout << "[client] received data size: " << response.size() << endl;
+
+	usc.close();
+
+	threadedServer.stop();
+
+	cout << "test finished!" << endl;
+
+	EXPECT_EQ(response.size(), 12);
+}
 
 
 

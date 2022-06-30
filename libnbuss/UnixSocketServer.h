@@ -136,6 +136,12 @@ public:
 	 */
 	static int write(int fd, std::vector<char> item);
 
+
+	/**
+	 * set file descriptor attribute to O_NONBLOCK
+	 */
+	static int setFdNonBlocking(int fd);
+
 };
 
 } /* namespace mt_cpp_server */

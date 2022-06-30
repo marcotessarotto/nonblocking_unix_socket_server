@@ -15,25 +15,28 @@ static void my_listener(int fd, enum job_type_t job_type) {
 	switch(job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "closing socket " << fd << endl;
+		cout << "[server] closing socket " << fd << endl;
 		close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "incoming data fd=" << fd  << endl;
+		cout << "[server] incoming data fd=" << fd  << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "size of data: " << data.size() << endl;
+		cout << "[server] size of data: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item: data) {
-			cout << "item " << counter << ": " << item.size() << " bytes" << endl;
+			cout << "[server] item " << counter << ": " << item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
+
 
 			UnixSocketServer::write(fd, item);
 		}
+
+		cout << "[server] incoming data - finished elaboration\n";
 
 	}
 
@@ -53,9 +56,9 @@ int main(int argc, char *argv[])
 
 #ifdef USE_THREAD_DECORATOR
 
-	// TODO: make a test case out of this example
+	// see also ServerClientReadWriteTest in testlibnbuss.cpp
 
-	UnixSocketServer uss("/tmp/mysocket.sock", 10);
+	UnixSocketServer uss(socketName, 10);
 
 	ThreadDecorator threadedServer(uss);
 
@@ -72,18 +75,20 @@ int main(int argc, char *argv[])
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
+	cout << "[client] writing to socket\n";
 	usc.write(v);
 
-	// TODO: read server response
-	//std::vector<char> response = usc.read();
+	cout << "[client] reading from socket\n";
+	// read server response
+	auto response = usc.read(1024);
 
-	sleep(1);
+	cout << "[client] received data size: " << response.size() << endl;
 
 	usc.close();
 
 	threadedServer.stop();
 
-	cout << "finished!" << endl;
+	cout << "test finished!" << endl;
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue

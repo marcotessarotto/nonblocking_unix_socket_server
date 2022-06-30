@@ -370,7 +370,7 @@ void UnixSocketServer::terminate() {
 std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 	std::vector<std::vector<char>> result;
 
-	int counter = 0;
+	//int counter = 0;
 	while (true) {
 		std::vector<char> buffer(1024);
 
@@ -379,6 +379,8 @@ std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 
 		p = buffer.data();
 		int buffer_size = buffer.capacity();
+
+		//std::cout << "read #" << counter++ << std::endl;
 
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
@@ -429,5 +431,19 @@ int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 
 	return c;
 }
+
+
+int UnixSocketServer::setFdNonBlocking(int fd) {
+	int res;
+
+	res = fcntl(fd, F_SETFL, O_NONBLOCK);
+	if (res == -1) {
+		syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
+	}
+
+	return res;
+}
+
+
 
 } /* namespace nbuss_server */
