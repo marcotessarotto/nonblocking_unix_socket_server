@@ -22,16 +22,6 @@ class IGenericServer {
 public:
 	IGenericServer();
 	virtual ~IGenericServer();
-
-
-	// pure virtual methods
-
-    /**
-     * setup server and bind socket to listening address
-     *
-     * @throws std::runtime_error
-     */
-	//virtual void setup() = 0;
 	
     /**
      * starts a new thread which will listen for incoming connections and process them
@@ -52,9 +42,9 @@ public:
 	virtual void terminate() = 0;
 
 	/**
-	 * wait for server to start listening for incoming connections
+	 * wait for server to be ready i.e. listening to incoming connections
 	 */
-	virtual void waitForListen() = 0;
+	virtual void waitForServerReady() = 0;
 
 };
 

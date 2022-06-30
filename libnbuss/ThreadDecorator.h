@@ -37,8 +37,6 @@ class ThreadDecorator : public virtual IThreadable {
 public:
 	ThreadDecorator(IGenericServer &server);
 
-	//ThreadDecorator(IGenericServer &&server);
-
 	virtual ~ThreadDecorator();
 
     /**
@@ -72,7 +70,7 @@ public:
 	/**
 	 * wait for server to start listening for incoming connections
 	 */
-	virtual void waitForListen();
+	virtual void waitForServerReady();
 
 	/**
 	 * terminate server instance and waits for thread to stop

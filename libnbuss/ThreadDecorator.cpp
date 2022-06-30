@@ -14,16 +14,6 @@ ThreadDecorator::ThreadDecorator(IGenericServer &server) :
 	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &server)" << std::endl;
 }
 
-//ThreadDecorator::ThreadDecorator(IGenericServer &&server) :
-//		terminate_worker(false), worker_is_running(false), callback_function{},
-//		server(server), workerThread{} {
-//
-//	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &&server) " << std::endl;
-//
-//	std::cout << typeid(server).name() << std::endl;
-//	std::cout << typeid(this->server).name() << std::endl;
-//}
-
 ThreadDecorator::~ThreadDecorator() {
 }
 
@@ -57,17 +47,16 @@ void ThreadDecorator::start(std::function<void(int, enum job_type_t )> callback_
 
 	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);
 
-	// return when server is listening for incoming connections
-
-	server.waitForListen();
+	// return when server is ready i.e. listening for incoming connections
+	server.waitForServerReady();
 }
 
 void ThreadDecorator::terminate() {
 	server.terminate();
 }
 
-void ThreadDecorator::waitForListen() {
-	server.waitForListen();
+void ThreadDecorator::waitForServerReady() {
+	server.waitForServerReady();
 }
 
 void ThreadDecorator::stop() {
