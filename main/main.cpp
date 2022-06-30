@@ -55,22 +55,18 @@ int main(int argc, char *argv[])
 
 	// TODO: make a test case out of this example
 
-	UnixSocketServer u("/tmp/mysocket.sock", 10);
+	UnixSocketServer uss("/tmp/mysocket.sock", 10);
 
-	ThreadDecorator threadedServer(u);
+	ThreadDecorator threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
-	threadedServer.setup();
+	//threadedServer.setup();
 
 	//threadedServer.listen(my_listener);
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
-
-	//cout << "before pause" << endl;
-
-	//pause();
 
 
 	UnixSocketClient usc;
@@ -88,7 +84,6 @@ int main(int argc, char *argv[])
 	sleep(1);
 
 	usc.close();
-
 
 	threadedServer.stop();
 

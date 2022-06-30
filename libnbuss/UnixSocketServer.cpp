@@ -21,7 +21,7 @@
 
 namespace nbuss_server {
 
-void UnixSocketServer::init() {
+void UnixSocketServer::checkParameters() {
 	if (sockname.empty()) {
 		throw std::invalid_argument("missing sockname");
 	}
@@ -32,17 +32,19 @@ void UnixSocketServer::init() {
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
-		sockname(sockname), backlog(backlog), stop_server(false) {
+		sockname{sockname}, backlog{backlog}, stop_server{false}, is_listening{false} {
 	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
-	init();
+	checkParameters();
+
+	setup();
 }
 
-UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog) :
-		sockname(std::move(sockname)), backlog(backlog), stop_server(false) {
+UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
+		sockname(std::move(sockname)), backlog(backlog), stop_server(false), is_listening{false} {
 	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
-//	std::cout << this->sockname << std::endl;
+	checkParameters();
 
-	init();
+	setup();
 }
 
 UnixSocketServer::~UnixSocketServer() {
@@ -341,7 +343,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
  */
 void UnixSocketServer::waitForListen() {
 
-	//std::cout << "waitForListen " << is_listening << std::endl;
+	std::cout << "waitForListen " << is_listening << std::endl;
 	std::unique_lock<std::mutex> lk(mtx);
 	while (!is_listening)
 		cv.wait(lk);
