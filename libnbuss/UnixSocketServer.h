@@ -28,7 +28,7 @@ namespace nbuss_server {
 /**
  * implement a non blocking unix socket server (although it blocks on epoll_wait syscall)
  *
- * constructor needs then name of the socket on file system and backlog size.
+ * constructor needs the name of the socket on file system and backlog size.
  *
  * incoming data is passed using a callback.
  *
@@ -69,7 +69,7 @@ class UnixSocketServer : public virtual IGenericServer {
 		}
 	};
 
-	/// declared as field so that terminate method can operate on it
+	/// declared as fields so that RunOnReturn instance in listen method can operate on them
 	FileDescriptor listen_sock;
 	FileDescriptor epollfd;
 
@@ -81,27 +81,27 @@ class UnixSocketServer : public virtual IGenericServer {
 	int open_unix_socket();
 
 	/// used by constructors to check parameters
-	void init();
+	void checkParameters();
 
 	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
+
+    /**
+     * setup server and bind socket to listening address (but do not call listen syscall)
+     *
+     * @throws std::runtime_error
+     */
+	virtual void setup();
+
 public:
 	/**
-	 * create instance; parameters are the name of the unix socket, on the file system, and backlog size
+	 * create instance; parameters are the name of the unix socket on the file system and backlog size
 	 */
 	UnixSocketServer(const std::string &sockname, unsigned int backlog);
 	UnixSocketServer(const std::string &&sockname, unsigned int backlog);
 	virtual ~UnixSocketServer();
 
-
-
-    /**
-     * setup server and bind socket to listening address
-     *
-     * @throws std::runtime_error
-     */
-	virtual void setup();
 
     /**
      * listen for incoming connections; on incoming data, call callback_function
@@ -124,7 +124,7 @@ public:
 	/**
 	 * wait for server to start listening for incoming connections
 	 */
-	virtual void waitForListen();
+	virtual void waitForServerReady();
 
 	/**
 	 * read all available data from socket and return vector of vectors
@@ -135,6 +135,12 @@ public:
 	 * write data to the socket
 	 */
 	static int write(int fd, std::vector<char> item);
+
+
+	/**
+	 * set file descriptor attribute to O_NONBLOCK
+	 */
+	static int setFdNonBlocking(int fd);
 
 };
 

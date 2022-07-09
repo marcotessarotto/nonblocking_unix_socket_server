@@ -26,7 +26,12 @@ public:
 	void write(std::vector<char> data);
 	void write(std::string data);
 
-	std::vector<char> read();
+	/**
+	 * read synchronously from socket, up to buffer_size bytes
+	 *
+	 * @throws std::runtime_error in case of error on read syscall
+	 */
+	std::vector<char> read(int buffer_size);
 
 };
 

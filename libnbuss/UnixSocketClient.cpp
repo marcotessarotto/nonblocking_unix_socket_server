@@ -31,7 +31,7 @@ void UnixSocketClient::connect(const std::string &sockname) {
 
 
 	// open socket in blocking mode
-    data_socket = socket(AF_UNIX, SOCK_STREAM, 0);  //  SOCK_SEQPACKET
+    data_socket = socket(AF_UNIX, SOCK_STREAM , 0);  //  SOCK_SEQPACKET  | SOCK_NONBLOCK
     if (data_socket == -1) {
         perror("socket");
         throw std::runtime_error("socket error");
@@ -70,7 +70,7 @@ void UnixSocketClient::write(std::vector<char> data) {
 
 	// TODO: if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		// can this happen? no, because client socket is in blocking mode
+		// can this happen? yes, because client socket is in non blocking mode
 	}
 
 	// TODO: check
@@ -100,8 +100,42 @@ void UnixSocketClient::write(std::string data) {
 	}
 }
 
-std::vector<char> UnixSocketClient::read() {
-	throw std::runtime_error("not implemented yet! sorry :|");
+std::vector<char> UnixSocketClient::read(int buffer_size) {
+	//return nbuss_server::UnixSocketServer::read(data_socket);
+
+	if (buffer_size <= 0) {
+		throw std::invalid_argument("invalid buffer_size");
+	}
+
+	std::vector<char> buffer(buffer_size);
+
+	int c;
+	char * p;
+
+	p = buffer.data();
+
+	// read from blocking socket
+	c = ::read(data_socket, p, buffer_size);
+
+//	// no data available to read
+//	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+//		break;
+//	}
+
+	if (c == -1) {
+		// error returned by read syscall
+		perror("read");
+		throw std::runtime_error("read error");
+	}
+//	else if (c == 0) {
+//		// eof
+//	} else {
+//		// data has been read
+//	}
+
+	buffer.resize(c);
+
+	return buffer;
 }
 
 void UnixSocketClient::close() {

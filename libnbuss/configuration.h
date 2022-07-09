@@ -1,10 +1,8 @@
-
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#define USE_NONBLOCK_SOCKET
-#define CHECK_NONBLOCK_SOCKET 1
 
+// size of events array used in UnixSocketServer::listen method
 #define MAX_EVENTS 10
 
 #endif /* CONFIGURATION_H_ */

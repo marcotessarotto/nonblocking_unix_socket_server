@@ -21,7 +21,7 @@
 
 namespace nbuss_server {
 
-void UnixSocketServer::init() {
+void UnixSocketServer::checkParameters() {
 	if (sockname.empty()) {
 		throw std::invalid_argument("missing sockname");
 	}
@@ -32,17 +32,19 @@ void UnixSocketServer::init() {
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
-		sockname(sockname), backlog(backlog), stop_server(false) {
+		sockname{sockname}, backlog{backlog}, stop_server{false}, is_listening{false} {
 	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
-	init();
+	checkParameters();
+
+	setup();
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
-		sockname(std::move(sockname)), backlog(backlog), stop_server(false) {
+		sockname(std::move(sockname)), backlog(backlog), stop_server(false), is_listening{false} {
 	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
-//	std::cout << this->sockname << std::endl;
+	checkParameters();
 
-	init();
+	setup();
 }
 
 UnixSocketServer::~UnixSocketServer() {
@@ -60,7 +62,7 @@ int UnixSocketServer::open_unix_socket() {
 
 	unlink(sockname.c_str());
 
-	syslog(LOG_DEBUG, "using non blocking socket\n");
+	// syslog(LOG_DEBUG, "using non blocking socket\n");
 
 	sfd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0); // | SOCK_SEQPACKET
 
@@ -77,7 +79,7 @@ int UnixSocketServer::open_unix_socket() {
 	strncpy(addr.sun_path, sockname.c_str(), sizeof(addr.sun_path) - 1);
 
 	if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr_un)) == -1) {
-		syslog(LOG_ERR, "bind");
+		syslog(LOG_ERR, "bind error");
 		return -1;
 	}
 
@@ -124,46 +126,39 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 	std::cout << "UnixSocketServer::listen" << std::endl;
 
+	if (listen_sock.fd == -1) {
+		throw std::runtime_error("server socket is not open");
+	}
+
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
-		std::cout << "cleanup" << std::endl;
+		std::cout << "listen cleanup" << std::endl;
 
 		// close listening socket and epoll socket
 		srv->listen_sock.close();
 		srv->epollfd.close();
 
-		std::unique_lock<std::mutex> lk(srv->mtx, std::defer_lock);
-
-//        if (lk.try_lock()) {
-//            std::cout <<  "lock acquired.\n";
-//        } else {
-//            std::cout <<  "failed acquiring lock.\n";
-//            return;
-//        }
-
-		lk.lock();
-
+		std::unique_lock<std::mutex> lk(srv->mtx);
 		srv->is_listening = false;
 		lk.unlock();
 
-		std::cout << "cleanup finished" << std::endl;
+		std::cout << "listen cleanup finished" << std::endl;
 
 		srv->cv.notify_one();
 	});
 
-	struct epoll_event ev;
+	// initialization added after check with:
+	// valgrind -s --leak-check=yes default/main/nbuss_server
+	struct epoll_event ev = {0};
 	struct epoll_event events[MAX_EVENTS];
 
-	if (listen_sock.fd == -1) {
-		throw std::runtime_error("server socket is not open");
-	}
-
-	// call man 2 listen
+	// start listening for incoming connections
 	if (::listen(listen_sock.fd, backlog) == -1) {
 		syslog(LOG_ERR, "listen");
 		throw std::runtime_error("error returned by listen syscall");
 	}
 
+	// change state and notify that we are now listening for incoming connections
 	std::unique_lock<std::mutex> lk(mtx);
 	is_listening = true;
 	lk.unlock();
@@ -208,6 +203,7 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
+		// check if server must stop
 		if (stop_server.load()) {
 			return;
 		}
@@ -236,8 +232,6 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 				if (events[n].events & EPOLLIN) {
 
 					conn_sock = accept4(listen_sock.fd, NULL, NULL,	SOCK_NONBLOCK);
-
-					//conn_sock = accept(listen_sock.fd, NULL, NULL);
 
 					if (conn_sock == -1) {
 						if (stop_server.load()) {
@@ -339,9 +333,9 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 /**
  * wait for server starting to listen for incoming connections
  */
-void UnixSocketServer::waitForListen() {
+void UnixSocketServer::waitForServerReady() {
 
-	//std::cout << "waitForListen " << is_listening << std::endl;
+	std::cout << "waitForListen " << is_listening << std::endl;
 	std::unique_lock<std::mutex> lk(mtx);
 	while (!is_listening)
 		cv.wait(lk);
@@ -357,18 +351,16 @@ void UnixSocketServer::terminate() {
 	stop_server.store(true);
 
 	// send a char to the pipe; on the other side, the listening thread
-	// will wake up (if sleeping) and will check for termination flag
+	// this will wake up the thread (if sleeping) and then it will check for termination flag
 	commandPipe.write('.');
 
+	// wait for server thread to stop listening for incoming connections
 	std::unique_lock<std::mutex> lk(mtx);
 	while (is_listening)
 		cv.wait(lk);
-
 	lk.unlock();
 
-	//
-	epollfd.close();
-	listen_sock.close();
+	std::cout << "UnixSocketServer::terminate() finished" << std::endl;
 }
 
 /**
@@ -378,7 +370,7 @@ void UnixSocketServer::terminate() {
 std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 	std::vector<std::vector<char>> result;
 
-	int counter = 0;
+	//int counter = 0;
 	while (true) {
 		std::vector<char> buffer(1024);
 
@@ -387,6 +379,8 @@ std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
 
 		p = buffer.data();
 		int buffer_size = buffer.capacity();
+
+		//std::cout << "read #" << counter++ << std::endl;
 
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
@@ -437,5 +431,19 @@ int UnixSocketServer::write(int fd, std::vector<char> buffer) {
 
 	return c;
 }
+
+
+int UnixSocketServer::setFdNonBlocking(int fd) {
+	int res;
+
+	res = fcntl(fd, F_SETFL, O_NONBLOCK);
+	if (res == -1) {
+		syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
+	}
+
+	return res;
+}
+
+
 
 } /* namespace nbuss_server */
