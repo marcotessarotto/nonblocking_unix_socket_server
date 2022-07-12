@@ -5,14 +5,11 @@ set(Main_SRCS
 set(CMAKE_CXX_FLAGS -pthread)
  
 
-add_executable(nbuss_server
-    ${Main_SRCS}
+add_executable(nbuss_server  ${Main_SRCS}
 )
 
 # Specify here the libraries this program depends on
-target_link_libraries(nbuss_server
-    libnbuss
-)
+target_link_libraries(nbuss_server libnbuss)
 
 
 

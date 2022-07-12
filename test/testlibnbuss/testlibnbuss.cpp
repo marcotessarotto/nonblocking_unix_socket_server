@@ -22,15 +22,15 @@ NonblockingUnixSocketServerTest::NonblockingUnixSocketServerTest() {
 
 NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {
 }
-;
+
 
 void NonblockingUnixSocketServerTest::SetUp() {
 }
-;
+
 
 void NonblockingUnixSocketServerTest::TearDown() {
 }
-;
+
 
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 	// expect exception
