@@ -1,3 +1,7 @@
+#include "configuration.h"
+
+#include "UnixSocketServer.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -15,9 +19,6 @@
 #include <exception>
 #include <stdexcept>
 
-#include "configuration.h"
-
-#include "UnixSocketServer.h"
 
 namespace nbuss_server {
 
@@ -32,7 +33,7 @@ void UnixSocketServer::checkParameters() {
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
-		sockname{sockname}, backlog{backlog}, stop_server{false}, is_listening{false} {
+		sockname{sockname}, backlog{backlog} {
 	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
 	checkParameters();
 
@@ -40,7 +41,7 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int bac
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
-		sockname(std::move(sockname)), backlog(backlog), stop_server(false), is_listening{false} {
+		sockname(std::move(sockname)), backlog(backlog) {
 	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
 	checkParameters();
 
@@ -330,119 +331,6 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 
 }
 
-/**
- * wait for server starting to listen for incoming connections
- */
-void UnixSocketServer::waitForServerReady() {
-
-	std::cout << "waitForListen " << is_listening << std::endl;
-	std::unique_lock<std::mutex> lk(mtx);
-	while (!is_listening)
-		cv.wait(lk);
-
-	lk.unlock();
-}
-
-
-void UnixSocketServer::terminate() {
-
-	std::cout << "UnixSocketServer::terminate()" << std::endl;
-
-	stop_server.store(true);
-
-	// send a char to the pipe; on the other side, the listening thread
-	// this will wake up the thread (if sleeping) and then it will check for termination flag
-	commandPipe.write('.');
-
-	// wait for server thread to stop listening for incoming connections
-	std::unique_lock<std::mutex> lk(mtx);
-	while (is_listening)
-		cv.wait(lk);
-	lk.unlock();
-
-	std::cout << "UnixSocketServer::terminate() finished" << std::endl;
-}
-
-/**
- * read all data available on socket and return it as a vector of vector<char>
- *
- */
-//std::vector<std::vector<char>> UnixSocketServer::read(int fd) {
-//	std::vector<std::vector<char>> result;
-//
-//	//int counter = 0;
-//	while (true) {
-//		std::vector<char> buffer(1024);
-//
-//		int c;
-//		char * p;
-//
-//		p = buffer.data();
-//		int buffer_size = buffer.capacity();
-//
-//		//std::cout << "read #" << counter++ << std::endl;
-//
-//		// read from non blocking socket
-//		c = ::read(fd, p, buffer_size);
-//
-//		// no data available to read
-//		if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-//			break;
-//		}
-//
-//		if (c == -1) {
-//			// error returned by read syscall
-//			perror("read");
-//			break;
-//		} else if (c == 0) {
-//			// eof
-//			break;
-//		} else {
-//			// data has been read
-//			buffer.resize(c);
-//
-//			// std::cout << "adding buffer to result" << std::endl;
-//
-//			result.push_back(std::move(buffer));
-//		}
-//	}
-//
-//	return result;
-//}
-
-
-//int UnixSocketServer::write(int fd, std::vector<char> buffer) {
-//	// TODO: manage non blocking write calls
-//	// possible solution: implement a write queue
-//
-//	char * p;
-//	int c;
-//
-//	p = buffer.data();
-//	int buffer_size = buffer.size();
-//
-//	c = ::write(fd, p, buffer_size);
-//
-//	if (c == -1) {
-//		perror("read");
-//	} else {
-//		std::cout << "write: " << c << " bytes have been written to socket" << std::endl;
-//	}
-//
-//	return c;
-//}
-
-
-//int UnixSocketServer::setFdNonBlocking(int fd) {
-//	int res;
-//
-//	res = fcntl(fd, F_SETFL, O_NONBLOCK);
-//	if (res == -1) {
-//		syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
-//	}
-//
-//	return res;
-//}
 
 
 

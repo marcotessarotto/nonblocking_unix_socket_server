@@ -15,7 +15,7 @@
 
 namespace nbuss_server {
 
-IGenericServer::IGenericServer() {
+IGenericServer::IGenericServer() : stop_server{false}, is_listening{false} {
 
 	std::cout << "IGenericServer::IGenericServer" << std::endl;
 
@@ -26,6 +26,42 @@ IGenericServer::~IGenericServer() {
 	std::cout << "IGenericServer::~IGenericServer()" << std::endl;
 
 }
+
+/**
+ * wait for server starting to listen for incoming connections
+ */
+void IGenericServer::waitForServerReady() {
+
+	std::cout << "waitForServerReady is_listening=" << is_listening << std::endl;
+	std::unique_lock<std::mutex> lk(mtx);
+	while (!is_listening)
+		cv.wait(lk);
+
+	lk.unlock();
+}
+
+/**
+ * terminate server instance
+ */
+void IGenericServer::terminate() {
+
+	std::cout << "IGenericServer::terminate()" << std::endl;
+
+	stop_server.store(true);
+
+	// send a char to the pipe; on the other side, the listening thread
+	// this will wake up the thread (if sleeping) and then it will check for termination flag
+	commandPipe.write('.');
+
+	// wait for server thread to stop listening for incoming connections
+	std::unique_lock<std::mutex> lk(mtx);
+	while (is_listening)
+		cv.wait(lk);
+	lk.unlock();
+
+	std::cout << "IGenericServer::terminate() finished" << std::endl;
+}
+
 
 int IGenericServer::setFdNonBlocking(int fd) {
 	int res;

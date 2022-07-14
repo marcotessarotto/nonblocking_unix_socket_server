@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <vector>
 #include <functional>
+#include "UnixPipe.h"
 
 namespace nbuss_server {
 
@@ -25,7 +26,26 @@ enum job_type_t {
  *
  */
 class IGenericServer {
+
+protected:
+	/// flag used to notify that server must stop listening and close sockets
+	std::atomic<bool> stop_server;
+
+	/// flag which signals that server is listening for incoming connections
+	/// we use bool (and not a std::atomic) because we synchronize through a condition variable
+	bool is_listening;
+
+	/// mutex is used to synchronize access to is_listening
+	std::mutex mtx;
+	/// used to wait for is_listening to become false
+	std::condition_variable cv;
+
+	//	/// pipe used for signaling to listening thread that it must terminate
+	UnixPipe commandPipe;
+
 public:
+
+
 	IGenericServer();
 	virtual ~IGenericServer();
 	
@@ -45,12 +65,12 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void terminate() = 0;
+	virtual void terminate();
 
 	/**
 	 * wait for server to be ready i.e. listening to incoming connections
 	 */
-	virtual void waitForServerReady() = 0;
+	virtual void waitForServerReady();
 
 
 	/**
