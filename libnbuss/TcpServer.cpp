@@ -115,7 +115,7 @@ void check_nonblock_fd(int fd) {
 #define BUF_SIZE 500
 
 /**
- * find the network interface, open socket, bind it to the address
+ * find the network interface, open socket, bind it to the network device
  *
  * return socket or -1 on error
  */
@@ -194,10 +194,10 @@ int TcpServer::open_listening_socket() {
 
    //if (CHECK_NONBLOCK_SOCKET) check_nonblock_fd(sfd);
 
-   if (::listen(sfd, backlog) == -1) {
-	   perror("listen");
-	   exit(EXIT_FAILURE);
-   }
+//   if (::listen(sfd, backlog) == -1) {
+//	   perror("listen");
+//	   exit(EXIT_FAILURE);
+//   }
 
 //   char buffer[INET_ADDRSTRLEN] = { 0 };
 //
