@@ -16,18 +16,16 @@ std::ostream& operator<<(typename std::enable_if<std::is_enum<T>::value, std::os
 
 template <typename StateType, typename EventType>
 class FiniteStateMachine {
-	//int fd;
-
-public:
 
 	StateType state;
+
+public:
 
 	static void noop() {
 		// do nothing
 	}
 
 	/// lambda type for action to do when there is a match on (state, event)
-	//using TFSMAction =  std::function<void(FiniteStateMachine *)>;
 	using TFSMAction =  std::function<void(void)>;
 
 	/// description of finite state machine
@@ -115,15 +113,17 @@ example:
 		//std::make_tuple(STATE0_NEW_CONN, EVENT_A, [](FiniteStateMachine * sm) { std::cout << "hello!\n"; sm->state = STATE1; }),
 		std::make_tuple(State::STATE0_IDLE,
 				Event::EVENT_A_NEW_CONN,
-				//FiniteStateMachine<State,Event>::CHANGE_STATE_CALL(State::STATE1_HAVE_SENT_PUBK, FiniteStateMachine<State>::noop)), // send_pubk
-				[&fsm]() CHANGE_STATE(fsm, State::STATE1_HAVE_SENT_PUBK) ),
+				[&fsm]() {
+					// send puk
+					fsm.setState(State::STATE1_HAVE_SENT_PUBK);
+				}),
 
 		std::make_tuple(State::STATE1_HAVE_SENT_PUBK,
 				Event::EVENT_B_RCV_UAKE_SEND_A,
 				[&fsm]() {
-			// TODO: calc uake_send_b
+					// TODO: calc uake_send_b
 
-		}),
+				}),
 
 		std::make_tuple(State::STATE2_HAVE_RCV_UAKE_SEND_A,
 				Event::EVENT_B_RCV_UAKE_SEND_A,
