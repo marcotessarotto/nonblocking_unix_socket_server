@@ -27,7 +27,8 @@
 
 namespace nbuss_server {
 
-TcpServer::TcpServer(const std::string &address, unsigned int port, unsigned int backlog) : address{address}, port{port}  {
+TcpServer::TcpServer(const std::string &address, unsigned int port, unsigned int backlog) :
+		address{address}, port{port}, IGenericServer(0)  {
 
 }
 

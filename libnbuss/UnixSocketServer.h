@@ -39,9 +39,6 @@ class UnixSocketServer : public virtual IGenericServer {
 	/// socket name on file system
 	std::string sockname;
 
-	/// backlog for listening server socket
-	unsigned int backlog;
-
 
 	/// inner class for running a function when a method ends (see listen method)
 	class RunOnReturn {

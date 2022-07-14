@@ -42,6 +42,12 @@ static void my_listener(int fd, enum job_type_t job_type) {
 
 }
 
+/*
+ * test with valgrind:
+ *
+ * valgrind -s --leak-check=yes build/cmake.debug.linux.x86_64/main/nbuss_server
+ */
+
 
 //const bool USE_THREAD_DECORATOR = true;
 #define USE_THREAD_DECORATOR

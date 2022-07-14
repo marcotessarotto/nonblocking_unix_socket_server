@@ -43,12 +43,20 @@ protected:
 	//	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
+
+	/// backlog for listening server socket
+	unsigned int backlog;
+
+
 public:
-
-
 	IGenericServer();
+
+	IGenericServer(unsigned int backlog);
 	virtual ~IGenericServer();
 	
+
+
+
     /**
      * starts a new thread which will listen for incoming connections and process them
      *

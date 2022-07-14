@@ -15,9 +15,17 @@
 
 namespace nbuss_server {
 
-IGenericServer::IGenericServer() : stop_server{false}, is_listening{false} {
 
-	std::cout << "IGenericServer::IGenericServer" << std::endl;
+
+IGenericServer::IGenericServer() : stop_server{false}, is_listening{false}, backlog{0} {
+
+	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
+
+}
+
+IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog} {
+
+	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
 }
 

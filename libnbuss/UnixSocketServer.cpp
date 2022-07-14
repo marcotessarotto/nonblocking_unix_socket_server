@@ -33,7 +33,7 @@ void UnixSocketServer::checkParameters() {
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
-		sockname{sockname}, backlog{backlog} {
+		sockname{sockname}, IGenericServer(backlog) {
 	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
 	checkParameters();
 
@@ -41,7 +41,7 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int bac
 }
 
 UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
-		sockname(std::move(sockname)), backlog(backlog) {
+		sockname(std::move(sockname)), IGenericServer(backlog) {
 	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
 	checkParameters();
 
