@@ -13,6 +13,7 @@
 
 namespace nbuss_server {
 
+// TODO: consider moving to enum class
 enum job_type_t {
 	DATA_REQUEST, // incoming data is present
 	CLOSE_SOCKET // socket must be closed
@@ -69,9 +70,8 @@ public:
 
 
     /**
-     * terminate server
+     * terminate server; when the method returns, the server has terminated operations
      *
-     * @throws std::runtime_error
      */
 	virtual void terminate();
 

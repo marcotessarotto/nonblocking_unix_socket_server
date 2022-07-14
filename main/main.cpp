@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
 
 	UnixSocketServer uss(socketName, 10);
 
+	// listen method is called in another thread
 	ThreadDecorator threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
@@ -76,6 +77,7 @@ int main(int argc, char *argv[])
 
 	UnixSocketClient usc;
 
+	// so we can create a client instance and make it connect to the server
 	usc.connect(socketName);
 
 	std::string s = "test message";

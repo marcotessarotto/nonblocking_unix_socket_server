@@ -57,7 +57,7 @@ void IGenericServer::terminate() {
 
 	stop_server.store(true);
 
-	// send a char to the pipe; on the other side, the listening thread
+	// send a char to the pipe; on the other side, the listening thread listens with epoll.
 	// this will wake up the thread (if sleeping) and then it will check for termination flag
 	commandPipe.write('.');
 
