@@ -11,6 +11,7 @@ UnixSocketClient.h
 UnixSocketClient.cpp
 IThreadable.h
 IThreadable.cpp
+FiniteStateMachine.h
 )
 
 # Declare the library
