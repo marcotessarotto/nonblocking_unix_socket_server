@@ -54,7 +54,7 @@ static void my_listener(int fd, enum job_type_t job_type) {
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "size of data: " << data.size() << endl;
+		cout << "number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item: data) {

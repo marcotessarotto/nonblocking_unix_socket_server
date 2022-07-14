@@ -20,12 +20,12 @@ static void my_listener(int fd, enum job_type_t job_type) {
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server] incoming data fd=" << fd  << endl;
+		cout << "[server] incoming data on socket " << fd  << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "[server] size of data: " << data.size() << endl;
+		cout << "[server] number of vectors returned by read: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item: data) {
@@ -92,11 +92,13 @@ int main(int argc, char *argv[])
 
 	cout << "[client] received data size: " << response.size() << endl;
 
+	cout << "[client] closing socket" << endl;
 	usc.close();
 
+	cout << "[server] stopping server" << endl;
 	threadedServer.stop();
 
-	cout << "test finished!" << endl;
+	cout << "[main] test finished!" << endl;
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue

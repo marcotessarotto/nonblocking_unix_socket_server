@@ -66,18 +66,6 @@ public:
 	virtual ~UnixSocketServer();
 
 
-    /**
-     * listen for incoming connections; on incoming data, call callback_function
-     *
-     * returns only when another thread calls terminate method
-     *
-     * callback function is called when incoming data is ready.
-     * callback function parameters are: socket file descriptor and job type
-     *
-     * @throws std::runtime_error
-     */
-	virtual void listen(std::function<void(int, enum job_type_t )> callback_function);
-
 
 };
 
