@@ -27,9 +27,8 @@
 
 namespace nbuss_server {
 
-TcpServer::TcpServer(const std::string &address, unsigned int port, unsigned int backlog) :
+TcpServer::TcpServer(unsigned int port, const std::string &address, unsigned int backlog) :
 		address{address}, port{port}, IGenericServer(backlog)  {
-
 }
 
 
@@ -115,6 +114,11 @@ void check_nonblock_fd(int fd) {
 
 #define BUF_SIZE 500
 
+/**
+ * find the network interface, open socket, bind it to the address
+ *
+ * return socket or -1 on error
+ */
 int TcpServer::open_listening_socket() {
    struct addrinfo hints;
    struct addrinfo *result, *rp;
@@ -128,7 +132,8 @@ int TcpServer::open_listening_socket() {
 
    if (port > 0xFFFF) {
 	   printf("port error: %d\n", port);
-	   exit(EXIT_FAILURE);
+	   //exit(EXIT_FAILURE);
+	   return -1;
    }
 
    sprintf(port_str, "%u", port);
@@ -149,10 +154,11 @@ int TcpServer::open_listening_socket() {
    hints.ai_addr = NULL;
    hints.ai_next = NULL;
 
-   s = getaddrinfo("0.0.0.0", port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
+   s = getaddrinfo(/*"0.0.0.0"*/ address.c_str(), port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
    if (s != 0) {
 	   fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-	   exit(EXIT_FAILURE);
+	   //exit(EXIT_FAILURE);
+	   return -1;
    }
 
    /* getaddrinfo() returns a list of address structures.
@@ -162,7 +168,7 @@ int TcpServer::open_listening_socket() {
 
    for (rp = result; rp != NULL; rp = rp->ai_next) {
 
-	   sfd = socket(rp->ai_family, rp->ai_socktype | SOCK_NONBLOCK, // SOCK_NONBLOCK must be specififed here
+	   sfd = socket(rp->ai_family, rp->ai_socktype | SOCK_NONBLOCK, // SOCK_NONBLOCK must be specified here
 			   rp->ai_protocol);
 
 	   if (sfd == -1)
@@ -182,9 +188,9 @@ int TcpServer::open_listening_socket() {
 
    if (rp == NULL) {               /* No address succeeded */
 	   fprintf(stderr, "Could not bind\n");
-	   exit(EXIT_FAILURE);
+	   //exit(EXIT_FAILURE);
+	   return -1;
    }
-
 
    //if (CHECK_NONBLOCK_SOCKET) check_nonblock_fd(sfd);
 

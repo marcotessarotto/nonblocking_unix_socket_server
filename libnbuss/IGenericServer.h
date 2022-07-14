@@ -31,7 +31,7 @@ class IGenericServer {
 
 protected:
 
-	/// inner class for running a function when a method ends (see listen method)
+	/// inner class for running a function when a method ends (see listen method of classes from IGenericServer)
 	class RunOnReturn {
 	public:
 		std::function<void(IGenericServer *)> func;
@@ -70,13 +70,11 @@ protected:
 
 
 public:
-	IGenericServer();
+	//IGenericServer();
 
-	IGenericServer(unsigned int backlog);
+	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();
 	
-
-
 
     /**
      * starts a new thread which will listen for incoming connections and process them

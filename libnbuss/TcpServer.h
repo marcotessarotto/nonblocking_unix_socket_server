@@ -18,7 +18,6 @@
 #include "FileDescriptor.h"
 #include "configuration.h"
 #include "UnixPipe.h"
-//#include "UnixSocketServer.h"
 
 namespace nbuss_server {
 
@@ -42,7 +41,7 @@ class TcpServer :  public IGenericServer {
 	virtual void setup();
 
 public:
-	TcpServer(const std::string &address, unsigned int port, unsigned int backlog);
+	TcpServer(unsigned int port, const std::string &address = "0.0.0.0", unsigned int backlog = 10);
 
 	virtual ~TcpServer();
 

@@ -40,25 +40,6 @@ class UnixSocketServer : public virtual IGenericServer {
 	std::string sockname;
 
 
-//	/// inner class for running a function when a method ends (see listen method)
-//	class RunOnReturn {
-//	public:
-//		std::function<void(UnixSocketServer *)> func;
-//		UnixSocketServer *server;
-//
-//		RunOnReturn(UnixSocketServer * server, std::function<void(UnixSocketServer *)> func) : server{server}, func{func} {
-//		}
-//		~RunOnReturn() {
-//			std::cout << "~RunOnReturn" << std::endl;
-//			func(server);
-//		}
-//	};
-
-	/// declared as fields so that RunOnReturn instance in listen method can operate on them
-//	FileDescriptor listen_sock;
-//	FileDescriptor epollfd;
-
-
 	/**
 	 * open the unix socket on which the server listens; socket descriptor is stored in listen_sock field
 	 * returns fd if successful, -1 in case of error
