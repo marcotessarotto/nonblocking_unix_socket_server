@@ -6,6 +6,8 @@
 #include <ThreadDecorator.h>
 #include "UnixSocketClient.h"
 
+#include "TcpServer.h"
+
 //using ::testing::Return;
 
 
@@ -67,6 +69,9 @@ static void my_listener(int fd, enum job_type_t job_type) {
 
 }
 
+//TEST_F(TcpServerTest, ServerClientReadWriteTest) {
+//
+//}
 
 TEST_F(NonblockingUnixSocketServerTest, ServerClientReadWriteTest) {
 
