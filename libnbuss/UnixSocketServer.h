@@ -129,18 +129,18 @@ public:
 	/**
 	 * read all available data from socket and return vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd);
+	//static std::vector<std::vector<char>> read(int fd);
 
 	/**
 	 * write data to the socket
 	 */
-	static int write(int fd, std::vector<char> item);
+	//static int write(int fd, std::vector<char> item);
 
 
 	/**
-	 * set file descriptor attribute to O_NONBLOCK
+	 * set file descriptor attribute to O_NONBLOCK (moved to IGenericServer)
 	 */
-	static int setFdNonBlocking(int fd);
+	//static int setFdNonBlocking(int fd);
 
 };
 

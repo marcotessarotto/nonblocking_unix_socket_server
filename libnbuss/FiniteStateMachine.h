@@ -110,7 +110,6 @@ example:
 	TMyFSM fsm{State::STATE0_IDLE};
 
 	std::list<TMyFSM::TFSMTuple> data = {
-		//std::make_tuple(STATE0_NEW_CONN, EVENT_A, [](FiniteStateMachine * sm) { std::cout << "hello!\n"; sm->state = STATE1; }),
 		std::make_tuple(State::STATE0_IDLE,
 				Event::EVENT_A_NEW_CONN,
 				[&fsm]() {

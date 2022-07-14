@@ -1,7 +1,13 @@
 #ifndef IGENERICSERVER_H_
 #define IGENERICSERVER_H_
 
-
+#include <iostream>
+#include <string>
+#include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
 #include <functional>
 
 namespace nbuss_server {
@@ -45,6 +51,24 @@ public:
 	 * wait for server to be ready i.e. listening to incoming connections
 	 */
 	virtual void waitForServerReady() = 0;
+
+
+	/**
+	 * write data to the socket
+	 */
+	static int write(int fd, std::vector<char> item);
+
+
+	/**
+	 * read all available data from socket and return vector of vectors
+	 */
+	static std::vector<std::vector<char>> read(int fd);
+
+
+	/**
+	 * set socket as non blocking
+	 */
+	int setFdNonBlocking(int fd);
 
 };
 
