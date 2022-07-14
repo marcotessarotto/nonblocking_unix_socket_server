@@ -22,7 +22,7 @@ enum job_type_t {
 
 
 /**
- * IGenericServer defines an abstract class for a generic non blocking server.
+ * IGenericServer defines a class for a generic non blocking server.
  *
  * This allows to introduce different kind of servers i.e. non blocking unix socket server, non blocking TCP socket server ...
  *
@@ -86,19 +86,19 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void listen(std::function<void(int, enum job_type_t )> callback_function);
+	void listen(std::function<void(int, enum job_type_t )> callback_function);
 
 
     /**
      * terminate server; when the method returns, the server has terminated operations
      *
      */
-	virtual void terminate();
+	void terminate();
 
 	/**
 	 * wait for server to be ready i.e. listening to incoming connections
 	 */
-	virtual void waitForServerReady();
+	void waitForServerReady();
 
 
 	/**
