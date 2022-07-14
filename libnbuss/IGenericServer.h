@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <vector>
 #include <functional>
+#include "FileDescriptor.h"
 #include "UnixPipe.h"
 
 namespace nbuss_server {
@@ -29,6 +30,25 @@ enum job_type_t {
 class IGenericServer {
 
 protected:
+
+	/// inner class for running a function when a method ends (see listen method)
+	class RunOnReturn {
+	public:
+		std::function<void(IGenericServer *)> func;
+		IGenericServer *server;
+
+		RunOnReturn(IGenericServer * server, std::function<void(IGenericServer *)> func) : server{server}, func{func} {
+		}
+		~RunOnReturn() {
+			std::cout << "~RunOnReturn" << std::endl;
+			func(server);
+		}
+	};
+
+	/// declared as fields so that RunOnReturn instance in listen method can operate on them
+	FileDescriptor listen_sock;
+	FileDescriptor epollfd;
+
 	/// flag used to notify that server must stop listening and close sockets
 	std::atomic<bool> stop_server;
 
@@ -97,6 +117,11 @@ public:
 	 * set socket as non blocking
 	 */
 	int setFdNonBlocking(int fd);
+
+	/**
+	 * close listening socket and epoll socket
+	 */
+	void closeSockets();
 
 };
 

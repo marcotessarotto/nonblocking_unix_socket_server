@@ -151,4 +151,18 @@ std::vector<std::vector<char>> IGenericServer::read(int fd) {
 	return result;
 }
 
+void IGenericServer::closeSockets() {
+	// close listening socket and epoll socket
+	listen_sock.close();
+	epollfd.close();
+
+	std::unique_lock<std::mutex> lk(mtx);
+	is_listening = false;
+	lk.unlock();
+
+	std::cout << "listen cleanup finished" << std::endl;
+
+	cv.notify_one();
+}
+
 }

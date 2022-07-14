@@ -32,12 +32,22 @@ class TcpServer :  public IGenericServer {
 	 * returns fd if successful, -1 in case of error
 	 */
 	//int open_tcp_socket();
-	int open_listening_socket(unsigned int port, unsigned int backlog);
+	int open_listening_socket();
+
+    /**
+     * setup server and bind socket to listening address (but do not call listen syscall)
+     *
+     * @throws std::runtime_error
+     */
+	virtual void setup();
 
 public:
 	TcpServer(const std::string &address, unsigned int port, unsigned int backlog);
 
 	virtual ~TcpServer();
+
+
+
 };
 
 } /* namespace nbuss_server */

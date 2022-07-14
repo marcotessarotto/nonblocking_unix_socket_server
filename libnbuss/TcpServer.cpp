@@ -28,7 +28,7 @@
 namespace nbuss_server {
 
 TcpServer::TcpServer(const std::string &address, unsigned int port, unsigned int backlog) :
-		address{address}, port{port}, IGenericServer(0)  {
+		address{address}, port{port}, IGenericServer(backlog)  {
 
 }
 
@@ -37,14 +37,85 @@ TcpServer::~TcpServer() {
 
 }
 
+void TcpServer::setup() {
+
+	// listen_sock will be auto closed when returning from listen
+	listen_sock.fd = open_listening_socket();
+
+	if (listen_sock.fd == -1) {
+		throw std::runtime_error("cannot open server socket");
+	}
+
+}
+
+int tcp_proto;
 
 
+void set_tcp_socket_option(int fd, int opt, int optval) {
+	socklen_t sl_len = sizeof(optval);
+
+	if (setsockopt(fd, tcp_proto, opt, &optval, sl_len) == -1) {
+		perror("setsockopt");
+	}
+}
+
+void set_tcp_cork(int fd, int optval) {
+
+	socklen_t sl_len = sizeof(optval);
+
+	if (setsockopt(fd, tcp_proto, TCP_CORK, &optval, sl_len) == -1) {
+		perror("setsockopt");
+	}
+}
+
+
+int is_tcp_cork_enabled(int fd) {
+
+	int optval;
+	socklen_t sl_len = sizeof(optval);
+	if (getsockopt(fd, tcp_proto, TCP_CORK, &optval, &sl_len) == -1) {
+		perror("getsockopt");
+	}
+
+	return optval;
+}
+
+
+void init_socket_env() {
+	struct protoent * pe;
+
+	pe = getprotobyname("TCP");
+	tcp_proto = pe->p_proto;
+}
+
+
+void check_nonblock_fd(int fd) {
+	int res;
+
+	res = fcntl(fd, F_GETFL, 0);
+
+	if (res == -1) {
+		perror("fcntl");
+	} else {
+		if (res & O_NONBLOCK)  {
+			printf("fd %d has O_NONBLOCK attr\n", fd);
+		} else {
+			printf("fd %d does not have O_NONBLOCK attr! trying to enable flag... ", fd);
+
+			if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+				perror("fcntl - setting O_NONBLOCK");
+			} else {
+				printf("OK\n");
+			}
+		}
+	}
+}
 
 
 
 #define BUF_SIZE 500
 
-int TcpServer::open_listening_socket(unsigned int port, unsigned int backlog) {
+int TcpServer::open_listening_socket() {
    struct addrinfo hints;
    struct addrinfo *result, *rp;
    int sfd, s;

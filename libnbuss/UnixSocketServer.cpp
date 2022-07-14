@@ -132,20 +132,22 @@ void UnixSocketServer::listen(std::function<void(int, enum job_type_t)> callback
 	}
 
 	// this lambda will be run before returning from listen function
-	RunOnReturn runOnReturn(this, [](UnixSocketServer * srv) {
+	RunOnReturn runOnReturn(this, [](IGenericServer * srv) {
 		std::cout << "listen cleanup" << std::endl;
 
-		// close listening socket and epoll socket
-		srv->listen_sock.close();
-		srv->epollfd.close();
+		srv->closeSockets();
 
-		std::unique_lock<std::mutex> lk(srv->mtx);
-		srv->is_listening = false;
-		lk.unlock();
-
-		std::cout << "listen cleanup finished" << std::endl;
-
-		srv->cv.notify_one();
+//		// close listening socket and epoll socket
+//		srv->listen_sock.close();
+//		srv->epollfd.close();
+//
+//		std::unique_lock<std::mutex> lk(srv->mtx);
+//		srv->is_listening = false;
+//		lk.unlock();
+//
+//		std::cout << "listen cleanup finished" << std::endl;
+//
+//		srv->cv.notify_one();
 	});
 
 	// initialization added after check with:
