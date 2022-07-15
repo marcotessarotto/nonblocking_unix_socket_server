@@ -6,10 +6,7 @@
 #include <ThreadDecorator.h>
 #include "UnixSocketClient.h"
 
-#include "TcpServer.h"
-
 //using ::testing::Return;
-
 
 using namespace std;
 using namespace nbuss_server;
@@ -25,33 +22,34 @@ NonblockingUnixSocketServerTest::NonblockingUnixSocketServerTest() {
 NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {
 }
 
-
 void NonblockingUnixSocketServerTest::SetUp() {
+	openlog("testlibnbuss", LOG_CONS | LOG_PERROR, LOG_USER);
 }
-
 
 void NonblockingUnixSocketServerTest::TearDown() {
 }
 
-
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
+
+	cout << "\n***TestParameters**" << endl;
+
 	// expect exception
 
-	EXPECT_THROW( UnixSocketServer server("", 0) , std::invalid_argument );
+	EXPECT_THROW(UnixSocketServer server("", 0), std::invalid_argument);
 }
 
+static void my_listener(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
-static void my_listener(int fd, enum job_type_t job_type) {
-
-	switch(job_type) {
+	switch (job_type) {
 	case CLOSE_SOCKET:
 
 		cout << "closing socket " << fd << endl;
-		close(fd);
+		//close(fd);
+		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "incoming data fd=" << fd  << endl;
+		cout << "incoming data fd=" << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
@@ -59,8 +57,8 @@ static void my_listener(int fd, enum job_type_t job_type) {
 		cout << "number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
-		for (std::vector<char> item: data) {
-			cout << counter << ": " << item.data() << endl;
+		for (std::vector<char> item : data) {
+			cout << counter << ": " << item.size() << " bytes" << endl;
 
 			UnixSocketServer::write(fd, item);
 		}
@@ -69,26 +67,85 @@ static void my_listener(int fd, enum job_type_t job_type) {
 
 }
 
-//TEST_F(TcpServerTest, ServerClientReadWriteTest) {
-//
-//}
+TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
-TEST_F(NonblockingUnixSocketServerTest, ServerClientReadWriteTest) {
+	try {
+
+		cout << "\n***TcpServerClientReadWriteTest**" << endl;
+
+		// create instance of tcp non blocking server
+
+		TcpServer ts{10001, "0.0.0.0", 10};
+
+		// listen method is called in another thread
+		ThreadDecorator threadedServer{ts};
+
+		std::atomic_thread_fence(std::memory_order_release);
+
+		cout << "[server] starting server\n";
+		// when start returns, server has started listening for incoming connections
+		threadedServer.start(my_listener);
+
+
+//
+//		// ?!?!?! sometimes threadedServer is destroyed here, terminating the program with message:
+//		// terminate called without an active exception
+//
+		TcpClient tc;
+
+		cout << "[client] connect to server\n";
+		tc.connect("0.0.0.0", 10001);
+
+		std::string s = "test message";
+		std::vector<char> v(s.begin(), s.end());
+
+		cout << "[client] writing to socket\n";
+		tc.write(v);
+
+		cout << "[client] reading from socket\n";
+		// read server response
+		auto response = tc.read(1024);
+
+		cout << "[client] received data size: " << response.size() << endl;
+
+		cout << "[client] closing socket" << endl;
+		tc.close();
+
+		// spin... consider using a condition variable
+		while (ts.getActiveConnections() > 0)
+			;
+
+		cout << "[server] stopping server" << endl;
+		threadedServer.stop();
+
+		cout << "[main] test finished!" << endl;
+
+		EXPECT_EQ(response.size(), 12);
+
+	} catch (const std::exception &e) {
+		cout << "exception: " << e.what() << endl;
+	}
+
+}
+
+TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
+
+	cout << "\n***UdpServerClientReadWriteTest**" << endl;
 
 	string socketName = "/tmp/mysocket_test.sock";
 
-	UnixSocketServer uss(socketName, 10);
+	UnixSocketServer uss{socketName, 10};
 
 	ThreadDecorator threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
-
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
 	UnixSocketClient usc;
 
+	cout << "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
@@ -105,14 +162,16 @@ TEST_F(NonblockingUnixSocketServerTest, ServerClientReadWriteTest) {
 
 	usc.close();
 
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
+
 	threadedServer.stop();
 
 	cout << "test finished!" << endl;
 
 	EXPECT_EQ(response.size(), 12);
 }
-
-
 
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {
 //    Foo foo(m_bar);

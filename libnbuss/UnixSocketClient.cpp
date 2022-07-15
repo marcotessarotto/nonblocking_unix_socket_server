@@ -12,11 +12,10 @@
 namespace nbuss_client {
 
 UnixSocketClient::UnixSocketClient() : sockname{}, data_socket{-1} {
-
 }
 
 UnixSocketClient::~UnixSocketClient() {
-
+	close();
 }
 
 void UnixSocketClient::connect(const std::string &sockname) {

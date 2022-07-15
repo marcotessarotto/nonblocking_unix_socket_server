@@ -5,38 +5,43 @@
 #include "UnixSocketServer.h"
 #include "ThreadDecorator.h"
 #include "UnixSocketClient.h"
+#include "TcpServer.h"
+#include "TcpClient.h"
 
 using namespace std;
 using namespace nbuss_server;
 using namespace nbuss_client;
 
-static void my_listener(int fd, enum job_type_t job_type) {
+static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
-	switch(job_type) {
+	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "[server] closing socket " << fd << endl;
-		close(fd);
+		cout << "[server my_listener] closing socket " << fd << endl;
+
+		srv->close(fd);
+		//close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server] incoming data on socket " << fd  << endl;
+		cout << "[server my_listener] incoming data on socket " << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "[server] number of vectors returned by read: " << data.size() << endl;
+		cout << "[server my_listener] number of vectors returned by read: "
+				<< data.size() << endl;
 
 		int counter = 0;
-		for (std::vector<char> item: data) {
-			cout << "[server] item " << counter << ": " << item.size() << " bytes" << endl;
+		for (std::vector<char> item : data) {
+			cout << "[server my_listener] item " << counter << ": "
+					<< item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
-
 
 			UnixSocketServer::write(fd, item);
 		}
 
-		cout << "[server] incoming data - finished elaboration\n";
+		cout << "[server my_listener] incoming data - finished processing\n";
 
 	}
 
@@ -46,15 +51,72 @@ static void my_listener(int fd, enum job_type_t job_type) {
  * test with valgrind:
  *
  * valgrind -s --leak-check=yes build/cmake.debug.linux.x86_64/main/nbuss_server
+ *
+ * debug build:
+ *
+ * cd build/cmake.debug.linux.x86_64
+ * cmake -DCMAKE_BUILD_TYPE=Debug ../..
+ * cmake --build .
+ *
  */
 
-
-//const bool USE_THREAD_DECORATOR = true;
 #define USE_THREAD_DECORATOR
 
-int main(int argc, char *argv[])
-{
+#define USE_TCP
+
+int main(int argc, char *argv[]) {
 	openlog("nbuss_server", LOG_CONS | LOG_PERROR, LOG_USER);
+
+#ifdef USE_TCP
+
+	// this will leave N tcp connections in TIME_WAIT state
+	// see also https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux
+
+	for (int i = 0; i < 1000; i++) {
+
+		cout << endl << endl << endl;
+
+		TcpServer ts(10001, "0.0.0.0", 10);
+
+		// listen method is called in another thread
+		ThreadDecorator threadedServer(ts);
+
+		cout << "[server] starting server\n";
+		// when start returns, server has started listening for incoming connections
+		threadedServer.start(my_listener);
+
+		TcpClient tc;
+		tc.connect("0.0.0.0", 10001);
+
+		std::string s = "test message";
+		std::vector<char> v(s.begin(), s.end());
+
+		cout << "[client] writing to socket\n";
+		tc.write(v);
+
+		cout << "[client] reading from socket\n";
+		// read server response
+		auto response = tc.read(1024);
+
+		cout << "[client] received data size: " << response.size() << endl;
+
+		cout << "[client] closing socket" << endl;
+		tc.close();
+
+		// spin... consider adding a condition variable
+		while (ts.getActiveConnections() > 0)
+			;
+
+		cout << "[server] stopping server" << endl;
+		threadedServer.stop();
+
+		cout << "[main] test finished! " << i << endl;
+
+	}
+
+#else
+
+	for (int i = 0; i < 100; i++) {
 
 	string socketName = "/tmp/mysocket.sock";
 
@@ -72,12 +134,13 @@ int main(int argc, char *argv[])
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 
+	cout << "[server] starting server\n";
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
 	UnixSocketClient usc;
 
-	// so we can create a client instance and make it connect to the server
+	cout << "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
@@ -98,7 +161,7 @@ int main(int argc, char *argv[])
 	cout << "[server] stopping server" << endl;
 	threadedServer.stop();
 
-	cout << "[main] test finished!" << endl;
+	cout << "[main] test finished! " << i << endl;
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue
@@ -112,7 +175,9 @@ int main(int argc, char *argv[])
 
 #endif
 
+	}
 
+#endif
 
 	return 0;
 }

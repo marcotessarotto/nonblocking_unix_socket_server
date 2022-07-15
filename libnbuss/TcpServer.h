@@ -30,7 +30,6 @@ class TcpServer :  public IGenericServer {
 	 * open the socket on which the server listens; socket descriptor is stored in listen_sock field
 	 * returns fd if successful, -1 in case of error
 	 */
-	//int open_tcp_socket();
 	int open_listening_socket();
 
     /**

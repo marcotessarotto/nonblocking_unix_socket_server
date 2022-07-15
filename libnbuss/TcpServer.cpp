@@ -29,6 +29,20 @@ namespace nbuss_server {
 
 TcpServer::TcpServer(unsigned int port, const std::string &address, unsigned int backlog) :
 		address{address}, port{port}, IGenericServer(backlog)  {
+
+	if (address.empty()) {
+		throw std::invalid_argument("missing address");
+	}
+
+	if (backlog <= 0) {
+		throw std::invalid_argument("backlog must be > 0");
+	}
+
+	if (port <= 0) {
+		throw std::invalid_argument("port must be > 0");
+	}
+
+	setup();
 }
 
 
@@ -115,7 +129,7 @@ void check_nonblock_fd(int fd) {
 #define BUF_SIZE 500
 
 /**
- * find the network interface, open socket, bind it to the address
+ * find the network interface, open a socket, bind it to the network interface
  *
  * return socket or -1 on error
  */
@@ -138,11 +152,16 @@ int TcpServer::open_listening_socket() {
 
    sprintf(port_str, "%u", port);
 
-   printf("open_listening_socket port=%s\n", port_str);
+   std::cout << "open_listening_socket port=" << port_str << std::endl;
+   //printf("open_listening_socket port=%s\n", port_str);
 
    // PF_INET 2
    // SOCK_STREAM 1
    // TCP 6
+
+//   struct protoent* tcp;
+//   tcp = getprotobyname("tcp");
+   // tcp->p_proto
 
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = AF_UNSPEC; //AF_UNSPEC; // AF_UNSPEC; AF_INET   /* Allow IPv4 or IPv6 */
@@ -156,7 +175,8 @@ int TcpServer::open_listening_socket() {
 
    s = getaddrinfo(/*"0.0.0.0"*/ address.c_str(), port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
    if (s != 0) {
-	   fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+	   std::cout << "getaddrinfo error: " << gai_strerror(s) << std::endl;
+	   //fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 	   //exit(EXIT_FAILURE);
 	   return -1;
    }
@@ -187,17 +207,18 @@ int TcpServer::open_listening_socket() {
 //   printf("out of for loop\n");
 
    if (rp == NULL) {               /* No address succeeded */
-	   fprintf(stderr, "Could not bind\n");
+	   //fprintf(stderr, "could not bind\n");
+	   std::cout << "could not bind" << std::endl;
 	   //exit(EXIT_FAILURE);
 	   return -1;
    }
 
    //if (CHECK_NONBLOCK_SOCKET) check_nonblock_fd(sfd);
 
-   if (::listen(sfd, backlog) == -1) {
-	   perror("listen");
-	   exit(EXIT_FAILURE);
-   }
+//   if (::listen(sfd, backlog) == -1) {
+//	   perror("listen");
+//	   exit(EXIT_FAILURE);
+//   }
 
 //   char buffer[INET_ADDRSTRLEN] = { 0 };
 //

@@ -14,6 +14,8 @@ IThreadable.cpp
 FiniteStateMachine.h
 TcpServer.h
 TcpServer.cpp
+TcpClient.h
+TcpClient.cpp
 )
 
 # Declare the library
