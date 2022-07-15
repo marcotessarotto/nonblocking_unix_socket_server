@@ -37,13 +37,14 @@ void ThreadDecorator::listen(std::function<void(IGenericServer *, int, enum job_
 void ThreadDecorator::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
 	this->callback_function = callback_function;
 
-	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);
+	workerThread = std::thread{&ThreadDecorator::mainLoopWorker, this};
 
 	// return when server is ready i.e. listening for incoming connections
 	server.waitForServerReady();
 }
 
 void ThreadDecorator::terminate() {
+	std::cout << "ThreadDecorator::terminate" << std::endl;
 	server.terminate();
 }
 

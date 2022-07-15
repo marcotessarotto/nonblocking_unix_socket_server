@@ -84,6 +84,8 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 		// when start returns, server has started listening for incoming connections
 		threadedServer.start(my_listener);
 
+		//ASSERT_EQ(1, 1);
+
 		cout << "[client] connect to server\n";
 		TcpClient tc;
 		tc.connect("0.0.0.0", 10001);

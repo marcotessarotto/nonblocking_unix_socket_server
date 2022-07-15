@@ -21,7 +21,6 @@ namespace nbuss_server {
 
 IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog},
 		activeConnections{0} {
-
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
 	if (backlog <= 0) {
