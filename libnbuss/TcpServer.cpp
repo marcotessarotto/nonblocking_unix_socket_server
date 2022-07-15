@@ -152,7 +152,8 @@ int TcpServer::open_listening_socket() {
 
    sprintf(port_str, "%u", port);
 
-   printf("open_listening_socket port=%s\n", port_str);
+   std::cout << "open_listening_socket port=" << port_str << std::endl;
+   //printf("open_listening_socket port=%s\n", port_str);
 
    // PF_INET 2
    // SOCK_STREAM 1
@@ -174,7 +175,8 @@ int TcpServer::open_listening_socket() {
 
    s = getaddrinfo(/*"0.0.0.0"*/ address.c_str(), port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
    if (s != 0) {
-	   fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+	   std::cout << "getaddrinfo error: " << gai_strerror(s) << std::endl;
+	   //fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 	   //exit(EXIT_FAILURE);
 	   return -1;
    }
@@ -205,7 +207,8 @@ int TcpServer::open_listening_socket() {
 //   printf("out of for loop\n");
 
    if (rp == NULL) {               /* No address succeeded */
-	   fprintf(stderr, "Could not bind\n");
+	   //fprintf(stderr, "could not bind\n");
+	   std::cout << "could not bind" << std::endl;
 	   //exit(EXIT_FAILURE);
 	   return -1;
    }

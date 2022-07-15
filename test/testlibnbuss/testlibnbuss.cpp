@@ -75,19 +75,25 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 		// create instance of tcp non blocking server
 
-		TcpServer ts(10001, "0.0.0.0", 10);
+		TcpServer ts{10001, "0.0.0.0", 10};
 
 		// listen method is called in another thread
-		ThreadDecorator threadedServer(ts);
+		ThreadDecorator threadedServer{ts};
+
+		std::atomic_thread_fence(std::memory_order_release);
 
 		cout << "[server] starting server\n";
 		// when start returns, server has started listening for incoming connections
 		threadedServer.start(my_listener);
 
-		//ASSERT_EQ(1, 1);
+
+//
+//		// ?!?!?! sometimes threadedServer is destroyed here, terminating the program with message:
+//		// terminate called without an active exception
+//
+		TcpClient tc;
 
 		cout << "[client] connect to server\n";
-		TcpClient tc;
 		tc.connect("0.0.0.0", 10001);
 
 		std::string s = "test message";
@@ -105,7 +111,7 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 		cout << "[client] closing socket" << endl;
 		tc.close();
 
-		// spin... consider adding a condition variable
+		// spin... consider using a condition variable
 		while (ts.getActiveConnections() > 0)
 			;
 
@@ -128,7 +134,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	string socketName = "/tmp/mysocket_test.sock";
 
-	UnixSocketServer uss(socketName, 10);
+	UnixSocketServer uss{socketName, 10};
 
 	ThreadDecorator threadedServer(uss);
 
@@ -139,6 +145,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	UnixSocketClient usc;
 
+	cout << "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
@@ -154,6 +161,10 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 	cout << "[client] received data size: " << response.size() << endl;
 
 	usc.close();
+
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
 
 	threadedServer.stop();
 

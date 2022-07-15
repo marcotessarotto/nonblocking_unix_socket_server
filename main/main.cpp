@@ -74,6 +74,8 @@ int main(int argc, char *argv[]) {
 
 	for (int i = 0; i < 1000; i++) {
 
+		cout << endl << endl << endl;
+
 		TcpServer ts(10001, "0.0.0.0", 10);
 
 		// listen method is called in another thread
@@ -108,7 +110,7 @@ int main(int argc, char *argv[]) {
 		cout << "[server] stopping server" << endl;
 		threadedServer.stop();
 
-		cout << "[main] test finished! " << i << endl << endl << endl;
+		cout << "[main] test finished! " << i << endl;
 
 	}
 
