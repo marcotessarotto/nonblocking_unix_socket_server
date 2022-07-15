@@ -68,6 +68,7 @@ protected:
 	/// backlog for listening server socket
 	unsigned int backlog;
 
+	std::atomic<int> activeConnections;
 
 public:
 
@@ -85,7 +86,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	void listen(std::function<void(int, enum job_type_t )> callback_function);
+	void listen(std::function<void(IGenericServer * srv, int, enum job_type_t )> callback_function);
 
 
     /**
@@ -121,6 +122,23 @@ public:
 	 * close listening socket and epoll socket
 	 */
 	void closeSockets();
+
+	/**
+	 * get number of active connections to server
+	 */
+	int getActiveConnections() { return activeConnections.load(); }
+
+	/**
+	 * close socket and decrease counter of active connections
+	 */
+	void close(int fd) {
+
+		//std::cout << "IGenericServer::close " << fd;
+		if (fd >= 0) {
+			::close(fd);
+			activeConnections--;
+		}
+	}
 
 };
 

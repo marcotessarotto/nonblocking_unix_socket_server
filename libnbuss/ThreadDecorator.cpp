@@ -30,11 +30,11 @@ void ThreadDecorator::mainLoopWorker() {
 	std::cout << "mainLoopWorker end" << std::endl;
 }
 
-void ThreadDecorator::listen(std::function<void(int, enum job_type_t )> callback_function) {
+void ThreadDecorator::listen(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
 	server.listen(callback_function);
 }
 
-void ThreadDecorator::start(std::function<void(int, enum job_type_t )> callback_function) {
+void ThreadDecorator::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
 	this->callback_function = callback_function;
 
 	workerThread = std::thread(&ThreadDecorator::mainLoopWorker, this);

@@ -25,7 +25,7 @@ class ThreadDecorator : public virtual IThreadable {
 
 	std::thread workerThread;
 
-	std::function<void(int, enum job_type_t )> callback_function;
+	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
 
 	void mainLoopWorker();
 
@@ -44,7 +44,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void listen(std::function<void(int, enum job_type_t )> callback_function);
+	virtual void listen(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
 
 
     /**
@@ -55,7 +55,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start(std::function<void(int, enum job_type_t )> callback_function);
+	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
 
 	/**
 	 * terminate server instance

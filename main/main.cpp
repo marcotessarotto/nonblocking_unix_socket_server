@@ -12,28 +12,31 @@ using namespace std;
 using namespace nbuss_server;
 using namespace nbuss_client;
 
-static void my_listener(int fd, enum job_type_t job_type) {
+static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
-	switch(job_type) {
+	switch (job_type) {
 	case CLOSE_SOCKET:
 
 		cout << "[server my_listener] closing socket " << fd << endl;
-		close(fd);
+
+		srv->close(fd);
+		//close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server my_listener] incoming data on socket " << fd  << endl;
+		cout << "[server my_listener] incoming data on socket " << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "[server my_listener] number of vectors returned by read: " << data.size() << endl;
+		cout << "[server my_listener] number of vectors returned by read: "
+				<< data.size() << endl;
 
 		int counter = 0;
-		for (std::vector<char> item: data) {
-			cout << "[server my_listener] item " << counter << ": " << item.size() << " bytes" << endl;
+		for (std::vector<char> item : data) {
+			cout << "[server my_listener] item " << counter << ": "
+					<< item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
-
 
 			UnixSocketServer::write(fd, item);
 		}
@@ -57,51 +60,55 @@ static void my_listener(int fd, enum job_type_t job_type) {
  *
  */
 
-
 #define USE_THREAD_DECORATOR
 
 #define USE_TCP
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	openlog("nbuss_server", LOG_CONS | LOG_PERROR, LOG_USER);
-
 
 #ifdef USE_TCP
 
-	for (int i = 0; i < 100; i++) {
+	// this will leave N tcp connections in TIME_WAIT state
+	// see also https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux
 
-	TcpServer ts(10001, "0.0.0.0", 10);
+	for (int i = 0; i < 1000; i++) {
 
-	// listen method is called in another thread
-	ThreadDecorator threadedServer(ts);
+		TcpServer ts(10001, "0.0.0.0", 10);
 
-	cout << "[server] starting server\n";
-	// when start returns, server has started listening for incoming connections
-	threadedServer.start(my_listener);
+		// listen method is called in another thread
+		ThreadDecorator threadedServer(ts);
 
-	TcpClient tc;
-	tc.connect("0.0.0.0", 10001);
+		cout << "[server] starting server\n";
+		// when start returns, server has started listening for incoming connections
+		threadedServer.start(my_listener);
 
-	std::string s = "test message";
-	std::vector<char> v(s.begin(), s.end());
+		TcpClient tc;
+		tc.connect("0.0.0.0", 10001);
 
-	cout << "[client] writing to socket\n";
-	tc.write(v);
+		std::string s = "test message";
+		std::vector<char> v(s.begin(), s.end());
 
-	cout << "[client] reading from socket\n";
-	// read server response
-	auto response = tc.read(1024);
+		cout << "[client] writing to socket\n";
+		tc.write(v);
 
-	cout << "[client] received data size: " << response.size() << endl;
+		cout << "[client] reading from socket\n";
+		// read server response
+		auto response = tc.read(1024);
 
-	cout << "[client] closing socket" << endl;
-	tc.close();
+		cout << "[client] received data size: " << response.size() << endl;
 
-	cout << "[server] stopping server" << endl;
-	threadedServer.stop();
+		cout << "[client] closing socket" << endl;
+		tc.close();
 
-	cout << "[main] test finished! " << i << endl << endl << endl;
+		// spin... consider adding a condition variable
+		while (ts.getActiveConnections() > 0)
+			;
+
+		cout << "[server] stopping server" << endl;
+		threadedServer.stop();
+
+		cout << "[main] test finished! " << i << endl << endl << endl;
 
 	}
 

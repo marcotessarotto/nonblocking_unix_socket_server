@@ -38,13 +38,14 @@ TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 	EXPECT_THROW(UnixSocketServer server("", 0), std::invalid_argument);
 }
 
-static void my_listener(int fd, enum job_type_t job_type) {
+static void my_listener(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
 		cout << "closing socket " << fd << endl;
-		close(fd);
+		//close(fd);
+		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
@@ -101,6 +102,10 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 		cout << "[client] closing socket" << endl;
 		tc.close();
+
+		// spin... consider adding a condition variable
+		while (ts.getActiveConnections() > 0)
+			;
 
 		cout << "[server] stopping server" << endl;
 		threadedServer.stop();

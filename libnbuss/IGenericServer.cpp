@@ -19,7 +19,8 @@
 namespace nbuss_server {
 
 
-IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog} {
+IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog},
+		activeConnections{0} {
 
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
@@ -187,7 +188,7 @@ static const char* interpret_event(int event) {
 	return buffer;
 }
 
-void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_function) {
+void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_type_t)> callback_function) {
 
 	std::cout << "IGenericServer::listen" << std::endl;
 
@@ -323,6 +324,8 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 						throw std::runtime_error("epoll_ctl error");
 					}
 
+					activeConnections++;
+
 					syslog(LOG_DEBUG, "[IGenericServer] accept ok, fd=%d\n", conn_sock);
 				}
 
@@ -334,17 +337,17 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
 
-					callback_function(events[n].data.fd, CLOSE_SOCKET);
+					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if ((events[n].events & EPOLLIN)
 						&& (events[n].events & EPOLLRDHUP)) {
 					// Stream  socket peer closed connection, or shut down writing half of connection.
-					callback_function(events[n].data.fd, CLOSE_SOCKET);
+					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLIN) {
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
 
-					callback_function(fd, DATA_REQUEST);
+					callback_function(this, fd, DATA_REQUEST);
 
 				} else if (events[n].events & EPOLLRDHUP) {
 					syslog(LOG_DEBUG,
@@ -370,19 +373,19 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 					// what do we want to do?
 					// there could be still data to be read, but we can write to socket (thus we can respond)
 
-					callback_function(events[n].data.fd, CLOSE_SOCKET);
+					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLHUP) {
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
 
-					callback_function(events[n].data.fd, CLOSE_SOCKET);
+					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLERR) {
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLERR\n", events[n].data.fd);
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
-					callback_function(events[n].data.fd, CLOSE_SOCKET);
+					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 				}
 
 			} // else
