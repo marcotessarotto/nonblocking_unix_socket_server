@@ -70,7 +70,6 @@ protected:
 
 
 public:
-	//IGenericServer();
 
 	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();

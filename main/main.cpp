@@ -17,28 +17,28 @@ static void my_listener(int fd, enum job_type_t job_type) {
 	switch(job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "[server] closing socket " << fd << endl;
+		cout << "[server my_listener] closing socket " << fd << endl;
 		close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server] incoming data on socket " << fd  << endl;
+		cout << "[server my_listener] incoming data on socket " << fd  << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "[server] number of vectors returned by read: " << data.size() << endl;
+		cout << "[server my_listener] number of vectors returned by read: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item: data) {
-			cout << "[server] item " << counter << ": " << item.size() << " bytes" << endl;
+			cout << "[server my_listener] item " << counter << ": " << item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
 
 
 			UnixSocketServer::write(fd, item);
 		}
 
-		cout << "[server] incoming data - finished elaboration\n";
+		cout << "[server my_listener] incoming data - finished processing\n";
 
 	}
 
@@ -48,10 +48,16 @@ static void my_listener(int fd, enum job_type_t job_type) {
  * test with valgrind:
  *
  * valgrind -s --leak-check=yes build/cmake.debug.linux.x86_64/main/nbuss_server
+ *
+ * debug build:
+ *
+ * cd build/cmake.debug.linux.x86_64
+ * cmake -DCMAKE_BUILD_TYPE=Debug ../..
+ * cmake --build .
+ *
  */
 
 
-//const bool USE_THREAD_DECORATOR = true;
 #define USE_THREAD_DECORATOR
 
 #define USE_TCP
@@ -62,6 +68,8 @@ int main(int argc, char *argv[])
 
 
 #ifdef USE_TCP
+
+	for (int i = 0; i < 100; i++) {
 
 	TcpServer ts(10001, "0.0.0.0", 10);
 
@@ -90,17 +98,16 @@ int main(int argc, char *argv[])
 	cout << "[client] closing socket" << endl;
 	tc.close();
 
-
-
-	//sleep(1);
-
 	cout << "[server] stopping server" << endl;
 	threadedServer.stop();
 
-	cout << "[main] test finished!" << endl;
+	cout << "[main] test finished! " << i << endl << endl << endl;
+
+	}
 
 #else
 
+	for (int i = 0; i < 100; i++) {
 
 	string socketName = "/tmp/mysocket.sock";
 
@@ -145,7 +152,7 @@ int main(int argc, char *argv[])
 	cout << "[server] stopping server" << endl;
 	threadedServer.stop();
 
-	cout << "[main] test finished!" << endl;
+	cout << "[main] test finished! " << i << endl;
 
 #else
 	// UnixSocketServer server(socketName, 10); // calls constructor with lvalue
@@ -158,6 +165,8 @@ int main(int argc, char *argv[])
 	server.listen(my_listener);
 
 #endif
+
+	}
 
 #endif
 

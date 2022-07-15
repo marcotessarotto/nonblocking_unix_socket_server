@@ -221,6 +221,8 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 
 	syslog(LOG_DEBUG, "[IGenericServer] listen_sock=%d\n", listen_sock.fd);
 
+
+	//std::cout << "IGenericServer::listen 1\n";
 	// note: epoll is linux specific
 	// epollfd will be auto closed when returning
 	epollfd.fd = epoll_create1(0);
@@ -242,7 +244,6 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 		throw std::runtime_error("epoll_ctl error");
 	}
 
-
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = listen_sock.fd;
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, listen_sock.fd, &ev) == -1) {
@@ -252,6 +253,7 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 	}
 
 	int n, nfds, conn_sock;
+
 
 	while (!stop_server.load()) {
 
@@ -332,6 +334,11 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
 
+					callback_function(events[n].data.fd, CLOSE_SOCKET);
+
+				} else if ((events[n].events & EPOLLIN)
+						&& (events[n].events & EPOLLRDHUP)) {
+					// Stream  socket peer closed connection, or shut down writing half of connection.
 					callback_function(events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLIN) {

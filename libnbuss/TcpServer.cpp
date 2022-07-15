@@ -30,7 +30,19 @@ namespace nbuss_server {
 TcpServer::TcpServer(unsigned int port, const std::string &address, unsigned int backlog) :
 		address{address}, port{port}, IGenericServer(backlog)  {
 
-		setup();
+	if (address.empty()) {
+		throw std::invalid_argument("missing address");
+	}
+
+	if (backlog <= 0) {
+		throw std::invalid_argument("backlog must be > 0");
+	}
+
+	if (port <= 0) {
+		throw std::invalid_argument("port must be > 0");
+	}
+
+	setup();
 }
 
 

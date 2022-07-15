@@ -11,6 +11,7 @@ public:
 
 	FileDescriptor() {
 		fd = -1;
+		// std::cout << "FileDescriptor::FileDescriptor() " << std::endl;
 	}
 
 	void close() {

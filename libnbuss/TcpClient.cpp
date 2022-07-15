@@ -16,6 +16,8 @@
 namespace nbuss_server {
 
 TcpClient::TcpClient() : hostname{hostname}, port{0}, data_socket{-1} {
+	std::cout << "TcpClient::TcpClient()\n";
+
 }
 
 TcpClient::~TcpClient() {
