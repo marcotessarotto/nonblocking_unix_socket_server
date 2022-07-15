@@ -29,6 +29,8 @@ namespace nbuss_server {
 
 TcpServer::TcpServer(unsigned int port, const std::string &address, unsigned int backlog) :
 		address{address}, port{port}, IGenericServer(backlog)  {
+
+		setup();
 }
 
 
@@ -115,7 +117,7 @@ void check_nonblock_fd(int fd) {
 #define BUF_SIZE 500
 
 /**
- * find the network interface, open socket, bind it to the network device
+ * find the network interface, open a socket, bind it to the network interface
  *
  * return socket or -1 on error
  */
@@ -143,6 +145,10 @@ int TcpServer::open_listening_socket() {
    // PF_INET 2
    // SOCK_STREAM 1
    // TCP 6
+
+//   struct protoent* tcp;
+//   tcp = getprotobyname("tcp");
+   // tcp->p_proto
 
    memset(&hints, 0, sizeof(hints));
    hints.ai_family = AF_UNSPEC; //AF_UNSPEC; // AF_UNSPEC; AF_INET   /* Allow IPv4 or IPv6 */

@@ -19,13 +19,6 @@
 namespace nbuss_server {
 
 
-
-//IGenericServer::IGenericServer() : stop_server{false}, is_listening{false}, backlog{0} {
-//
-//	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
-//
-//}
-
 IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog} {
 
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
@@ -46,13 +39,13 @@ IGenericServer::~IGenericServer() {
  * wait for server starting to listen for incoming connections
  */
 void IGenericServer::waitForServerReady() {
-
-	std::cout << "waitForServerReady is_listening=" << is_listening << std::endl;
 	std::unique_lock<std::mutex> lk(mtx);
 	while (!is_listening)
 		cv.wait(lk);
 
 	lk.unlock();
+
+	std::cout << "IGenericServer::waitForServerReady() server is_listening=" << is_listening << std::endl;
 }
 
 /**
@@ -267,6 +260,7 @@ void IGenericServer::listen(std::function<void(int, enum job_type_t)> callback_f
 
 		// check if server must stop
 		if (stop_server.load()) {
+			std::cout << "[IGenericServer] server is stopping" << std::endl;
 			return;
 		}
 

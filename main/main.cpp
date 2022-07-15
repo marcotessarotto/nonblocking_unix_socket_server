@@ -5,6 +5,8 @@
 #include "UnixSocketServer.h"
 #include "ThreadDecorator.h"
 #include "UnixSocketClient.h"
+#include "TcpServer.h"
+#include "TcpClient.h"
 
 using namespace std;
 using namespace nbuss_server;
@@ -52,9 +54,53 @@ static void my_listener(int fd, enum job_type_t job_type) {
 //const bool USE_THREAD_DECORATOR = true;
 #define USE_THREAD_DECORATOR
 
+#define USE_TCP
+
 int main(int argc, char *argv[])
 {
 	openlog("nbuss_server", LOG_CONS | LOG_PERROR, LOG_USER);
+
+
+#ifdef USE_TCP
+
+	TcpServer ts(10001, "0.0.0.0", 10);
+
+	// listen method is called in another thread
+	ThreadDecorator threadedServer(ts);
+
+	cout << "[server] starting server\n";
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(my_listener);
+
+	TcpClient tc;
+	tc.connect("0.0.0.0", 10001);
+
+	std::string s = "test message";
+	std::vector<char> v(s.begin(), s.end());
+
+	cout << "[client] writing to socket\n";
+	tc.write(v);
+
+	cout << "[client] reading from socket\n";
+	// read server response
+	auto response = tc.read(1024);
+
+	cout << "[client] received data size: " << response.size() << endl;
+
+	cout << "[client] closing socket" << endl;
+	tc.close();
+
+
+
+	//sleep(1);
+
+	cout << "[server] stopping server" << endl;
+	threadedServer.stop();
+
+	cout << "[main] test finished!" << endl;
+
+#else
+
 
 	string socketName = "/tmp/mysocket.sock";
 
@@ -72,12 +118,13 @@ int main(int argc, char *argv[])
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 
+	cout << "[server] starting server\n";
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
 	UnixSocketClient usc;
 
-	// so we can create a client instance and make it connect to the server
+	cout << "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
@@ -112,7 +159,7 @@ int main(int argc, char *argv[])
 
 #endif
 
-
+#endif
 
 	return 0;
 }
