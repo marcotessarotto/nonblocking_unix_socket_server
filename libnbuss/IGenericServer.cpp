@@ -202,10 +202,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	}
 
 	// this lambda will be run before returning from listen function
-	RunOnReturn runOnReturn(this, [](IGenericServer * srv) {
+	RunOnReturn runOnReturn([this]() {
 		std::cout << "[IGenericServer] listen cleanup" << std::endl;
 
-		srv->closeSockets();
+		this->closeSockets();
 	});
 
 	// initialization added after check with:

@@ -1,6 +1,7 @@
 #include <syslog.h>
 
 #include <iostream>
+#include <cassert>
 
 #include "UnixSocketServer.h"
 #include "ThreadDecorator.h"
@@ -100,6 +101,8 @@ int main(int argc, char *argv[]) {
 
 		cout << "[client] received data size: " << response.size() << endl;
 
+		assert(response.size() == 12);
+
 		cout << "[client] closing socket" << endl;
 		tc.close();
 
@@ -154,6 +157,8 @@ int main(int argc, char *argv[]) {
 	auto response = usc.read(1024);
 
 	cout << "[client] received data size: " << response.size() << endl;
+
+	assert(response.size() == 12);
 
 	cout << "[client] closing socket" << endl;
 	usc.close();

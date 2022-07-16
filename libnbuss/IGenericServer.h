@@ -34,14 +34,13 @@ protected:
 	/// inner class for running a function when a method ends (see listen method of classes from IGenericServer)
 	class RunOnReturn {
 	public:
-		std::function<void(IGenericServer *)> func;
-		IGenericServer *server;
+		std::function<void(void)> func;
 
-		RunOnReturn(IGenericServer * server, std::function<void(IGenericServer *)> func) : server{server}, func{func} {
+		RunOnReturn(std::function<void(void)> func) : func{func} {
 		}
 		~RunOnReturn() {
 			std::cout << "~RunOnReturn" << std::endl;
-			func(server);
+			func();
 		}
 	};
 
