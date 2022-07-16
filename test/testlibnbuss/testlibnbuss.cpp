@@ -171,6 +171,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	cout << "[client] received data size: " << response.size() << endl;
 
+	cout << "[client] closing socket" << endl;
 	usc.close();
 
 	// spin... consider using a condition variable
@@ -272,6 +273,8 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	cout << "[server] crc16 of data received from client = " << serverDataCrc16 << endl;
 	cout << "[client] crc16 of data received from server = " << clientCrc2 << endl;
 
+
+	cout << "[client] closing socket" << endl;
 	usc.close();
 
 	cout << "[server] long buffer crc = " << serverDataCrc16 << endl;
