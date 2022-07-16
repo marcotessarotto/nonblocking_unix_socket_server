@@ -18,6 +18,8 @@ namespace nbuss_server {
  *
  */
 class ThreadDecorator : public virtual IThreadable {
+
+protected:
 	IGenericServer &server;
 
 	//bool terminate_worker;
@@ -44,7 +46,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void listen(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
+	//virtual void listen(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
 
 
     /**
@@ -60,12 +62,12 @@ public:
 	/**
 	 * terminate server instance
 	 */
-	virtual void terminate();
+	//virtual void terminate();
 
 	/**
 	 * wait for server to start listening for incoming connections
 	 */
-	virtual void waitForServerReady();
+	//virtual void waitForServerReady();
 
 	/**
 	 * terminate server instance and waits for thread to stop

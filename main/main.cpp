@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 	// this will leave N tcp connections in TIME_WAIT state
 	// see also https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux
 
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 10; i++) {
 
 		cout << endl << endl << endl;
 

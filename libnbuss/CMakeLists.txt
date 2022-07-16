@@ -16,6 +16,8 @@ TcpServer.h
 TcpServer.cpp
 TcpClient.h
 TcpClient.cpp
+WorkQueue.h
+WorkQueue.cpp
 )
 
 # Declare the library
