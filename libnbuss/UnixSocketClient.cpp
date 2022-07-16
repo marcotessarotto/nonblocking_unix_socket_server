@@ -11,7 +11,7 @@
 
 namespace nbuss_client {
 
-UnixSocketClient::UnixSocketClient() : sockname{}, data_socket{-1} {
+UnixSocketClient::UnixSocketClient(bool nonBlockingSocket) : sockname{}, data_socket{-1}, nonBlockingSocket{nonBlockingSocket} {
 }
 
 UnixSocketClient::~UnixSocketClient() {
@@ -30,7 +30,13 @@ void UnixSocketClient::connect(const std::string &sockname) {
 
 
 	// open socket in blocking mode
-    data_socket = socket(AF_UNIX, SOCK_STREAM , 0);  //  SOCK_SEQPACKET  | SOCK_NONBLOCK
+	if (nonBlockingSocket) {
+		data_socket = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK , 0);  //  SOCK_SEQPACKET  |
+	} else {
+		data_socket = socket(AF_UNIX, SOCK_STREAM , 0);  //  SOCK_SEQPACKET  | SOCK_NONBLOCK
+	}
+
+
     if (data_socket == -1) {
         perror("socket");
         throw std::runtime_error("socket error");
@@ -70,12 +76,12 @@ void UnixSocketClient::write(std::vector<char> data) {
 	// TODO: if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		// can this happen? yes, because client socket is in non blocking mode
-		std::cout << "[UnixSocketClient::writ] write: errno == EAGAIN || errno == EWOULDBLOCK " << std::endl;
+		std::cout << "[UnixSocketClient::write] write: errno == EAGAIN || errno == EWOULDBLOCK " << std::endl;
 	} else if (c == -1) {
 		perror("write");
 		throw std::runtime_error("write error");
 	} else {
-		std::cout << "[UnixSocketClient::writ] write returns: " << c << std::endl;
+		std::cout << "[UnixSocketClient::write] write returns: " << c << std::endl;
 	}
 }
 
@@ -116,13 +122,24 @@ std::vector<char> UnixSocketClient::read(int buffer_size) {
 	// read from blocking socket
 	c = ::read(data_socket, p, buffer_size);
 
+	std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
+
 //	// no data available to read
 //	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 //		break;
 //	}
+	// no data available to read
+	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		std::cout << "[UnixSocketClient::read] errno == EAGAIN || errno == EWOULDBLOCK" << std::endl;
 
-	if (c == -1) {
+		buffer.resize(0);
+
+		return buffer;
+	} else if (c == -1) {
 		// error returned by read syscall
+
+		std::cout << "[UnixSocketClient::read] errno == " << errno << std::endl;
+
 		perror("read");
 		throw std::runtime_error("read error");
 	}

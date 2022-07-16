@@ -48,18 +48,18 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "closing socket " << fd << endl;
+		cout << "[server] closing socket " << fd << endl;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "incoming data fd=" << fd << endl;
+		cout << "[server] incoming data fd=" << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "number of vectors returned: " << data.size() << endl;
+		cout << "[server] number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item : data) {
@@ -203,7 +203,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
-	UnixSocketClient usc;
+	UnixSocketClient usc(true);
 
 	cout << "[client] connect to server\n";
 	usc.connect(socketName);

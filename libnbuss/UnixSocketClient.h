@@ -15,9 +15,12 @@ class UnixSocketClient {
 	/// socket descriptor
 	int data_socket;
 
+	bool nonBlockingSocket;
+
 public:
-	UnixSocketClient();
+	UnixSocketClient(bool nonBlockingSocket = false);
 	virtual ~UnixSocketClient();
+
 
 	void connect(const std::string &sockname);
 
