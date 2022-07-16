@@ -201,6 +201,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		throw std::runtime_error("server socket is not open");
 	}
 
+	// TODO: keep a list of open sockets, so that we can close them when listen terminates
+
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn([this]() {
 		std::cout << "[IGenericServer] listen cleanup" << std::endl;
