@@ -251,6 +251,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 		total_bytes_received += response.size();
 		if (response.size() == 0) {
+			// no data available, sleep for 1 ms
 			struct timespec t;
 
 			t.tv_sec = 0;  // seconds
