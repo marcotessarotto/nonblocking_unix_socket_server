@@ -18,6 +18,8 @@ TcpClient.h
 TcpClient.cpp
 WorkQueue.h
 WorkQueue.cpp
+Crc16.h
+Crc16.cpp
 )
 
 # Declare the library

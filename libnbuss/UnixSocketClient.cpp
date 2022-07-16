@@ -70,12 +70,12 @@ void UnixSocketClient::write(std::vector<char> data) {
 	// TODO: if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		// can this happen? yes, because client socket is in non blocking mode
-	}
-
-	// TODO: check
-	if (c == -1) {
+		std::cout << "[UnixSocketClient::writ] write: errno == EAGAIN || errno == EWOULDBLOCK " << std::endl;
+	} else if (c == -1) {
 		perror("write");
 		throw std::runtime_error("write error");
+	} else {
+		std::cout << "[UnixSocketClient::writ] write returns: " << c << std::endl;
 	}
 }
 
