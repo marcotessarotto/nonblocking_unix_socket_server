@@ -24,10 +24,23 @@ namespace nbuss_server {
  */
 
 class WorkQueue {
+public:
 
+	struct Item {
+		IGenericServer * srv;
+		int fd;
+		enum job_type_t job;
+	};
+
+private:
 	ThreadDecorator &threadDecorator;
 	unsigned int numberOfThreads;
 
+	std::deque<Item> deque;
+	std::mutex dequeMutex;
+	std::condition_variable dequeCv;
+
+	std::atomic<bool> stopConsumers;
 
 	void callback(IGenericServer * srv, int fd, enum job_type_t job);
 
