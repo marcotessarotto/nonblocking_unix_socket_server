@@ -107,6 +107,12 @@ int IGenericServer::write(int fd, std::vector<char> buffer) {
 /**
  * read all data available on socket and return it as a vector of vector<char>
  *
+ * compiler performs return value optimization (RVO)
+ *
+ * https://stackoverflow.com/questions/1092561/is-returning-a-stdlist-costly
+ *
+ * alternatives: return pointer to container; pass a reference to container as parameter;
+ * or https://stackoverflow.com/a/1092572/974287
  */
 std::vector<std::vector<char>> IGenericServer::read(int fd) {
 	std::vector<std::vector<char>> result;
