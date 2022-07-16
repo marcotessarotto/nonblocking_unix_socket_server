@@ -1,3 +1,4 @@
+#include <time.h>
 #include <exception>
 #include <stdexcept>
 
@@ -188,6 +189,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	cout << "\n***UdpServerClientReadWriteLongBufferTest**" << endl;
 
 	calcCrc = true;
+	const ssize_t bufferSize = 4096*3;
 
 	//Crc16 crc;
 	//uint16_t longBufferCrc;
@@ -211,7 +213,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 //	std::string s = "test message";
 //	std::vector<char> v(s.begin(), s.end());
 
-	std::vector<char> longBuffer(4096 * 3);
+	std::vector<char> longBuffer(bufferSize);
 
 	//longBuffer.assign(4096*3, '*');
 	// initialize longBuffer
@@ -238,15 +240,26 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 	uint16_t clientCrc2 = CRC_START_16;
 
-	while (true) {
+	size_t total_bytes_received = 0;
+
+	while (total_bytes_received < bufferSize) {
 		cout << "[client] reading from socket\n";
 		// read server response
 		auto response = usc.read(1024);
 
 		cout << "[client] received data size: " << response.size() << endl;
 
-		if (response.size() == 0)
-			break;
+		total_bytes_received += response.size();
+		if (response.size() == 0) {
+			struct timespec t;
+
+			t.tv_sec = 0;  // seconds
+			t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+
+			nanosleep(&t, NULL);
+
+			continue;
+		}
 
 		clientCrc2 = crc.update_crc_16(clientCrc2,
 				reinterpret_cast<const unsigned char*>(response.data()),
@@ -254,8 +267,8 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 	}
 
-	cout << "[server] cr16 of data received from client = " << serverDataCrc16 << endl;
-	cout << "[client] cr16 of data received from server = " << clientCrc2 << endl;
+	cout << "[server] crc16 of data received from client = " << serverDataCrc16 << endl;
+	cout << "[client] crc16 of data received from server = " << clientCrc2 << endl;
 
 	usc.close();
 

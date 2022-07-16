@@ -108,6 +108,8 @@ void UnixSocketClient::write(std::string data) {
 std::vector<char> UnixSocketClient::read(int buffer_size) {
 	//return nbuss_server::UnixSocketServer::read(data_socket);
 
+	std::cout << "[UnixSocketClient::read] buffer_size: " << buffer_size << std::endl;
+
 	if (buffer_size <= 0) {
 		throw std::invalid_argument("invalid buffer_size");
 	}
