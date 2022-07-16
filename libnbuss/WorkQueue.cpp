@@ -1,10 +1,3 @@
-/*
- * QueueDecorator.cpp
- *
- *  Created on: Jul 16, 2022
- *      Author: marco
- */
-
 #include <WorkQueue.h>
 
 namespace nbuss_server {
