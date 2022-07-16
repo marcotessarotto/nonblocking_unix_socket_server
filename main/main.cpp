@@ -1,6 +1,7 @@
 #include <syslog.h>
 
 #include <iostream>
+#include <cassert>
 
 #include "UnixSocketServer.h"
 #include "ThreadDecorator.h"
@@ -72,7 +73,7 @@ int main(int argc, char *argv[]) {
 	// this will leave N tcp connections in TIME_WAIT state
 	// see also https://vincent.bernat.ch/en/blog/2014-tcp-time-wait-state-linux
 
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 10; i++) {
 
 		cout << endl << endl << endl;
 
@@ -99,6 +100,8 @@ int main(int argc, char *argv[]) {
 		auto response = tc.read(1024);
 
 		cout << "[client] received data size: " << response.size() << endl;
+
+		assert(response.size() == 12);
 
 		cout << "[client] closing socket" << endl;
 		tc.close();
@@ -154,6 +157,8 @@ int main(int argc, char *argv[]) {
 	auto response = usc.read(1024);
 
 	cout << "[client] received data size: " << response.size() << endl;
+
+	assert(response.size() == 12);
 
 	cout << "[client] closing socket" << endl;
 	usc.close();

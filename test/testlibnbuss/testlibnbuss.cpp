@@ -1,3 +1,4 @@
+#include <time.h>
 #include <exception>
 #include <stdexcept>
 
@@ -5,6 +6,7 @@
 
 #include <ThreadDecorator.h>
 #include "UnixSocketClient.h"
+#include "Crc16.h"
 
 //using ::testing::Return;
 
@@ -38,27 +40,37 @@ TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 	EXPECT_THROW(UnixSocketServer server("", 0), std::invalid_argument);
 }
 
-static void my_listener(IGenericServer * srv, int fd, enum job_type_t job_type) {
+static Crc16 crc;
+uint16_t serverDataCrc16;
+bool calcCrc = false;
+
+static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "closing socket " << fd << endl;
+		cout << "[server] closing socket " << fd << endl;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "incoming data fd=" << fd << endl;
+		cout << "[server] incoming data fd=" << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd);
 
-		cout << "number of vectors returned: " << data.size() << endl;
+		cout << "[server] number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item : data) {
-			cout << counter << ": " << item.size() << " bytes" << endl;
+			cout << counter++ << ": " << item.size() << " bytes" << endl;
+
+			if (calcCrc) {
+				serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
+						reinterpret_cast<const unsigned char*>(item.data()),
+						item.size());
+			}
 
 			UnixSocketServer::write(fd, item);
 		}
@@ -75,17 +87,16 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 		// create instance of tcp non blocking server
 
-		TcpServer ts{10001, "0.0.0.0", 10};
+		TcpServer ts { 10001, "0.0.0.0", 10 };
 
 		// listen method is called in another thread
-		ThreadDecorator threadedServer{ts};
+		ThreadDecorator threadedServer { ts };
 
 		std::atomic_thread_fence(std::memory_order_release);
 
 		cout << "[server] starting server\n";
 		// when start returns, server has started listening for incoming connections
 		threadedServer.start(my_listener);
-
 
 //
 //		// ?!?!?! sometimes threadedServer is destroyed here, terminating the program with message:
@@ -134,7 +145,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	string socketName = "/tmp/mysocket_test.sock";
 
-	UnixSocketServer uss{socketName, 10};
+	UnixSocketServer uss { socketName, 10 };
 
 	ThreadDecorator threadedServer(uss);
 
@@ -160,6 +171,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	cout << "[client] received data size: " << response.size() << endl;
 
+	cout << "[client] closing socket" << endl;
 	usc.close();
 
 	// spin... consider using a condition variable
@@ -171,6 +183,114 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 	cout << "test finished!" << endl;
 
 	EXPECT_EQ(response.size(), 12);
+}
+
+TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) {
+
+	cout << "\n***UdpServerClientReadWriteLongBufferTest**" << endl;
+
+	calcCrc = true;
+	const ssize_t bufferSize = 4096*3;
+
+	//Crc16 crc;
+	//uint16_t longBufferCrc;
+
+	string socketName = "/tmp/mysocket_test.sock";
+
+	UnixSocketServer uss { socketName, 10 };
+
+	ThreadDecorator threadedServer(uss);
+
+	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(my_listener);
+
+	UnixSocketClient usc(true);
+
+	cout << "[client] connect to server\n";
+	usc.connect(socketName);
+
+//	std::string s = "test message";
+//	std::vector<char> v(s.begin(), s.end());
+
+	std::vector<char> longBuffer(bufferSize);
+
+	//longBuffer.assign(4096*3, '*');
+	// initialize longBuffer
+	for (std::size_t i = 0; i < longBuffer.size(); ++i) {
+		longBuffer[i] = i % 10;
+	}
+
+//	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {
+//	    std::cout << *it << "\n";
+//	}
+
+	uint16_t clientCrc = crc.crc_16(
+			reinterpret_cast<const unsigned char*>(longBuffer.data()),
+			longBuffer.size());
+
+	cout << "[client] crc16 of data sent by client = " << clientCrc << endl;
+	// crc16: 61937
+
+	// reset CRC16
+	serverDataCrc16 = CRC_START_16;
+
+	cout << "[client] writing to socket\n";
+	usc.write(longBuffer);
+
+	uint16_t clientCrc2 = CRC_START_16;
+
+	size_t total_bytes_received = 0;
+
+	while (total_bytes_received < bufferSize) {
+		cout << "[client] reading from socket\n";
+		// read server response
+		auto response = usc.read(1024);
+
+		cout << "[client] received data size: " << response.size() << endl;
+
+		if (response.size() == 0) {
+			// no data available, sleep for 1 ms
+			struct timespec t;
+
+			t.tv_sec = 0;  // seconds
+			t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+
+			nanosleep(&t, NULL);
+
+			continue;
+		}
+
+		total_bytes_received += response.size();
+
+		clientCrc2 = crc.update_crc_16(clientCrc2,
+				reinterpret_cast<const unsigned char*>(response.data()),
+				response.size());
+
+	}
+
+	cout << "[server] crc16 of data received from client = " << serverDataCrc16 << endl;
+	cout << "[client] crc16 of data received from server = " << clientCrc2 << endl;
+
+
+	cout << "[client] closing socket" << endl;
+	usc.close();
+
+	cout << "[server] long buffer crc = " << serverDataCrc16 << endl;
+
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	cout << "test finished!" << endl;
+
+	calcCrc = false;
+
+	EXPECT_EQ(clientCrc2, serverDataCrc16);
+	EXPECT_EQ(clientCrc2, clientCrc);
 }
 
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {

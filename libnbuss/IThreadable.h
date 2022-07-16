@@ -9,7 +9,7 @@ namespace nbuss_server {
 /**
  * an interface which adds start and stop methods to IGenericServer
  */
-class IThreadable: public virtual nbuss_server::IGenericServer {
+class IThreadable: public virtual IGenericServer {
 public:
 	IThreadable();
 	virtual ~IThreadable();

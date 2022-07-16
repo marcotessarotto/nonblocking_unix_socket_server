@@ -107,6 +107,12 @@ int IGenericServer::write(int fd, std::vector<char> buffer) {
 /**
  * read all data available on socket and return it as a vector of vector<char>
  *
+ * compiler performs return value optimization (RVO)
+ *
+ * https://stackoverflow.com/questions/1092561/is-returning-a-stdlist-costly
+ *
+ * alternatives: return pointer to container; pass a reference to container as parameter;
+ * or https://stackoverflow.com/a/1092572/974287
  */
 std::vector<std::vector<char>> IGenericServer::read(int fd) {
 	std::vector<std::vector<char>> result;
@@ -195,11 +201,13 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		throw std::runtime_error("server socket is not open");
 	}
 
+	// TODO: keep a list of open sockets, so that we can close them when listen terminates
+
 	// this lambda will be run before returning from listen function
-	RunOnReturn runOnReturn(this, [](IGenericServer * srv) {
+	RunOnReturn runOnReturn([this]() {
 		std::cout << "[IGenericServer] listen cleanup" << std::endl;
 
-		srv->closeSockets();
+		this->closeSockets();
 	});
 
 	// initialization added after check with:
