@@ -108,7 +108,7 @@ void UnixSocketClient::write(std::string data) {
 std::vector<char> UnixSocketClient::read(int buffer_size) {
 	//return nbuss_server::UnixSocketServer::read(data_socket);
 
-	std::cout << "[UnixSocketClient::read] buffer_size: " << buffer_size << std::endl;
+	//std::cout << "[UnixSocketClient::read] buffer_size: " << buffer_size << std::endl;
 
 	if (buffer_size <= 0) {
 		throw std::invalid_argument("invalid buffer_size");
@@ -124,7 +124,7 @@ std::vector<char> UnixSocketClient::read(int buffer_size) {
 	// read from blocking socket
 	c = ::read(data_socket, p, buffer_size);
 
-	std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
+	//std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
 
 //	// no data available to read
 //	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {

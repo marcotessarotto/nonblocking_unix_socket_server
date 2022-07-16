@@ -249,7 +249,6 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 		cout << "[client] received data size: " << response.size() << endl;
 
-		total_bytes_received += response.size();
 		if (response.size() == 0) {
 			// no data available, sleep for 1 ms
 			struct timespec t;
@@ -261,6 +260,8 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 			continue;
 		}
+
+		total_bytes_received += response.size();
 
 		clientCrc2 = crc.update_crc_16(clientCrc2,
 				reinterpret_cast<const unsigned char*>(response.data()),
