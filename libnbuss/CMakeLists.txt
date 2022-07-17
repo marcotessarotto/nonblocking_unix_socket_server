@@ -20,6 +20,8 @@ WorkQueue.h
 WorkQueue.cpp
 Crc16.h
 Crc16.cpp
+BaseClient.h
+BaseClient.cpp
 )
 
 # Declare the library

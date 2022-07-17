@@ -60,7 +60,7 @@ protected:
 	/// used to wait for is_listening to become false
 	std::condition_variable cv;
 
-	//	/// pipe used for signaling to listening thread that it must terminate
+	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
 
@@ -109,7 +109,7 @@ public:
 	/**
 	 * read all available data from socket and return vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd);
+	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096);
 
 
 	/**

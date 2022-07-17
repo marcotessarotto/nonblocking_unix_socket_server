@@ -19,7 +19,10 @@
 namespace nbuss_server {
 
 
-IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog},
+IGenericServer::IGenericServer(unsigned int backlog) :
+		stop_server{false},
+		is_listening{false},
+		backlog{backlog},
 		activeConnections{0} {
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
@@ -68,6 +71,10 @@ void IGenericServer::terminate() {
 	lk.unlock();
 
 	std::cout << "IGenericServer::terminate() has completed" << std::endl;
+
+	// restore state so server can be started again
+	stop_server.store(false);
+	is_listening = false;
 }
 
 
@@ -114,12 +121,12 @@ int IGenericServer::write(int fd, std::vector<char> buffer) {
  * alternatives: return pointer to container; pass a reference to container as parameter;
  * or https://stackoverflow.com/a/1092572/974287
  */
-std::vector<std::vector<char>> IGenericServer::read(int fd) {
+std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize) {
 	std::vector<std::vector<char>> result;
 
 	//int counter = 0;
 	while (true) {
-		std::vector<char> buffer(1024);
+		std::vector<char> buffer(readBufferSize);
 
 		int c;
 		char * p;
