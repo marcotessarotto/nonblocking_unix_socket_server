@@ -124,7 +124,7 @@ std::vector<char> UnixSocketClient::read(int buffer_size) {
 	// read from blocking socket
 	c = ::read(data_socket, p, buffer_size);
 
-	//std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
+	std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
 
 //	// no data available to read
 //	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {

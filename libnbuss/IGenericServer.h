@@ -69,11 +69,9 @@ protected:
 
 	std::atomic<int> activeConnections;
 
-	unsigned int readBufferSize;
-
 public:
 
-	IGenericServer(unsigned int backlog = 10, unsigned int readBufferSize = 4096);
+	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();
 	
 
@@ -111,7 +109,7 @@ public:
 	/**
 	 * read all available data from socket and return vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd);
+	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096);
 
 
 	/**

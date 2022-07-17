@@ -19,12 +19,11 @@
 namespace nbuss_server {
 
 
-IGenericServer::IGenericServer(unsigned int backlog, unsigned int readBufferSize) :
+IGenericServer::IGenericServer(unsigned int backlog) :
 		stop_server{false},
 		is_listening{false},
 		backlog{backlog},
-		activeConnections{0},
-		readBufferSize{readBufferSize} {
+		activeConnections{0} {
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
 	if (backlog <= 0) {
@@ -122,12 +121,12 @@ int IGenericServer::write(int fd, std::vector<char> buffer) {
  * alternatives: return pointer to container; pass a reference to container as parameter;
  * or https://stackoverflow.com/a/1092572/974287
  */
-std::vector<std::vector<char>> IGenericServer::read(int fd) {
+std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize) {
 	std::vector<std::vector<char>> result;
 
 	//int counter = 0;
 	while (true) {
-		std::vector<char> buffer(1024);
+		std::vector<char> buffer(readBufferSize);
 
 		int c;
 		char * p;
