@@ -60,7 +60,7 @@ protected:
 	/// used to wait for is_listening to become false
 	std::condition_variable cv;
 
-	//	/// pipe used for signaling to listening thread that it must terminate
+	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
 
@@ -69,9 +69,11 @@ protected:
 
 	std::atomic<int> activeConnections;
 
+	unsigned int readBufferSize;
+
 public:
 
-	IGenericServer(unsigned int backlog = 10);
+	IGenericServer(unsigned int backlog = 10, unsigned int readBufferSize = 4096);
 	virtual ~IGenericServer();
 	
 

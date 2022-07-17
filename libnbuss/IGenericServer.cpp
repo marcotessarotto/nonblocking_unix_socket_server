@@ -19,8 +19,12 @@
 namespace nbuss_server {
 
 
-IGenericServer::IGenericServer(unsigned int backlog) : stop_server{false}, is_listening{false}, backlog{backlog},
-		activeConnections{0} {
+IGenericServer::IGenericServer(unsigned int backlog, unsigned int readBufferSize) :
+		stop_server{false},
+		is_listening{false},
+		backlog{backlog},
+		activeConnections{0},
+		readBufferSize{readBufferSize} {
 	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
 
 	if (backlog <= 0) {
@@ -68,6 +72,10 @@ void IGenericServer::terminate() {
 	lk.unlock();
 
 	std::cout << "IGenericServer::terminate() has completed" << std::endl;
+
+	// restore state so server can be started again
+	stop_server.store(false);
+	is_listening = false;
 }
 
 
