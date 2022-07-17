@@ -272,6 +272,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	while (!stop_server.load()) {
 
+		std::cout << "[IGenericServer] before epoll_wait" << std::endl;
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
@@ -349,21 +350,26 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 						&& (events[n].events & EPOLLRDHUP)
 						&& (events[n].events & EPOLLHUP)) {
 
+					std::cout << "[IGenericServer] EPOLLIN EPOLLRDHUP EPOLLHUP" << std::endl;
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if ((events[n].events & EPOLLIN)
 						&& (events[n].events & EPOLLRDHUP)) {
+
+					std::cout << "[IGenericServer] EPOLLIN EPOLLRDHUP" << std::endl;
 					// Stream  socket peer closed connection, or shut down writing half of connection.
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLIN) {
+					std::cout << "[IGenericServer] EPOLLIN " << std::endl;
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
 
 					callback_function(this, fd, DATA_REQUEST);
 
 				} else if (events[n].events & EPOLLRDHUP) {
+					std::cout << "[IGenericServer] EPOLLRDHUP " << std::endl;
 					syslog(LOG_DEBUG,
 							"[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer",
 							events[n].data.fd);
@@ -390,11 +396,13 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLHUP) {
+					std::cout << "[IGenericServer] EPOLLHUP" << std::endl;
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLERR) {
+					std::cout << "[IGenericServer] EPOLLERR" << std::endl;
 					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLERR\n", events[n].data.fd);
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.

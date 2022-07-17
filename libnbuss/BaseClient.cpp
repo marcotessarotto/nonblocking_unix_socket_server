@@ -106,6 +106,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 }
 
 void BaseClient::close() {
+	std::cout << "BaseClient::close " << data_socket << std::endl;
 	if (data_socket >= 0) {
 		::close(data_socket);
 		data_socket = -1;

@@ -49,18 +49,18 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "[server] closing socket " << fd << endl;
+		cout << "[server][my_listener] closing socket " << fd << endl;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server] incoming data fd=" << fd << endl;
+		cout << "[server][my_listener] incoming data fd=" << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd, 256);
 
-		cout << "[server] number of vectors returned: " << data.size() << endl;
+		cout << "[server][my_listener] number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item : data) {
@@ -77,13 +77,85 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	}
 
+	cout << "[server][my_listener] ending - fd=" << fd << endl;
+
+}
+
+TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
+	cout << "\n***UnixSocketServerTest***" << endl;
+
+
+	string socketName = "/tmp/mysocket_test.sock";
+
+	UnixSocketServer uss { socketName, 10 };
+
+
+	std::thread th([](UnixSocketServer *uss) {
+
+		cout << "[server] thread starting" << endl;
+
+		uss->listen(::my_listener);
+
+		cout << "[server] thread ending" << endl;
+	}, &uss);
+
+//	std::thread th([&uss]() {
+//
+//		cout << "[thread] server thread starting" << endl;
+//
+//		uss.listen(::my_listener);
+//
+//		cout << "[thread] server thread ending" << endl;
+//	});
+
+    uss.waitForServerReady();
+
+	UnixSocketClient usc;
+
+	cout << "[client] connect to server\n";
+	usc.connect(socketName);
+
+	std::string s = "test message";
+	std::vector<char> v(s.begin(), s.end());
+
+	cout << "[client] writing to socket\n";
+	usc.write(v);
+
+	cout << "[client] reading from socket\n";
+	// read server response
+	auto response = usc.read(1024);
+
+	cout << "[client] received data size: " << response.size() << endl;
+
+	cout << "[client] closing socket" << endl;
+	usc.close();
+
+	// TODO: valgrind block here; but the program alone works
+	// valgrind -s   --leak-check=yes test/testlibnbuss/testlibnbuss
+
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
+
+	cout << "[server] calling terminate" << endl;
+	uss.terminate();
+
+	cout << "[server] join thread" << endl;
+	th.join();
+
+	cout << "test finished!" << endl;
+
+	EXPECT_EQ(response.size(), 12);
+
+
+
 }
 
 TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 	try {
 
-		cout << "\n***TcpServerClientReadWriteTest**" << endl;
+		cout << "\n***TcpServerClientReadWriteTest***" << endl;
 
 		// create instance of tcp non blocking server
 

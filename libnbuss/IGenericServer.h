@@ -133,7 +133,7 @@ public:
 	 */
 	void close(int fd) {
 
-		//std::cout << "IGenericServer::close " << fd;
+		std::cout << "IGenericServer::close " << fd << std::endl;
 		if (fd >= 0) {
 			::close(fd);
 			activeConnections--;
