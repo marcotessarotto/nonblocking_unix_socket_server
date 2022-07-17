@@ -74,6 +74,7 @@ public:
 	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();
 	
+	//using TServerCallback = std::function<void(IGenericServer *,int, enum job_type_t )>;
 
     /**
      * listen for incoming connections; on incoming data, call callback_function
@@ -85,7 +86,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	void listen(std::function<void(IGenericServer * srv, int, enum job_type_t )> callback_function);
+	void listen(std::function<void(IGenericServer *,int, enum job_type_t )> callback_function);
 
 
     /**
