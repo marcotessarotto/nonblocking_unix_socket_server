@@ -5,17 +5,19 @@
 #include <vector>
 #include <string>
 
+#include "BaseClient.h"
+
 namespace nbuss_client {
 
-class UnixSocketClient {
+class UnixSocketClient : public BaseClient {
 
 	/// socket name on file system
 	std::string sockname;
 
 	/// socket descriptor
-	int data_socket;
+	//int data_socket;
 
-	bool nonBlockingSocket;
+	//bool nonBlockingSocket;
 
 public:
 	UnixSocketClient(bool nonBlockingSocket = false);
@@ -24,10 +26,10 @@ public:
 
 	void connect(const std::string &sockname);
 
-	void close();
-
-	void write(std::vector<char> data);
-	void write(std::string data);
+//	void close();
+//
+//	void write(std::vector<char> data);
+//	void write(std::string data);
 
 	/**
 	 * read from socket, up to buffer_size bytes.
@@ -36,7 +38,7 @@ public:
 	 *
 	 * @throws std::runtime_error in case of error on read syscall
 	 */
-	std::vector<char> read(int buffer_size);
+//	std::vector<char> read(int buffer_size);
 
 };
 
