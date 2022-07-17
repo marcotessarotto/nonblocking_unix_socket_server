@@ -126,7 +126,7 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections() { return activeConnections.load(); }
+	int getActiveConnections() { return activeConnections.load(std::memory_order_seq_cst); }
 
 	/**
 	 * close socket and decrease counter of active connections

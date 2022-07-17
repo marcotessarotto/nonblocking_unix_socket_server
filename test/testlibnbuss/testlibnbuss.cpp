@@ -8,6 +8,8 @@
 #include "UnixSocketClient.h"
 #include "Crc16.h"
 
+#include <boost/log/trivial.hpp>
+
 //using ::testing::Return;
 
 using namespace std;
@@ -26,6 +28,12 @@ NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {
 
 void NonblockingUnixSocketServerTest::SetUp() {
 	openlog("testlibnbuss", LOG_CONS | LOG_PERROR, LOG_USER);
+
+	// https://www.boost.org/doc/libs/1_79_0/libs/log/example/doc/tutorial_trivial.cpp
+
+	// https://www.boost.org/doc/libs/1_79_0/libs/log/doc/html/index.html
+
+	// debian packages: libboost-log1.74-dev
 }
 
 void NonblockingUnixSocketServerTest::TearDown() {
@@ -33,7 +41,7 @@ void NonblockingUnixSocketServerTest::TearDown() {
 
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 
-	cout << "\n***TestParameters**" << endl;
+	BOOST_LOG_TRIVIAL(info) << "\n***TestParameters**" << endl;
 
 	// expect exception
 
@@ -49,22 +57,22 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		cout << "[server][my_listener] closing socket " << fd << endl;
+		BOOST_LOG_TRIVIAL(info) << "[server][my_listener] closing socket " << fd << endl;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		cout << "[server][my_listener] incoming data fd=" << fd << endl;
+		BOOST_LOG_TRIVIAL(info) << "[server][my_listener] incoming data fd=" << fd << endl;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd, 256);
 
-		cout << "[server][my_listener] number of vectors returned: " << data.size() << endl;
+		BOOST_LOG_TRIVIAL(info) << "[server][my_listener] number of vectors returned: " << data.size() << endl;
 
 		int counter = 0;
 		for (std::vector<char> item : data) {
-			cout << counter++ << ": " << item.size() << " bytes" << endl;
+			BOOST_LOG_TRIVIAL(info) << counter++ << ": " << item.size() << " bytes" << endl;
 
 			if (calcCrc) {
 				serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
@@ -77,12 +85,12 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	}
 
-	cout << "[server][my_listener] ending - fd=" << fd << endl;
+	BOOST_LOG_TRIVIAL(info) << "[server][my_listener] ending - fd=" << fd << endl;
 
 }
 
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
-	cout << "\n***UnixSocketServerTest***" << endl;
+	BOOST_LOG_TRIVIAL(info) << "\n***UnixSocketServerTest***" << endl;
 
 
 	string socketName = "/tmp/mysocket_test.sock";
@@ -133,9 +141,24 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	// TODO: valgrind block here; but the program alone works
 	// valgrind -s   --leak-check=yes test/testlibnbuss/testlibnbuss
 
+
+	struct timespec ts1, ts2;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
+	long dt = 0;
+
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
-		;
+	while (uss.getActiveConnections() > 0) {
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
+		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
+
+
+		if (dt > 2000000) // 2 milliseconds
+			break;
+	}
+
+	if (dt > 0) {
+		cout << "dt = " << dt << endl;
+	}
 
 	cout << "[server] calling terminate" << endl;
 	uss.terminate();

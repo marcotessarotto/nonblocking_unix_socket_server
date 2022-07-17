@@ -309,6 +309,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					if (conn_sock == -1) {
 						if (stop_server.load()) {
+							std::cout << "stop_server: " << stop_server.load() << std::endl;
 							return;
 						}
 						syslog(LOG_ERR, "[IGenericServer] accept error (%s)", strerror(errno));
@@ -332,6 +333,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev)
 							== -1) {
 						if (stop_server.load()) {
+							std::cout << "stop_server: " << stop_server.load() << std::endl;
 							return;
 						}
 						syslog(LOG_ERR, "[IGenericServer] epoll_ctl error (%s)",
@@ -415,6 +417,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		} // for (n = 0; n < nfds; ++n)
 
 	} // for (;;)
+
+	std::cout << "stop_server: " << stop_server.load() << std::endl;
 
 }
 
