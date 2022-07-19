@@ -3,6 +3,8 @@
 
 #include <vector>
 
+#include "Logger.h"
+
 namespace nbuss_client {
 
 class BaseClient {
@@ -12,14 +14,26 @@ protected:
 	int data_socket;
 
 	bool nonBlockingSocket;
+
+	void _write(const char * data, ssize_t data_size);
+
 public:
 	BaseClient(bool nonBlockingSocket = false);
 	virtual ~BaseClient();
 
 	void close();
 
-	void write(std::vector<char> data);
-	void write(std::string data);
+	template <class T>
+	void write(std::vector<T> &data) {
+		int data_size = data.size() * sizeof(T);
+		const char * p =  reinterpret_cast<char*>(data.data());
+
+		LIB_LOG(debug) << "BaseClient::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
+
+		_write(p, data_size);
+	}
+
+	void write(std::string &data);
 
 	/**
 	 * read from socket, up to buffer_size bytes.

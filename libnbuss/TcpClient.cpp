@@ -12,11 +12,12 @@
 #include <netdb.h>
 
 #include "TcpClient.h"
+#include "Logger.h"
 
 namespace nbuss_client {
 
 TcpClient::TcpClient(bool nonBlockingSocket) : hostname{""}, port{0}, BaseClient(nonBlockingSocket) {
-	std::cout << "TcpClient::TcpClient()\n";
+	LIB_LOG(info) << "TcpClient::TcpClient()";
 
 }
 

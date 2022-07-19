@@ -93,26 +93,26 @@ int IGenericServer::setFdNonBlocking(int fd) {
 	return res;
 }
 
-int IGenericServer::write(int fd, std::vector<char> buffer) {
-	// TODO: manage non blocking write calls
-	// possible solution: implement a write queue
-
-	char * p;
-	int c;
-
-	p = buffer.data();
-	int buffer_size = buffer.size();
-
-	c = ::write(fd, p, buffer_size);
-
-	if (c == -1) {
-		LIB_LOG(error) <<  "write error " << strerror(errno);
-	} else {
-		LIB_LOG(trace)  << "[IGenericServer] write: " << c << " bytes have been written to socket";
-	}
-
-	return c;
-}
+//int IGenericServer::write(int fd, std::vector<char> &buffer) {
+//	// TODO: manage non blocking write calls
+//	// possible solution: implement a write queue
+//
+//	char * p;
+//	int c;
+//
+//	p = buffer.data();
+//	int buffer_size = buffer.size();
+//
+//	c = ::write(fd, p, buffer_size);
+//
+//	if (c == -1) {
+//		LIB_LOG(error) <<  "write error " << strerror(errno);
+//	} else {
+//		LIB_LOG(trace)  << "[IGenericServer] write: " << c << " bytes have been written to socket";
+//	}
+//
+//	return c;
+//}
 
 
 /**
@@ -443,5 +443,45 @@ void IGenericServer::close(int fd) {
 		activeConnections--;
 	}
 }
+
+int IGenericServer::_write(int fd, const char * data, ssize_t data_size) {
+	if (fd == -1) {
+		throw std::invalid_argument("invalid socket descriptor");
+	}
+
+	int c;
+	int bytes_written = 0;
+
+	const char * p = data;
+
+	while (true) {
+		c = ::write(fd, p, data_size);
+
+		if (c > 0 && c < data_size) {
+			p += c;
+			data_size -= c;
+		} else {
+			break;
+		}
+	}
+
+	// if socket is in non-blocking mode, buffer could be full
+	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		// can this happen? yes, if client socket is in non blocking mode
+		LIB_LOG(warning) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
+
+		// TODO: manage non blocking write calls
+		// possible solution: implement a write queue
+
+		return -1;
+	} else if (c == -1) {
+		LIB_LOG(error) << "[IGenericServer::write] write error " << strerror(errno);
+		throw std::runtime_error("write error");
+	}
+
+	// return number of bytes written
+	return (int)(p - data);
+}
+
 
 }

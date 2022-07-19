@@ -2,15 +2,20 @@
 #include <exception>
 #include <stdexcept>
 
+#include <random>
+#include <algorithm>
+#include <vector>
+#include <iterator>
+#include <functional>
+#include <iostream>
+
 #include "testlibnbuss.h"
 
 #include <ThreadDecorator.h>
 #include "UnixSocketClient.h"
 #include "Crc16.h"
 
-
 #include "Logger.h"
-
 
 //using ::testing::Return;
 
@@ -20,10 +25,24 @@ using namespace nbuss_client;
 
 extern void init_log();
 
-
 #define TEST_LOG(lvl) BOOST_LOG_TRIVIAL(lvl)
 
-NonblockingUnixSocketServerTest::NonblockingUnixSocketServerTest()  {
+// https://stackoverflow.com/a/12149643/974287
+std::vector<int> create_random_data(int arrays_size, const seed_seq& ) {
+  std::random_device r;
+  std::seed_seq      seed{r(), r(), r(), r(), r(), r(), r(), r()};
+  std::mt19937       eng(seed); // a source of random data
+
+  std::uniform_int_distribution<int> dist;
+  std::vector<int> v(arrays_size);
+
+  generate(begin(v), end(v), bind(dist, eng));
+  return v;
+}
+
+
+
+NonblockingUnixSocketServerTest::NonblockingUnixSocketServerTest() {
 	// Have qux return true by default
 	//ON_CALL(m_bar,qux()).WillByDefault(Return(true));
 	// Have norf return false by default
@@ -38,7 +57,7 @@ void NonblockingUnixSocketServerTest::SetUp() {
 
 	init_log();
 
-    //logging::core::get()->
+	//logging::core::get()->
 
 	//sink.set_format("[" << boost::logging::level << "]" << " - " << boost::logging::date("%d/$m/$Y") << "," << boost::logging::timestamp << "," << boost::logging::message);
 
@@ -54,7 +73,8 @@ void NonblockingUnixSocketServerTest::TearDown() {
 
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 
-	TEST_LOG(info) << "***TestParameters**" << endl;
+	TEST_LOG(info)
+	<< "***TestParameters**";
 
 	// expect exception
 
@@ -70,22 +90,27 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		TEST_LOG(debug) << "[server][my_listener] closing socket " << fd << endl;
+		TEST_LOG(debug)
+		<< "[server][my_listener] closing socket " << fd;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case DATA_REQUEST:
-		TEST_LOG(debug) << "[server][my_listener] incoming data fd=" << fd << endl;
+		TEST_LOG(debug)
+		<< "[server][my_listener] incoming data fd=" << fd;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd, 256);
 
-		TEST_LOG(debug) << "[server][my_listener] number of vectors returned: " << data.size() << endl;
+		TEST_LOG(debug)
+		<< "[server][my_listener] number of vectors returned: " << data.size();
 
 		int counter = 0;
 		for (std::vector<char> item : data) {
-			TEST_LOG(trace) << "[server][my_listener] buffer " << counter++ << ": " << item.size() << " bytes" << endl;
+			TEST_LOG(trace)
+			<< "[server][my_listener] buffer " << counter++ << ": "
+					<< item.size() << " bytes";
 
 			if (calcCrc) {
 				serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
@@ -98,62 +123,68 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	}
 
-	TEST_LOG(info) << "[server][my_listener] ending - fd=" << fd << endl;
+	TEST_LOG(info)
+	<< "[server][my_listener] ending - fd=" << fd;
 
 }
 
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
-	TEST_LOG(info) << "***UnixSocketServerTest***" << endl;
-
+	TEST_LOG(info)
+	<< "***UnixSocketServerTest***";
 
 	string socketName = "/tmp/mysocket_test.sock";
 
 	UnixSocketServer uss { socketName, 10 };
 
-
 	std::thread th([](UnixSocketServer *uss) {
 
-		TEST_LOG(debug) << "[server] thread starting" << endl;
+		TEST_LOG(debug)
+		<< "[server] thread starting";
 
 		uss->listen(::my_listener);
 
-		TEST_LOG(debug) << "[server] thread ending" << endl;
+		TEST_LOG(debug)
+		<< "[server] thread ending";
 	}, &uss);
 
 //	std::thread th([&uss]() {
 //
-//		cout << "[thread] server thread starting" << endl;
+//		cout << "[thread] server thread starting";
 //
 //		uss.listen(::my_listener);
 //
-//		cout << "[thread] server thread ending" << endl;
+//		cout << "[thread] server thread ending";
 //	});
 
-    uss.waitForServerReady();
+	uss.waitForServerReady();
 
 	UnixSocketClient usc;
 
-	TEST_LOG(info) << "[client] connect to server\n";
+	TEST_LOG(info)
+	<< "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
-	TEST_LOG(info) << "[client] writing to socket\n";
-	usc.write(v);
+	TEST_LOG(info)
+	<< "[client] writing to socket\n";
+	usc.write<char>(v);
 
-	TEST_LOG(info) << "[client] reading from socket\n";
+	TEST_LOG(info)
+	<< "[client] reading from socket\n";
 	// read server response
 	auto response = usc.read(1024);
 
-	TEST_LOG(info) << "[client] received data size: " << response.size() << endl;
+	TEST_LOG(info)
+	<< "[client] received data size: " << response.size();
 
-	TEST_LOG(info) << "[client] closing socket" << endl;
+	TEST_LOG(info)
+	<< "[client] closing socket";
 	usc.close();
 
 	// TODO: valgrind block here; but the program alone works
 	// valgrind -s   --leak-check=yes test/testlibnbuss/testlibnbuss
-
 
 	struct timespec ts1, ts2;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
@@ -162,28 +193,30 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
-		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
-
+		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec)
+				- ts1.tv_nsec;
 
 		if (dt > 2000000) // 2 milliseconds
 			break;
 	}
 
 	if (dt > 0) {
-		cout << "dt = " << dt << endl;
+		TEST_LOG(info)
+		<< "dt = " << dt;
 	}
 
-	TEST_LOG(info) << "[server] calling terminate" << endl;
+	TEST_LOG(info)
+	<< "[server] calling terminate";
 	uss.terminate();
 
-	TEST_LOG(info) << "[server] join thread" << endl;
+	TEST_LOG(info)
+	<< "[server] join thread";
 	th.join();
 
-	TEST_LOG(info) << "test finished!" << endl;
+	TEST_LOG(info)
+	<< "test finished!";
 
 	EXPECT_EQ(response.size(), 12);
-
-
 
 }
 
@@ -191,7 +224,8 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 	try {
 
-		TEST_LOG(info) << "***TcpServerClientReadWriteTest***" << endl;
+		TEST_LOG(info)
+		<< "***TcpServerClientReadWriteTest***";
 
 		// create instance of tcp non blocking server
 
@@ -202,7 +236,8 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 		std::atomic_thread_fence(std::memory_order_release);
 
-		TEST_LOG(info) << "[server] starting server\n";
+		TEST_LOG(info)
+		<< "[server] starting server\n";
 		// when start returns, server has started listening for incoming connections
 		threadedServer.start(my_listener);
 
@@ -212,44 +247,53 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 //
 		TcpClient tc;
 
-		TEST_LOG(info) << "[client] connect to server\n";
+		TEST_LOG(info)
+		<< "[client] connect to server\n";
 		tc.connect("0.0.0.0", 10001);
 
 		std::string s = "test message";
 		std::vector<char> v(s.begin(), s.end());
 
-		TEST_LOG(info) << "[client] writing to socket\n";
-		tc.write(v);
+		TEST_LOG(info)
+		<< "[client] writing to socket\n";
+		tc.write<char>(v);
 
-		TEST_LOG(info) << "[client] reading from socket\n";
+		TEST_LOG(info)
+		<< "[client] reading from socket\n";
 		// read server response
 		auto response = tc.read(1024);
 
-		TEST_LOG(info) << "[client] received data size: " << response.size() << endl;
+		TEST_LOG(info)
+		<< "[client] received data size: " << response.size();
 
-		TEST_LOG(info) << "[client] closing socket" << endl;
+		TEST_LOG(info)
+		<< "[client] closing socket";
 		tc.close();
 
 		// spin... consider using a condition variable
 		while (ts.getActiveConnections() > 0)
 			;
 
-		TEST_LOG(info) << "[server] stopping server" << endl;
+		TEST_LOG(info)
+		<< "[server] stopping server";
 		threadedServer.stop();
 
-		TEST_LOG(info) << "[main] test finished!" << endl;
+		TEST_LOG(info)
+		<< "[main] test finished!";
 
 		EXPECT_EQ(response.size(), 12);
 
 	} catch (const std::exception &e) {
-		TEST_LOG(error) << "exception: " << e.what() << endl;
+		TEST_LOG(error)
+		<< "exception: " << e.what();
 	}
 
 }
 
 TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
-	TEST_LOG(info) << "***UdpServerClientReadWriteTest**" << endl;
+	TEST_LOG(info)
+	<< "***UdpServerClientReadWriteTest**";
 
 	string socketName = "/tmp/mysocket_test.sock";
 
@@ -264,22 +308,27 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	UnixSocketClient usc;
 
-	TEST_LOG(info) << "[client] connect to server\n";
+	TEST_LOG(info)
+	<< "[client] connect to server\n";
 	usc.connect(socketName);
 
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
-	TEST_LOG(info) << "[client] writing to socket\n";
-	usc.write(v);
+	TEST_LOG(info)
+	<< "[client] writing to socket\n";
+	usc.write<char>(v);
 
-	TEST_LOG(info) << "[client] reading from socket\n";
+	TEST_LOG(info)
+	<< "[client] reading from socket\n";
 	// read server response
 	auto response = usc.read(1024);
 
-	TEST_LOG(info) << "[client] received data size: " << response.size() << endl;
+	TEST_LOG(info)
+	<< "[client] received data size: " << response.size();
 
-	TEST_LOG(info) << "[client] closing socket" << endl;
+	TEST_LOG(info)
+	<< "[client] closing socket";
 	usc.close();
 
 	// spin... consider using a condition variable
@@ -288,17 +337,19 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 
 	threadedServer.stop();
 
-	TEST_LOG(info) << "test finished!" << endl;
+	TEST_LOG(info)
+	<< "test finished!";
 
 	EXPECT_EQ(response.size(), 12);
 }
 
 TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) {
 
-	TEST_LOG(info) << "***UdpServerClientReadWriteLongBufferTest**" << endl;
+	TEST_LOG(info)
+	<< "***UdpServerClientReadWriteLongBufferTest**";
 
 	calcCrc = true;
-	const ssize_t bufferSize = 4096*3;
+	const ssize_t bufferSize = 4096 * 3;
 
 	//Crc16 crc;
 	//uint16_t longBufferCrc;
@@ -316,7 +367,8 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 	UnixSocketClient usc(true);
 
-	TEST_LOG(info) << "[client] connect to server\n";
+	TEST_LOG(info)
+	<< "[client] connect to server\n";
 	usc.connect(socketName);
 
 //	std::string s = "test message";
@@ -338,25 +390,29 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
 
-	TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc << endl;
+	TEST_LOG(info)
+	<< "[client] crc16 of data sent by client = " << clientCrc;
 	// crc16: 61937
 
 	// reset CRC16
 	serverDataCrc16 = CRC_START_16;
 
-	TEST_LOG(info) << "[client] writing to socket\n";
-	usc.write(longBuffer);
+	TEST_LOG(info)
+	<< "[client] writing to socket\n";
+	usc.write<char>(longBuffer);
 
 	uint16_t clientCrc2 = CRC_START_16;
 
 	size_t total_bytes_received = 0;
 
 	while (total_bytes_received < bufferSize) {
-		TEST_LOG(info) << "[client] reading from socket\n";
+		TEST_LOG(info)
+		<< "[client] reading from socket\n";
 		// read server response
 		auto response = usc.read(1024);
 
-		TEST_LOG(info) << "[client] received data size: " << response.size() << endl;
+		TEST_LOG(info)
+		<< "[client] received data size: " << response.size();
 
 		if (response.size() == 0) {
 			// no data available, sleep for 1 ms
@@ -378,14 +434,17 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 	}
 
-	TEST_LOG(info) << "[server] crc16 of data received from client = " << serverDataCrc16 << endl;
-	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2 << endl;
+	TEST_LOG(info)
+	<< "[server] crc16 of data received from client = " << serverDataCrc16;
+	TEST_LOG(info)
+	<< "[client] crc16 of data received from server = " << clientCrc2;
 
-
-	TEST_LOG(info) << "[client] closing socket" << endl;
+	TEST_LOG(info)
+	<< "[client] closing socket";
 	usc.close();
 
-	TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16 << endl;
+	TEST_LOG(info)
+	<< "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0)
@@ -393,12 +452,82 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 
 	threadedServer.stop();
 
-	TEST_LOG(info) << "test finished!" << endl;
+	TEST_LOG(info)
+	<< "test finished!";
 
 	calcCrc = false;
 
 	EXPECT_EQ(clientCrc2, serverDataCrc16);
 	EXPECT_EQ(clientCrc2, clientCrc);
+}
+
+TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
+
+	TEST_LOG(info)
+	<< "***UdpServerMultipleClientsReadWriteTest**";
+
+	string socketName = "/tmp/mysocket_test.sock";
+
+	UnixSocketServer uss { socketName, 10 };
+
+	ThreadDecorator threadedServer(uss);
+
+	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(my_listener);
+
+	for (unsigned int i = 0; i < 1; i++) {
+
+		Crc16 crc;
+
+		UnixSocketClient usc;
+
+		TEST_LOG(info) << "[client " << i << "] connect to server\n";
+		usc.connect(socketName);
+
+		/////
+	    const auto input = std::initializer_list<std::uint32_t>{1,2,3,4,5,i};
+	    const auto output_size = 256;
+
+	    // using std version of seed_seq (std::seed_seq can be used to feed a random value generator)
+	    std::seed_seq seq(input);
+	    std::vector<std::uint8_t> inputBuffer(output_size);
+	    seq.generate(inputBuffer.begin(), inputBuffer.end()); // fill v with seed values
+
+		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
+				inputBuffer.size()*sizeof(std::uint8_t));
+
+		TEST_LOG(info)
+		<< "[client] writing to socket\n";
+		usc.write<std::uint8_t>(inputBuffer);
+
+		TEST_LOG(info)
+		<< "[client] reading from socket\n";
+		// read server response
+		auto response = usc.read(1024);
+
+		TEST_LOG(info)
+		<< "[client] received data size: " << response.size();
+
+		TEST_LOG(info)
+		<< "[client] closing socket";
+		usc.close();
+
+
+
+		EXPECT_EQ(response.size(), output_size);
+	}
+
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	TEST_LOG(info)
+	<< "test finished!";
+
 }
 
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {
