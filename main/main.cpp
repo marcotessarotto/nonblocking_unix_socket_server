@@ -26,7 +26,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		//close(fd);
 
 		break;
-	case DATA_REQUEST:
+	case AVAILABLE_FOR_READ:
 		cout << "[server my_listener] incoming data on socket " << fd << endl;
 
 		// read all data from socket

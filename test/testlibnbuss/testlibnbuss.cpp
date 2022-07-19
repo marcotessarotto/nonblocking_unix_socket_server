@@ -96,7 +96,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		srv->close(fd);
 
 		break;
-	case DATA_REQUEST:
+	case AVAILABLE_FOR_READ:
 		TEST_LOG(debug)
 		<< "[server][my_listener] incoming data fd=" << fd;
 
@@ -118,12 +118,20 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 						item.size());
 			}
 
+			// TODO: if write queue for fd is empty, write buffer
+			// else copy buffer to queue
+
+			// TODO: if write returns -1, copy remaining data
 			while (UnixSocketServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 
 				nanosleep(&ts, NULL);
 			}
 		}
+		break;
+	case AVAILABLE_FOR_WRITE:
+		// TODO: check if there are buffers to write to this socket
+		break;
 
 	}
 

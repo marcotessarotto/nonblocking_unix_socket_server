@@ -16,8 +16,9 @@ namespace nbuss_server {
 
 // TODO: consider moving to enum class
 enum job_type_t {
-	DATA_REQUEST, // incoming data is present
-	CLOSE_SOCKET // socket must be closed
+	AVAILABLE_FOR_READ, // the associated file is available for read(2) operations.
+	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
+	AVAILABLE_FOR_WRITE // the associated file is available for write(2) operations.
 };
 
 

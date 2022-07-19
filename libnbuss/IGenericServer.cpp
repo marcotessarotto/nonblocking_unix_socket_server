@@ -380,7 +380,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN fd=" << fd;
 					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
 
-					callback_function(this, fd, DATA_REQUEST);
+					callback_function(this, fd, AVAILABLE_FOR_READ);
 
 				} else if (events[n].events & EPOLLRDHUP) {
 					LIB_LOG(debug)  << "[IGenericServer] EPOLLRDHUP fd=" << fd;
