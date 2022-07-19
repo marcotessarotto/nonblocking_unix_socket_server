@@ -22,12 +22,12 @@ BaseClient::~BaseClient() {
 }
 
 
-int BaseClient::write(const char * data, ssize_t data_size) {
+ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 	if (data_socket == -1) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}
 
-	int c;
+	ssize_t c;
 
 	const char * p = data;
 
@@ -82,10 +82,8 @@ int BaseClient::write(const char * data, ssize_t data_size) {
 //	}
 //}
 
-int BaseClient::write(const std::string &data) {
-
-
-	int data_size = data.size() * sizeof(char);
+ssize_t BaseClient::write(const std::string &data) {
+	ssize_t data_size = data.size() * sizeof(char);
 	const char * p =  reinterpret_cast<const char*>(data.data());
 
 	LIB_LOG(debug) << "BaseClient::Write data_size = " << data_size;
@@ -101,7 +99,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 
 	std::vector<char> buffer(buffer_size);
 
-	int c;
+	ssize_t c;
 	char * p;
 
 	p = buffer.data();

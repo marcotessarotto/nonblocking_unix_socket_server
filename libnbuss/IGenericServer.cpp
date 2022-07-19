@@ -444,12 +444,12 @@ void IGenericServer::close(int fd) {
 	}
 }
 
-int IGenericServer::write(int fd, const char * data, ssize_t data_size) {
+ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	if (fd == -1) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}
 
-	int c;
+	ssize_t c;
 	int bytes_written = 0;
 
 	const char * p = data;

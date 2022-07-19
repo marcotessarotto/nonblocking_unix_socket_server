@@ -105,14 +105,14 @@ public:
 	 * invoke the write system call; return the number of bytes written on success,
 	 * or std::runtime_error in case of error
 	 */
-	static int write(int fd, const char * data, ssize_t data_size);
+	static ssize_t write(int fd, const char * data, ssize_t data_size);
 
 	/**
 	 * write data to the socket
 	 */
 	template <class T>
-	static int write(int fd, std::vector<T> &data) {
-		int data_size = data.size() * sizeof(T);
+	static ssize_t write(int fd, std::vector<T> &data) {
+		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
 		LIB_LOG(debug) << "IGenericServer::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
