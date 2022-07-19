@@ -41,7 +41,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 					<< item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
 
-			UnixSocketServer::write(fd, item);
+			UnixSocketServer::write<char>(fd, item);
 		}
 
 		cout << "[server my_listener] incoming data - finished processing\n";
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
 		std::vector<char> v(s.begin(), s.end());
 
 		cout << "[client] writing to socket\n";
-		tc.write(v);
+		tc.write<char>(v);
 
 		cout << "[client] reading from socket\n";
 		// read server response
