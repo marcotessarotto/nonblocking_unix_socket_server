@@ -533,6 +533,89 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
 
 }
 
+
+TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteTest) {
+
+	TEST_LOG(info)
+	<< "***UdpServerMultipleThreadClientsReadWriteTest**";
+
+	const string socketName = "/tmp/mysocket_test.sock";
+
+	UnixSocketServer uss { socketName, 10 };
+
+	ThreadDecorator threadedServer(uss);
+
+	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(my_listener);
+
+
+	std::function<void(int id)> clientThread = [socketName] (unsigned int id) {
+		TEST_LOG(info) << "thread " << id;
+
+
+		Crc16 crc;
+
+		UnixSocketClient usc;
+
+		TEST_LOG(info) << "[client " << id << "] connect to server\n";
+		usc.connect(socketName);
+
+		/////
+	    const auto input = std::initializer_list<std::uint32_t>{1,2,3,4,5,id};
+	    const auto output_size = 256*1024;
+
+	    // using std version of seed_seq (std::seed_seq can be used to feed a random value generator)
+	    std::seed_seq seq(input);
+	    std::vector<std::uint8_t> inputBuffer(output_size);
+	    seq.generate(inputBuffer.begin(), inputBuffer.end()); // fill v with seed values
+
+		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
+				inputBuffer.size()*sizeof(std::uint8_t));
+
+		TEST_LOG(debug) << "[client] writing to socket\n";
+		usc.write<std::uint8_t>(inputBuffer);
+
+		TEST_LOG(debug) << "[client] reading from socket\n";
+		// read server response
+		auto response = usc.read(1024);
+
+		uint16_t clientCrc2 = CRC_START_16;
+
+		clientCrc2 = crc.update_crc_16(clientCrc2,
+			reinterpret_cast<const unsigned char*>(response.data()),
+			response.size());
+
+		TEST_LOG(info) << "[client] received data size: " << response.size();
+
+		TEST_LOG(info) << "crc16 of data: " << clientCrc;
+
+		EXPECT_EQ(clientCrc, clientCrc2);
+	};
+
+	const int N = 1;
+	std::thread th[N];
+
+	for (int i = 0; i < 10; i++){
+		th[i] = std::thread{clientThread, i};
+	}
+
+	for (int i = 0; i < 10; i++){
+		th[i].join();
+	}
+
+
+	// spin... consider using a condition variable
+	while (uss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	TEST_LOG(info)
+	<< "test finished!";
+}
+
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {
 //    Foo foo(m_bar);
 //    EXPECT_EQ(foo.baz(true), true);
