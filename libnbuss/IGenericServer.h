@@ -39,7 +39,7 @@ protected:
 		RunOnReturn(std::function<void(void)> func) : func{func} {
 		}
 		~RunOnReturn() {
-			std::cout << "~RunOnReturn" << std::endl;
+			//std::cout << "~RunOnReturn" << std::endl;
 			func();
 		}
 	};
@@ -74,6 +74,7 @@ public:
 	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();
 	
+	//using TServerCallback = std::function<void(IGenericServer *,int, enum job_type_t )>;
 
     /**
      * listen for incoming connections; on incoming data, call callback_function
@@ -85,7 +86,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	void listen(std::function<void(IGenericServer * srv, int, enum job_type_t )> callback_function);
+	void listen(std::function<void(IGenericServer *,int, enum job_type_t )> callback_function);
 
 
     /**
@@ -125,19 +126,12 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections() { return activeConnections.load(); }
+	int getActiveConnections() { return activeConnections.load(std::memory_order_seq_cst); }
 
 	/**
 	 * close socket and decrease counter of active connections
 	 */
-	void close(int fd) {
-
-		//std::cout << "IGenericServer::close " << fd;
-		if (fd >= 0) {
-			::close(fd);
-			activeConnections--;
-		}
-	}
+	void close(int fd);
 
 };
 

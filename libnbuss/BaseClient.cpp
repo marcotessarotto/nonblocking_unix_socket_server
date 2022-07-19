@@ -10,6 +10,8 @@
 
 #include "BaseClient.h"
 
+#include "Logger.h"
+
 namespace nbuss_client {
 
 BaseClient::BaseClient(bool nonBlockingSocket) : nonBlockingSocket{nonBlockingSocket}, data_socket{-1} {
@@ -52,13 +54,12 @@ void BaseClient::write(std::string data) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}
 
-
 	int c;
 
 	int data_size = data.size();
 	const char * p = data.c_str();
 
-	// TODO: implement while
+	// TODO: implement while, when a partial write is done
 	c = ::write(data_socket, p, data_size);
 
 	if (c == -1) {
@@ -87,16 +88,16 @@ std::vector<char> BaseClient::read(int buffer_size) {
 
 	// no data available to read
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		std::cout << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK" << std::endl;
+		LIB_LOG(error) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		buffer.resize(0);
 
 		return buffer;
 	} else if (c == -1) {
 		// error returned by read syscall
-		std::cout << "[BaseClient::read] errno == " << errno << std::endl;
+		LIB_LOG(error) << "[BaseClient::read] errno == " << strerror(errno);
 
-		perror("read");
+		//perror("read");
 		throw std::runtime_error("read error");
 	}
 
@@ -106,6 +107,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 }
 
 void BaseClient::close() {
+	LIB_LOG(debug) << "BaseClient::close " << data_socket;
 	if (data_socket >= 0) {
 		::close(data_socket);
 		data_socket = -1;

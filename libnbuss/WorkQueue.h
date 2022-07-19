@@ -9,6 +9,7 @@
 #include <string>
 #include <mutex>
 #include <condition_variable>
+#include <vector>
 
 #include "IGenericServer.h"
 #include "IThreadable.h"
@@ -42,15 +43,22 @@ private:
 
 	std::atomic<bool> stopConsumers;
 
-	void callback(IGenericServer * srv, int fd, enum job_type_t job);
+	std::vector<std::thread> consumerThreads;
 
+	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
+
+	/// callback used as producer
+	void producerCallback(IGenericServer * srv, int fd, enum job_type_t job);
+
+	/// consumer
+	void consumer();
 
 public:
 	WorkQueue(ThreadDecorator & threadDecorator, unsigned int numberOfThreads = 1);
 	virtual ~WorkQueue();
 
 
-	void start();
+	void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
 
 	void stop();
 

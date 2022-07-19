@@ -44,8 +44,6 @@ public:
 
 	virtual ~TcpServer();
 
-
-
 };
 
 } /* namespace nbuss_server */

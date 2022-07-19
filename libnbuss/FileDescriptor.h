@@ -4,6 +4,8 @@
 #include <iostream>
 #include <unistd.h>
 
+#include "Logger.h"
+
 // class for making file descriptors auto-closeable; use FileDescriptor as type of local variable
 class FileDescriptor {
 public:
@@ -11,19 +13,19 @@ public:
 
 	FileDescriptor() {
 		fd = -1;
-		// std::cout << "FileDescriptor::FileDescriptor() " << std::endl;
+		// LIB_LOG(info) << "FileDescriptor::FileDescriptor()";
 	}
 
 	void close() {
 		if (fd >= 0) {
-			std::cout << "FileDescriptor::close fd=" << fd << std::endl;
+			LIB_LOG(info) << "FileDescriptor::close fd=" << fd;
 			::close(fd);
 			fd = -1;
 		}
 	}
 
 	~FileDescriptor() {
-		//std::cout << "~FileDescriptor " << fd << std::endl;
+		//LIB_LOG(info) << "~FileDescriptor " << fd;
 		close();
 	}
 };

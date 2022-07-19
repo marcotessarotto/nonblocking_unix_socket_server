@@ -24,6 +24,7 @@
 #include <errno.h>
 
 #include "TcpServer.h"
+#include "Logger.h"
 
 namespace nbuss_server {
 
@@ -68,7 +69,7 @@ void set_tcp_socket_option(int fd, int opt, int optval) {
 	socklen_t sl_len = sizeof(optval);
 
 	if (setsockopt(fd, tcp_proto, opt, &optval, sl_len) == -1) {
-		perror("setsockopt");
+		LIB_LOG(error) << "setsockopt " << strerror(errno);
 	}
 }
 
@@ -77,7 +78,7 @@ void set_tcp_cork(int fd, int optval) {
 	socklen_t sl_len = sizeof(optval);
 
 	if (setsockopt(fd, tcp_proto, TCP_CORK, &optval, sl_len) == -1) {
-		perror("setsockopt");
+		LIB_LOG(error) << "setsockopt " << strerror(errno);
 	}
 }
 
@@ -87,7 +88,7 @@ int is_tcp_cork_enabled(int fd) {
 	int optval;
 	socklen_t sl_len = sizeof(optval);
 	if (getsockopt(fd, tcp_proto, TCP_CORK, &optval, &sl_len) == -1) {
-		perror("getsockopt");
+		LIB_LOG(error) << "setsockopt " << strerror(errno);
 	}
 
 	return optval;
@@ -108,17 +109,17 @@ void check_nonblock_fd(int fd) {
 	res = fcntl(fd, F_GETFL, 0);
 
 	if (res == -1) {
-		perror("fcntl");
+		LIB_LOG(error) << "fcntl " << strerror(errno) << " fd=" << fd;
 	} else {
 		if (res & O_NONBLOCK)  {
-			printf("fd %d has O_NONBLOCK attr\n", fd);
+			LIB_LOG(info) << "fd has O_NONBLOCK attr fd=" <<  fd;
 		} else {
-			printf("fd %d does not have O_NONBLOCK attr! trying to enable flag... ", fd);
+			LIB_LOG(info) << "fd %d does not have O_NONBLOCK attr! trying to enable flag... fd=" <<  fd;
 
 			if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
-				perror("fcntl - setting O_NONBLOCK");
+				LIB_LOG(error) << "fcntl " << strerror(errno) << " fd=" << fd;
 			} else {
-				printf("OK\n");
+				//printf("OK\n");
 			}
 		}
 	}
@@ -145,15 +146,13 @@ int TcpServer::open_listening_socket() {
    char port_str[6];
 
    if (port > 0xFFFF) {
-	   printf("port error: %d\n", port);
-	   //exit(EXIT_FAILURE);
+	   LIB_LOG(error) << "port error: " << port;
 	   return -1;
    }
 
    sprintf(port_str, "%u", port);
 
-   std::cout << "open_listening_socket port=" << port_str << std::endl;
-   //printf("open_listening_socket port=%s\n", port_str);
+   LIB_LOG(info) << "open_listening_socket port=" << port_str;
 
    // PF_INET 2
    // SOCK_STREAM 1
@@ -173,11 +172,10 @@ int TcpServer::open_listening_socket() {
    hints.ai_addr = NULL;
    hints.ai_next = NULL;
 
-   s = getaddrinfo(/*"0.0.0.0"*/ address.c_str(), port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
+   s = getaddrinfo(address.c_str(), port_str, &hints, &result); // does not support SOCK_NONBLOCK in ai_socktype
    if (s != 0) {
-	   std::cout << "getaddrinfo error: " << gai_strerror(s) << std::endl;
-	   //fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-	   //exit(EXIT_FAILURE);
+	   LIB_LOG(error) << "getaddrinfo error: " << gai_strerror(s) << " address=" << address;
+
 	   return -1;
    }
 
@@ -204,21 +202,12 @@ int TcpServer::open_listening_socket() {
 
    freeaddrinfo(result);           /* No longer needed */
 
-//   printf("out of for loop\n");
-
    if (rp == NULL) {               /* No address succeeded */
-	   //fprintf(stderr, "could not bind\n");
-	   std::cout << "could not bind" << std::endl;
-	   //exit(EXIT_FAILURE);
+	   LIB_LOG(error) << "could not bind";
+
 	   return -1;
    }
 
-   //if (CHECK_NONBLOCK_SOCKET) check_nonblock_fd(sfd);
-
-//   if (::listen(sfd, backlog) == -1) {
-//	   perror("listen");
-//	   exit(EXIT_FAILURE);
-//   }
 
 //   char buffer[INET_ADDRSTRLEN] = { 0 };
 //

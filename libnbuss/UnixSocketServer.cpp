@@ -19,6 +19,7 @@
 #include <exception>
 #include <stdexcept>
 
+#include "Logger.h"
 
 namespace nbuss_server {
 
@@ -34,7 +35,7 @@ void UnixSocketServer::checkParameters() {
 
 UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog) :
 		sockname{sockname}, IGenericServer(backlog) {
-	std::cout << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)" << std::endl;
+	LIB_LOG(info) << "UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int backlog)";
 	checkParameters();
 
 	setup();
@@ -42,14 +43,14 @@ UnixSocketServer::UnixSocketServer(const std::string &sockname, unsigned int bac
 
 UnixSocketServer::UnixSocketServer(const std::string &&sockname, unsigned int backlog) :
 		sockname(std::move(sockname)), IGenericServer(backlog) {
-	std::cout << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)" << std::endl;
+	LIB_LOG(info) << "UnixSocketServer::UnixSocketServer(std::string &&sockname, unsigned int backlog)";
 	checkParameters();
 
 	setup();
 }
 
 UnixSocketServer::~UnixSocketServer() {
-	std::cout << "UnixSocketServer::~UnixSocketServer()" << std::endl;
+	LIB_LOG(info) << "UnixSocketServer::~UnixSocketServer()";
 }
 
 /**
@@ -63,12 +64,11 @@ int UnixSocketServer::open_unix_socket() {
 
 	unlink(sockname.c_str());
 
-	// syslog(LOG_DEBUG, "using non blocking socket\n");
-
 	sfd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0); // | SOCK_SEQPACKET
 
 	if (sfd == -1) {
-		syslog(LOG_ERR, "cannot open socket");
+		//syslog(LOG_ERR, "cannot open socket");
+		LIB_LOG(error) << "cannot open socket " << strerror(errno);
 
 		//throw std::runtime_error("cannot open server socket");
 		return -1;
@@ -80,7 +80,8 @@ int UnixSocketServer::open_unix_socket() {
 	strncpy(addr.sun_path, sockname.c_str(), sizeof(addr.sun_path) - 1);
 
 	if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr_un)) == -1) {
-		syslog(LOG_ERR, "bind error");
+		//syslog(LOG_ERR, "bind error");
+		LIB_LOG(error) << "bind error " << strerror(errno);
 		return -1;
 	}
 
