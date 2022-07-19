@@ -118,7 +118,11 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 						item.size());
 			}
 
-			UnixSocketServer::write(fd, item);
+			while (UnixSocketServer::write(fd, item) == -1) {
+				struct timespec ts { 0, 1000000 };
+
+				nanosleep(&ts, NULL);
+			}
 		}
 
 	}
@@ -550,7 +554,6 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteT
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
-
 	std::function<void(int id)> clientThread = [socketName] (unsigned int id) {
 		TEST_LOG(info) << "thread " << id;
 
@@ -559,12 +562,14 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteT
 
 		UnixSocketClient usc;
 
-		TEST_LOG(info) << "[client " << id << "] connect to server\n";
 		usc.connect(socketName);
+
+		TEST_LOG(info) << "[client][ " << id << "] connect to server fd=" << usc.getFd();
+
 
 		/////
 	    const auto input = std::initializer_list<std::uint32_t>{1,2,3,4,5,id};
-	    const auto output_size = 256*1024;
+	    const auto output_size = 1024*256;
 
 	    // using std version of seed_seq (std::seed_seq can be used to feed a random value generator)
 	    std::seed_seq seq(input);
@@ -574,34 +579,52 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteT
 		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
 				inputBuffer.size()*sizeof(std::uint8_t));
 
-		TEST_LOG(debug) << "[client] writing to socket\n";
+		TEST_LOG(debug) << "[client][ " << id << "] writing to socket\n";
 		usc.write<std::uint8_t>(inputBuffer);
 
-		TEST_LOG(debug) << "[client] reading from socket\n";
-		// read server response
-		auto response = usc.read(1024);
+		TEST_LOG(debug) << "[client][ " << id << "] reading from socket\n";
 
+		ssize_t total_bytes_read = 0;
 		uint16_t clientCrc2 = CRC_START_16;
 
-		clientCrc2 = crc.update_crc_16(clientCrc2,
-			reinterpret_cast<const unsigned char*>(response.data()),
-			response.size());
+		// client expects output_size bytes
+		while (total_bytes_read < output_size) {
+			// read server response
+			auto response = usc.read(1024);
 
-		TEST_LOG(info) << "[client] received data size: " << response.size();
+			TEST_LOG(debug) << "[client][ " << id << "] receiving " << response.size() << " bytes";
 
-		TEST_LOG(info) << "crc16 of data: " << clientCrc;
+			clientCrc2 = crc.update_crc_16(clientCrc2,
+				reinterpret_cast<const unsigned char*>(response.data()),
+				response.size());
+
+			total_bytes_read += response.size();
+		}
+
+
+		TEST_LOG(info) << "[client][ " << id << "] received data size: " << total_bytes_read;
+
+		TEST_LOG(info) << "[client][ " << id << "] crc16 of received data: " << clientCrc2;
 
 		EXPECT_EQ(clientCrc, clientCrc2);
+
+		TEST_LOG(info)
+		<< "[client][ " << id << "] closing socket";
+		usc.close();
+
+
 	};
 
-	const int N = 1;
+	const int N = 10;
 	std::thread th[N];
 
-	for (int i = 0; i < 10; i++){
+	TEST_LOG(info) << "starting " << N << " threads, each thread open a connection to server";
+
+	for (int i = 0; i < N; i++){
 		th[i] = std::thread{clientThread, i};
 	}
 
-	for (int i = 0; i < 10; i++){
+	for (int i = 0; i < N; i++){
 		th[i].join();
 	}
 

@@ -103,27 +103,6 @@ int IGenericServer::setFdNonBlocking(int fd) {
 	return res;
 }
 
-//int IGenericServer::write(int fd, std::vector<char> &buffer) {
-//	// TODO: manage non blocking write calls
-//	// possible solution: implement a write queue
-//
-//	char * p;
-//	int c;
-//
-//	p = buffer.data();
-//	int buffer_size = buffer.size();
-//
-//	c = ::write(fd, p, buffer_size);
-//
-//	if (c == -1) {
-//		LIB_LOG(error) <<  "write error " << strerror(errno);
-//	} else {
-//		LIB_LOG(trace)  << "[IGenericServer] write: " << c << " bytes have been written to socket";
-//	}
-//
-//	return c;
-//}
-
 
 /**
  * read all data available on socket and return it as a vector of vector<char>
@@ -325,7 +304,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 //			syslog(LOG_DEBUG,
 //					"[IGenericServer] n=%d events[n].events=%d events[n].data.fd=%d msg=%s", n,
 //					events[n].events, fd, interpret_event(events[n].events));
-			LIB_LOG(info) << "[IGenericServer] n=%d events[n].events=%d events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
+			LIB_LOG(info) << "[IGenericServer] n=" << n << " events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
 
 			if (fd == listen_sock.fd) {
 

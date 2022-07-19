@@ -43,6 +43,8 @@ public:
 	 * @throws std::runtime_error in case of error on read syscall
 	 */
 	std::vector<char> read(int buffer_size = 1024);
+
+	int getFd() { return data_socket; }
 };
 
 } /* namespace nbuss_client */
