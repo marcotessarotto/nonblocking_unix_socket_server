@@ -22,7 +22,7 @@ BaseClient::~BaseClient() {
 }
 
 
-void BaseClient::_write(const char * data, ssize_t data_size) {
+void BaseClient::write(const char * data, ssize_t data_size) {
 	if (data_socket == -1) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}

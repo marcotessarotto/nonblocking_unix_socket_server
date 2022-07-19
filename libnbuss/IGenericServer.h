@@ -69,12 +69,6 @@ protected:
 
 	std::atomic<int> activeConnections;
 
-	/**
-	 * invoke the write system call; return the number of bytes written on success,
-	 * or std::runtime_error in case of error
-	 */
-	static int _write(int fd, const char * data, ssize_t data_size);
-
 public:
 
 	IGenericServer(unsigned int backlog = 10);
@@ -107,7 +101,11 @@ public:
 	void waitForServerReady();
 
 
-
+	/**
+	 * invoke the write system call; return the number of bytes written on success,
+	 * or std::runtime_error in case of error
+	 */
+	static int write(int fd, const char * data, ssize_t data_size);
 
 	/**
 	 * write data to the socket
@@ -119,7 +117,7 @@ public:
 
 		LIB_LOG(debug) << "IGenericServer::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		return _write(fd, p, data_size);
+		return write(fd, p, data_size);
 	}
 
 

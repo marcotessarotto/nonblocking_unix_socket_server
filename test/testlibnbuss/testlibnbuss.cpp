@@ -167,12 +167,10 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
-	TEST_LOG(info)
-	<< "[client] writing to socket\n";
+	TEST_LOG(debug)	<< "[client] writing to socket\n";
 	usc.write<char>(v);
 
-	TEST_LOG(info)
-	<< "[client] reading from socket\n";
+	TEST_LOG(debug) << "[client] reading from socket\n";
 	// read server response
 	auto response = usc.read(1024);
 
@@ -254,12 +252,10 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 		std::string s = "test message";
 		std::vector<char> v(s.begin(), s.end());
 
-		TEST_LOG(info)
-		<< "[client] writing to socket\n";
+		TEST_LOG(debug)	<< "[client] writing to socket\n";
 		tc.write<char>(v);
 
-		TEST_LOG(info)
-		<< "[client] reading from socket\n";
+		TEST_LOG(debug)	<< "[client] reading from socket\n";
 		// read server response
 		auto response = tc.read(1024);
 
@@ -315,12 +311,10 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
-	TEST_LOG(info)
-	<< "[client] writing to socket\n";
+	TEST_LOG(debug) << "[client] writing to socket\n";
 	usc.write<char>(v);
 
-	TEST_LOG(info)
-	<< "[client] reading from socket\n";
+	TEST_LOG(debug) << "[client] reading from socket\n";
 	// read server response
 	auto response = usc.read(1024);
 
@@ -365,6 +359,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
+	// non blocking client connection
 	UnixSocketClient usc(true);
 
 	TEST_LOG(info)
@@ -406,13 +401,11 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	size_t total_bytes_received = 0;
 
 	while (total_bytes_received < bufferSize) {
-		TEST_LOG(info)
-		<< "[client] reading from socket\n";
+		TEST_LOG(debug)	<< "[client] reading from socket\n";
 		// read server response
 		auto response = usc.read(1024);
 
-		TEST_LOG(info)
-		<< "[client] received data size: " << response.size();
+		TEST_LOG(debug)	<< "[client] received data size: " << response.size();
 
 		if (response.size() == 0) {
 			// no data available, sleep for 1 ms
@@ -477,7 +470,7 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
 
-	for (unsigned int i = 0; i < 1; i++) {
+	for (unsigned int i = 0; i < 10; i++) {
 
 		Crc16 crc;
 
@@ -498,17 +491,26 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
 		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
 				inputBuffer.size()*sizeof(std::uint8_t));
 
-		TEST_LOG(info)
-		<< "[client] writing to socket\n";
+		TEST_LOG(debug) << "[client] writing to socket\n";
 		usc.write<std::uint8_t>(inputBuffer);
 
-		TEST_LOG(info)
-		<< "[client] reading from socket\n";
+		TEST_LOG(debug) << "[client] reading from socket\n";
 		// read server response
 		auto response = usc.read(1024);
 
-		TEST_LOG(info)
-		<< "[client] received data size: " << response.size();
+		uint16_t clientCrc2 = CRC_START_16;
+
+		clientCrc2 = crc.update_crc_16(clientCrc2,
+			reinterpret_cast<const unsigned char*>(response.data()),
+			response.size());
+
+		TEST_LOG(info) << "[client] received data size: " << response.size();
+
+		TEST_LOG(info) << "crc16 of data: " << clientCrc;
+
+		EXPECT_EQ(clientCrc, clientCrc2);
+
+
 
 		TEST_LOG(info)
 		<< "[client] closing socket";

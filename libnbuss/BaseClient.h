@@ -15,8 +15,6 @@ protected:
 
 	bool nonBlockingSocket;
 
-	void _write(const char * data, ssize_t data_size);
-
 public:
 	BaseClient(bool nonBlockingSocket = false);
 	virtual ~BaseClient();
@@ -30,8 +28,10 @@ public:
 
 		LIB_LOG(debug) << "BaseClient::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		_write(p, data_size);
+		write(p, data_size);
 	}
+
+	void write(const char * data, ssize_t data_size);
 
 	void write(std::string &data);
 

@@ -282,7 +282,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	while (!stop_server.load()) {
 
-		LIB_LOG(info) << "[IGenericServer] before epoll_wait";
+		LIB_LOG(trace) << "[IGenericServer] before epoll_wait";
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
@@ -444,7 +444,7 @@ void IGenericServer::close(int fd) {
 	}
 }
 
-int IGenericServer::_write(int fd, const char * data, ssize_t data_size) {
+int IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	if (fd == -1) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}
