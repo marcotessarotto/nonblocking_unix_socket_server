@@ -16,6 +16,8 @@
 #include <iostream>
 #include "configuration.h"
 
+#include "Logger.h"
+
 namespace nbuss_server {
 
 
@@ -24,7 +26,8 @@ IGenericServer::IGenericServer(unsigned int backlog) :
 		is_listening{false},
 		backlog{backlog},
 		activeConnections{0} {
-	std::cout << "IGenericServer::IGenericServer backlog=" << backlog << std::endl;
+
+	LIB_LOG(info) << "IGenericServer::IGenericServer backlog=" << backlog;
 
 	if (backlog <= 0) {
 		throw std::invalid_argument("backlog must be > 0");
@@ -34,7 +37,7 @@ IGenericServer::IGenericServer(unsigned int backlog) :
 
 IGenericServer::~IGenericServer() {
 
-	std::cout << "IGenericServer::~IGenericServer()" << std::endl;
+	LIB_LOG(info) << "IGenericServer::~IGenericServer()";
 
 }
 
@@ -48,7 +51,7 @@ void IGenericServer::waitForServerReady() {
 
 	lk.unlock();
 
-	std::cout << "IGenericServer::waitForServerReady() server is_listening=" << is_listening << std::endl;
+	LIB_LOG(info) << "IGenericServer::waitForServerReady() server is_listening=" << is_listening;
 }
 
 /**
@@ -56,7 +59,7 @@ void IGenericServer::waitForServerReady() {
  */
 void IGenericServer::terminate() {
 
-	std::cout << "IGenericServer::terminate()" << std::endl;
+	LIB_LOG(info) << "IGenericServer::terminate()";
 
 	stop_server.store(true);
 
@@ -70,7 +73,7 @@ void IGenericServer::terminate() {
 		cv.wait(lk);
 	lk.unlock();
 
-	std::cout << "IGenericServer::terminate() has completed" << std::endl;
+	LIB_LOG(info) << "IGenericServer::terminate() has completed";
 
 	// restore state so server can be started again
 	stop_server.store(false);
@@ -83,7 +86,8 @@ int IGenericServer::setFdNonBlocking(int fd) {
 
 	res = fcntl(fd, F_SETFL, O_NONBLOCK);
 	if (res == -1) {
-		syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
+		//syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
+		LIB_LOG(error) <<  "fcntl - error setting O_NONBLOCK " << strerror(errno);
 	}
 
 	return res;
@@ -102,9 +106,9 @@ int IGenericServer::write(int fd, std::vector<char> buffer) {
 	c = ::write(fd, p, buffer_size);
 
 	if (c == -1) {
-		perror("read");
+		LIB_LOG(error) <<  "write error " << strerror(errno);
 	} else {
-		std::cout << "[IGenericServer] write: " << c << " bytes have been written to socket" << std::endl;
+		LIB_LOG(trace)  << "[IGenericServer] write: " << c << " bytes have been written to socket";
 	}
 
 	return c;
@@ -146,7 +150,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 
 		if (c == -1) {
 			// error returned by read syscall
-			perror("read");
+			LIB_LOG(error) <<  "read error " << strerror(errno);
 			break;
 		} else if (c == 0) {
 			// eof
@@ -173,7 +177,7 @@ void IGenericServer::closeSockets() {
 	is_listening = false;
 	lk.unlock();
 
-	std::cout << "listen cleanup finished" << std::endl;
+	LIB_LOG(info) << "listen cleanup finished";
 
 	cv.notify_one();
 }
@@ -202,7 +206,7 @@ static const char* interpret_event(int event) {
 
 void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_type_t)> callback_function) {
 
-	std::cout << "IGenericServer::listen" << std::endl;
+	LIB_LOG(info) << "IGenericServer::listen" << std::endl;
 
 	if (listen_sock.fd == -1) {
 		throw std::runtime_error("server socket is not open");
@@ -212,7 +216,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn([this]() {
-		std::cout << "[IGenericServer] listen cleanup" << std::endl;
+		LIB_LOG(info) << "[IGenericServer] listen cleanup" << std::endl;
 
 		this->closeSockets();
 	});
@@ -224,7 +228,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	// start listening for incoming connections
 	if (::listen(listen_sock.fd, backlog) == -1) {
-		syslog(LOG_ERR, "listen");
+		//syslog(LOG_ERR, "listen");
+		LIB_LOG(error) << "listen error: " << strerror(errno);
 		throw std::runtime_error("[IGenericServer] error returned by listen syscall");
 	}
 
@@ -234,7 +239,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	lk.unlock();
 	cv.notify_one();
 
-	syslog(LOG_DEBUG, "[IGenericServer] listen_sock=%d\n", listen_sock.fd);
+	//syslog(LOG_DEBUG, "[IGenericServer] listen_sock=%d\n", listen_sock.fd);
+	LIB_LOG(info) << "[IGenericServer] listen_sock=" << listen_sock.fd;
 
 
 	//std::cout << "IGenericServer::listen 1\n";
@@ -243,18 +249,21 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	epollfd.fd = epoll_create1(0);
 
 	if (epollfd.fd == -1) {
-		syslog(LOG_ERR, "[IGenericServer] epoll_create1 error (%s)", strerror(errno));
+		//syslog(LOG_ERR, "[IGenericServer] epoll_create1 error (%s)", strerror(errno));
+		LIB_LOG(error) << "[IGenericServer] epoll_create1 error" << strerror(errno);
 
 		throw std::runtime_error("epoll_create1 error");
 	}
 
-	syslog(LOG_DEBUG, "[IGenericServer] epoll_create1 ok: epollfd=%d\n", epollfd.fd);
+	//syslog(LOG_DEBUG, "[IGenericServer] epoll_create1 ok: epollfd=%d\n", epollfd.fd);
+	LIB_LOG(debug) << "[IGenericServer] epoll_create1 ok: epollfd=" << epollfd.fd;
 
 	// monitor read side of pipe
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = commandPipe.getReadFd();
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
-		syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
+		//syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
+		LIB_LOG(error) << "[IGenericServer] epoll_ctl: listen_sock error " << strerror(errno);
 
 		throw std::runtime_error("epoll_ctl error");
 	}
@@ -262,7 +271,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = listen_sock.fd;
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, listen_sock.fd, &ev) == -1) {
-		syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
+		//syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
+		LIB_LOG(error) << "[IGenericServer] epoll_ctl: listen_sock error " << strerror(errno);
 
 		throw std::runtime_error("epoll_ctl error");
 	}
@@ -272,13 +282,13 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	while (!stop_server.load()) {
 
-		std::cout << "[IGenericServer] before epoll_wait" << std::endl;
+		LIB_LOG(info) << "[IGenericServer] before epoll_wait";
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
 		// check if server must stop
 		if (stop_server.load()) {
-			std::cout << "[IGenericServer] server is stopping" << std::endl;
+			LIB_LOG(info) << "[IGenericServer] server is stopping";
 			return;
 		}
 
@@ -286,7 +296,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 			continue;
 		} else if (nfds == -1) {
 
-			syslog(LOG_ERR, "[IGenericServer] epoll_wait error (%s)", strerror(errno));
+			//syslog(LOG_ERR, "[IGenericServer] epoll_wait error (%s)", strerror(errno));
+			LIB_LOG(error) << "[IGenericServer] epoll_wait error " << strerror(errno);
 
 			throw std::runtime_error("epoll_wait error");
 		}
@@ -296,9 +307,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 			fd = events[n].data.fd;
 
-			syslog(LOG_DEBUG,
-					"[IGenericServer] n=%d events[n].events=%d events[n].data.fd=%d msg=%s", n,
-					events[n].events, fd, interpret_event(events[n].events));
+//			syslog(LOG_DEBUG,
+//					"[IGenericServer] n=%d events[n].events=%d events[n].data.fd=%d msg=%s", n,
+//					events[n].events, fd, interpret_event(events[n].events));
+			LIB_LOG(info) << "[IGenericServer] n=%d events[n].events=%d events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
 
 			if (fd == listen_sock.fd) {
 
@@ -309,10 +321,11 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					if (conn_sock == -1) {
 						if (stop_server.load()) {
-							std::cout << "stop_server: " << stop_server.load() << std::endl;
+							LIB_LOG(info) << "stop_server: true";
 							return;
 						}
-						syslog(LOG_ERR, "[IGenericServer] accept error (%s)", strerror(errno));
+						//syslog(LOG_ERR, "[IGenericServer] accept error (%s)", strerror(errno));
+						LIB_LOG(error) << "[IGenericServer] accept error " << strerror(errno);
 
 						throw std::runtime_error("accept error");
 					}
@@ -333,17 +346,19 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev)
 							== -1) {
 						if (stop_server.load()) {
-							std::cout << "stop_server: " << stop_server.load() << std::endl;
+							LIB_LOG(info) << "stop_server: true";
 							return;
 						}
-						syslog(LOG_ERR, "[IGenericServer] epoll_ctl error (%s)",
-								strerror(errno));
+						//syslog(LOG_ERR, "[IGenericServer] epoll_ctl error (%s)",strerror(errno));
+						LIB_LOG(error) << "[IGenericServer] epoll_ctl error: " << strerror(errno);
+
 						throw std::runtime_error("epoll_ctl error");
 					}
 
 					activeConnections++;
 
-					syslog(LOG_DEBUG, "[IGenericServer] accept ok, fd=%d\n", conn_sock);
+					LIB_LOG(debug) << "[IGenericServer] accept ok, fd" << conn_sock;
+					//syslog(LOG_DEBUG, "[IGenericServer] accept ok, fd=%d\n", conn_sock);
 				}
 
 			} else {
@@ -352,29 +367,27 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 						&& (events[n].events & EPOLLRDHUP)
 						&& (events[n].events & EPOLLHUP)) {
 
-					std::cout << "[IGenericServer] EPOLLIN EPOLLRDHUP EPOLLHUP" << std::endl;
-					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
+					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN EPOLLRDHUP EPOLLHUP fd=" << fd;
+					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if ((events[n].events & EPOLLIN)
 						&& (events[n].events & EPOLLRDHUP)) {
 
-					std::cout << "[IGenericServer] EPOLLIN EPOLLRDHUP" << std::endl;
+					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN EPOLLRDHUP fd=" << fd;
 					// Stream  socket peer closed connection, or shut down writing half of connection.
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLIN) {
-					std::cout << "[IGenericServer] EPOLLIN " << std::endl;
-					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
+					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN fd=" << fd;
+					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
 
 					callback_function(this, fd, DATA_REQUEST);
 
 				} else if (events[n].events & EPOLLRDHUP) {
-					std::cout << "[IGenericServer] EPOLLRDHUP " << std::endl;
-					syslog(LOG_DEBUG,
-							"[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer",
-							events[n].data.fd);
+					LIB_LOG(debug)  << "[IGenericServer] EPOLLRDHUP fd=" << fd;
+					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer", events[n].data.fd);
 //					  from man 2 epoll_ctl
 //					  EPOLLRDHUP: Stream socket peer closed connection, or shut down writing
 //		              half of connection.  (This flag is especially useful for
@@ -398,14 +411,14 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLHUP) {
-					std::cout << "[IGenericServer] EPOLLHUP" << std::endl;
-					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
+					LIB_LOG(debug) << "[IGenericServer] EPOLLHUP fd=" << fd;
+					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
 				} else if (events[n].events & EPOLLERR) {
-					std::cout << "[IGenericServer] EPOLLERR" << std::endl;
-					syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLERR\n", events[n].data.fd);
+					LIB_LOG(error) << "[IGenericServer] EPOLLERR fd=" << fd;
+					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLERR\n", events[n].data.fd);
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
@@ -418,8 +431,17 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	} // for (;;)
 
-	std::cout << "stop_server: " << stop_server.load() << std::endl;
+	LIB_LOG(info)  << "stop_server: " << stop_server.load();
 
+}
+
+void IGenericServer::close(int fd) {
+
+	LIB_LOG(trace)  << "IGenericServer::close " << fd;
+	if (fd >= 0) {
+		::close(fd);
+		activeConnections--;
+	}
 }
 
 }

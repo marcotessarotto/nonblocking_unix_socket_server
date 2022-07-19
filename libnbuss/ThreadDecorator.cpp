@@ -3,6 +3,7 @@
 #include <string>
 #include <thread>
 
+#include "Logger.h"
 
 namespace nbuss_server {
 
@@ -12,23 +13,23 @@ ThreadDecorator::ThreadDecorator(IGenericServer &server) :
 		server{server},
 		workerThread{}
 		{
-	std::cout << "ThreadDecorator::ThreadDecorator(IGenericServer &server)" << std::endl;
+	LIB_LOG(info) << "ThreadDecorator::ThreadDecorator(IGenericServer &server)";
 }
 
 ThreadDecorator::~ThreadDecorator() {
-	std::cout << "ThreadDecorator::~ThreadDecorator" << std::endl;
+	LIB_LOG(info) << "ThreadDecorator::~ThreadDecorator";
 }
 
 
 void ThreadDecorator::mainLoopWorker() {
 
-	std::cout << "mainLoopWorker start" << std::endl;
+	LIB_LOG(info) << "mainLoopWorker start";
 
 	// listen returns when another thread calls terminate
 	server.listen(callback_function);
 
 	// thread ends
-	std::cout << "mainLoopWorker end" << std::endl;
+	LIB_LOG(info) << "mainLoopWorker end";
 }
 
 void ThreadDecorator::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
@@ -45,7 +46,7 @@ void ThreadDecorator::start(std::function<void(IGenericServer *, int, enum job_t
 
 void ThreadDecorator::stop() {
 
-	std::cout << "ThreadDecorator::stop" << std::endl;
+	LIB_LOG(info) << "ThreadDecorator::stop";
 
 	// terminate the server thread
 	server.terminate();

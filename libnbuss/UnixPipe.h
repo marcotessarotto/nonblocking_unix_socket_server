@@ -5,6 +5,8 @@
 #include <syslog.h>
 #include <errno.h>
 
+#include "Logger.h"
+
 namespace nbuss_server {
 
 class UnixPipe {
@@ -17,7 +19,8 @@ public:
 		c = pipe(fd);
 
 		if (c == -1) {
-			syslog(LOG_ERR, "error on pipe syscall");
+			//syslog(LOG_ERR, "error on pipe syscall");
+			LIB_LOG(error) << "error on pipe syscall " << strerror(errno);
 		}
 	}
 
@@ -40,7 +43,8 @@ public:
 		c = ::write(fd[1], &ch, sizeof(ch));
 
 		if (c == -1) {
-			syslog(LOG_ERR, "error on write syscall");
+			//syslog(LOG_ERR, "error on write syscall");
+			LIB_LOG(error) << "error on write syscall " << strerror(errno);
 		}
 
 		return c;
@@ -53,7 +57,8 @@ public:
 		c = ::read(fd[0], &ch, sizeof(ch));
 
 		if (c == -1) {
-			syslog(LOG_ERR, "error on read syscall");
+			//syslog(LOG_ERR, "error on read syscall");
+			LIB_LOG(error) << "error on read syscall " << strerror(errno);
 
 			return c;
 		} else {

@@ -9,6 +9,8 @@
 #include "TcpServer.h"
 #include "TcpClient.h"
 
+#include "Logger.h"
+
 using namespace std;
 using namespace nbuss_server;
 using namespace nbuss_client;
@@ -67,6 +69,9 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 int main(int argc, char *argv[]) {
 	openlog("nbuss_server", LOG_CONS | LOG_PERROR, LOG_USER);
+
+
+	LIB_LOG(info) << "****";
 
 #ifdef USE_TCP
 

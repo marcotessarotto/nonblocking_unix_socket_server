@@ -1,5 +1,7 @@
 #include <WorkQueue.h>
 
+#include "Logger.h"
+
 namespace nbuss_server {
 
 static std::atomic<int> producedItems;
@@ -35,13 +37,13 @@ void WorkQueue::producerCallback(IGenericServer * srv, int fd, enum job_type_t j
 	dequeCv.notify_one();
 	//producedItems++;
 
-	std::cout << "[WorkQueue::callback] [Producer] items in deque=" << num << std::endl;
+	LIB_LOG(info) << "[WorkQueue::callback] [Producer] items in deque=" << num;
 
 }
 
 void WorkQueue::consumer() {
 
-	std::cout << "[WorkQueue::consumer] starting consumer thread" << std::endl;
+	LIB_LOG(info) << "[WorkQueue::consumer] starting consumer thread";
 
 	std::unique_lock<std::mutex> lk{dequeMutex, std::defer_lock};
 
@@ -57,7 +59,7 @@ void WorkQueue::consumer() {
         		goto end;
         	}
 
-        	std::cout << "[WorkQueue::consumer] itemsInDeque=" << deque.size() << std::endl;
+        	LIB_LOG(info) << "[WorkQueue::consumer] itemsInDeque=" << deque.size();
         }
 
         Item &i = deque.back();
@@ -66,12 +68,13 @@ void WorkQueue::consumer() {
 
 		lk.unlock();
 
-		std::cout << "[WorkQueue::consumer] processing item - fd=" << i.fd << std::endl;
-		// process Item i
+		LIB_LOG(info) << "[WorkQueue::consumer] processing item - fd=" << i.fd;
+
+		// TODO: process Item i
 
 	}
 end:
-	std::cout << "[WorkQueue::consumer] stopping consumer thread" << std::endl;
+LIB_LOG(info) << "[WorkQueue::consumer] stopping consumer thread";
 
 }
 
@@ -94,7 +97,7 @@ void WorkQueue::start(std::function<void(IGenericServer *, int, enum job_type_t 
 
 void WorkQueue::stop() {
 
-	std::cout << "WorkQueue::stop" << std::endl;
+	LIB_LOG(info) << "WorkQueue::stop()";
 
 	stopConsumers = true;
 

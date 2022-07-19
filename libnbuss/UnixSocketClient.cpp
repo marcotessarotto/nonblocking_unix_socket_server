@@ -8,6 +8,7 @@
 
 #include "UnixSocketClient.h"
 
+#include "Logger.h"
 
 namespace nbuss_client {
 
@@ -38,7 +39,8 @@ void UnixSocketClient::connect(const std::string &sockname) {
 
 
     if (data_socket == -1) {
-        perror("socket");
+        //perror("socket");
+        LIB_LOG(error) << "socket error: " << strerror(errno);
         throw std::runtime_error("socket error");
     }
 
@@ -51,105 +53,14 @@ void UnixSocketClient::connect(const std::string &sockname) {
     ret = ::connect (data_socket, (const struct sockaddr *) &addr,
                    sizeof(struct sockaddr_un));
     if (ret == -1) {
-    	perror("connect");
+    	//perror("connect");
+    	LIB_LOG(error) << "connect error: " << strerror(errno);
         throw std::runtime_error("connect error");
     }
 
 
 }
 
-
-//void UnixSocketClient::write(std::vector<char> data) {
-//
-//	if (data_socket == -1) {
-//		throw std::invalid_argument("invalid socket descriptor");
-//	}
-//
-//	int c;
-//
-//	int data_size = data.size();
-//	char * p = data.data();
-//
-//	// TODO: implement while
-//	c = ::write(data_socket, p, data_size);
-//
-//	// TODO: if socket is in non-blocking mode, buffer could be full
-//	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-//		// can this happen? yes, because client socket is in non blocking mode
-//		std::cout << "[UnixSocketClient::write] write: errno == EAGAIN || errno == EWOULDBLOCK " << std::endl;
-//	} else if (c == -1) {
-//		perror("write");
-//		throw std::runtime_error("write error");
-//	} else {
-//		std::cout << "[UnixSocketClient::write] write returns: " << c << std::endl;
-//	}
-//}
-//
-//void UnixSocketClient::write(std::string data) {
-//	if (data_socket == -1) {
-//		throw std::invalid_argument("invalid socket descriptor");
-//	}
-//
-//
-//	int c;
-//
-//	int data_size = data.size();
-//	const char * p = data.c_str();
-//
-//	// TODO: implement while
-//	c = ::write(data_socket, p, data_size);
-//
-//	if (c == -1) {
-//		perror("write");
-//		throw std::runtime_error("write error");
-//	}
-//}
-//
-//std::vector<char> UnixSocketClient::read(int buffer_size) {
-//	//return nbuss_server::UnixSocketServer::read(data_socket);
-//
-//	if (buffer_size <= 0) {
-//		throw std::invalid_argument("invalid buffer_size");
-//	}
-//
-//	std::vector<char> buffer(buffer_size);
-//
-//	int c;
-//	char * p;
-//
-//	p = buffer.data();
-//
-//	// read from blocking socket
-//	c = ::read(data_socket, p, buffer_size);
-//
-////	std::cout << "[UnixSocketClient::read] read returns: " << c << std::endl;
-//
-//	// no data available to read
-//	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-//		std::cout << "[UnixSocketClient::read] errno == EAGAIN || errno == EWOULDBLOCK" << std::endl;
-//
-//		buffer.resize(0);
-//
-//		return buffer;
-//	} else if (c == -1) {
-//		// error returned by read syscall
-//		std::cout << "[UnixSocketClient::read] errno == " << errno << std::endl;
-//
-//		perror("read");
-//		throw std::runtime_error("read error");
-//	}
-//
-//	buffer.resize(c);
-//
-//	return buffer;
-//}
-//
-//void UnixSocketClient::close() {
-//	if (data_socket >= 0) {
-//		::close(data_socket);
-//		data_socket = -1;
-//	}
-//}
 
 
 } /* namespace nbuss_client */

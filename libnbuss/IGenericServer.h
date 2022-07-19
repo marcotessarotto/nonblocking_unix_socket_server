@@ -39,7 +39,7 @@ protected:
 		RunOnReturn(std::function<void(void)> func) : func{func} {
 		}
 		~RunOnReturn() {
-			std::cout << "~RunOnReturn" << std::endl;
+			//std::cout << "~RunOnReturn" << std::endl;
 			func();
 		}
 	};
@@ -131,14 +131,7 @@ public:
 	/**
 	 * close socket and decrease counter of active connections
 	 */
-	void close(int fd) {
-
-		std::cout << "IGenericServer::close " << fd << std::endl;
-		if (fd >= 0) {
-			::close(fd);
-			activeConnections--;
-		}
-	}
+	void close(int fd);
 
 };
 
