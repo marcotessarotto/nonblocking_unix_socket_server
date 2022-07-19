@@ -22,18 +22,18 @@ public:
 	void close();
 
 	template <class T>
-	void write(std::vector<T> &data) {
+	int write(const std::vector<T> &data) {
 		int data_size = data.size() * sizeof(T);
-		const char * p =  reinterpret_cast<char*>(data.data());
+		const char * p =  reinterpret_cast<const char*>(data.data());
 
 		LIB_LOG(debug) << "BaseClient::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		write(p, data_size);
+		return write(p, data_size);
 	}
 
-	void write(const char * data, ssize_t data_size);
+	int write(const char * data, ssize_t data_size);
 
-	void write(std::string &data);
+	int write(const std::string &data);
 
 	/**
 	 * read from socket, up to buffer_size bytes.

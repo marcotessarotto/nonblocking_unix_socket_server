@@ -22,14 +22,13 @@ BaseClient::~BaseClient() {
 }
 
 
-void BaseClient::write(const char * data, ssize_t data_size) {
+int BaseClient::write(const char * data, ssize_t data_size) {
 	if (data_socket == -1) {
 		throw std::invalid_argument("invalid socket descriptor");
 	}
 
 	int c;
 
-	//int data_size = data.size() * sizeof(T);
 	const char * p = data;
 
 	while (true) {
@@ -47,10 +46,14 @@ void BaseClient::write(const char * data, ssize_t data_size) {
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		// can this happen? yes, if client socket is in non blocking mode
 		LIB_LOG(warning) << "[BaseClient::write] errno == EAGAIN || errno == EWOULDBLOCK";
+
+		return -1;
 	} else if (c == -1) {
 		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
 		throw std::runtime_error("write error");
 	}
+
+	return (int)(p - data);
 }
 
 
@@ -79,23 +82,15 @@ void BaseClient::write(const char * data, ssize_t data_size) {
 //	}
 //}
 
-void BaseClient::write(std::string &data) {
-	if (data_socket == -1) {
-		throw std::invalid_argument("invalid socket descriptor");
-	}
+int BaseClient::write(const std::string &data) {
 
-	int c;
 
-	int data_size = data.size();
-	const char * p = data.c_str();
+	int data_size = data.size() * sizeof(char);
+	const char * p =  reinterpret_cast<const char*>(data.data());
 
-	// TODO: implement while, when a partial write is done
-	c = ::write(data_socket, p, data_size);
+	LIB_LOG(debug) << "BaseClient::Write data_size = " << data_size;
 
-	if (c == -1) {
-		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
-		throw std::runtime_error("write error");
-	}
+	return write(p, data_size);
 }
 
 
