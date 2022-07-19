@@ -96,6 +96,9 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		srv->close(fd);
 
 		break;
+	case AVAILABLE_FOR_WRITE:
+		// TODO: check if there are buffers to write to this socket
+		break;
 	case AVAILABLE_FOR_READ:
 		TEST_LOG(debug)
 		<< "[server][my_listener] incoming data fd=" << fd;
@@ -129,9 +132,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			}
 		}
 		break;
-	case AVAILABLE_FOR_WRITE:
-		// TODO: check if there are buffers to write to this socket
-		break;
+
 
 	}
 
