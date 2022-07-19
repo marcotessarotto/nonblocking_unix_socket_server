@@ -189,18 +189,19 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	long dt = 0;
 
 	// spin... consider using a condition variable
+	int c = 0;
 	while (uss.getActiveConnections() > 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
-		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec)
-				- ts1.tv_nsec;
+		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
+
+		c++;
 
 		if (dt > 2000000) // 2 milliseconds
 			break;
 	}
 
 	if (dt > 0) {
-		TEST_LOG(info)
-		<< "dt = " << dt;
+		TEST_LOG(info) << "dt = " << dt << " nanoseconds - c=" << c;
 	}
 
 	TEST_LOG(info)

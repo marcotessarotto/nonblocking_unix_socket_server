@@ -48,7 +48,6 @@ void IGenericServer::waitForServerReady() {
 	std::unique_lock<std::mutex> lk(mtx);
 	while (!is_listening)
 		cv.wait(lk);
-
 	lk.unlock();
 
 	LIB_LOG(info) << "IGenericServer::waitForServerReady() server is_listening=" << is_listening;
@@ -59,7 +58,17 @@ void IGenericServer::waitForServerReady() {
  */
 void IGenericServer::terminate() {
 
-	LIB_LOG(info) << "IGenericServer::terminate()";
+	std::unique_lock<std::mutex> lk(mtx);
+	bool _is_listening = is_listening;
+	lk.unlock();
+
+	if (!_is_listening) {
+		LIB_LOG(info) << "IGenericServer::terminate() : server has already stopped (due to exception?)";
+		// server has already stopped i.e. throwing an exception
+		goto end;
+	}
+
+	LIB_LOG(info) << "IGenericServer::terminate() is_listening=" << _is_listening;
 
 	stop_server.store(true);
 
@@ -68,13 +77,14 @@ void IGenericServer::terminate() {
 	commandPipe.write('.');
 
 	// wait for server thread to stop listening for incoming connections
-	std::unique_lock<std::mutex> lk(mtx);
+	lk.lock();
 	while (is_listening)
 		cv.wait(lk);
 	lk.unlock();
 
 	LIB_LOG(info) << "IGenericServer::terminate() has completed";
 
+end:
 	// restore state so server can be started again
 	stop_server.store(false);
 	is_listening = false;
@@ -219,6 +229,11 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		LIB_LOG(info) << "[IGenericServer] listen cleanup" << std::endl;
 
 		this->closeSockets();
+
+		std::unique_lock<std::mutex> lk(this->mtx);
+		this->is_listening = false;
+		lk.unlock();
+
 	});
 
 	// initialization added after check with:
@@ -288,11 +303,11 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 		// check if server must stop
 		if (stop_server.load()) {
-			LIB_LOG(info) << "[IGenericServer] server is stopping";
+			LIB_LOG(info) << "[IGenericServer] server must stop";
 			return;
 		}
 
-		if (nfds == -1 && errno == EINTR) { // system call has been interrupted
+		if (nfds == -1 && errno == EINTR) { // epoll_wait system call has been interrupted
 			continue;
 		} else if (nfds == -1) {
 
@@ -319,11 +334,14 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					conn_sock = accept4(listen_sock.fd, NULL, NULL,	SOCK_NONBLOCK);
 
-					if (conn_sock == -1) {
-						if (stop_server.load()) {
-							LIB_LOG(info) << "stop_server: true";
-							return;
-						}
+					if (conn_sock == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+						// no pending connections in queue
+						continue;
+					} else if (conn_sock == -1) {
+//						if (stop_server.load()) {
+//							LIB_LOG(info) << "stop_server: true";
+//							return;
+//						}
 						//syslog(LOG_ERR, "[IGenericServer] accept error (%s)", strerror(errno));
 						LIB_LOG(error) << "[IGenericServer] accept error " << strerror(errno);
 
@@ -345,10 +363,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					ev.data.fd = conn_sock;
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev)
 							== -1) {
-						if (stop_server.load()) {
-							LIB_LOG(info) << "stop_server: true";
-							return;
-						}
+//						if (stop_server.load()) {
+//							LIB_LOG(info) << "stop_server: true";
+//							return;
+//						}
 						//syslog(LOG_ERR, "[IGenericServer] epoll_ctl error (%s)",strerror(errno));
 						LIB_LOG(error) << "[IGenericServer] epoll_ctl error: " << strerror(errno);
 
@@ -431,7 +449,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	} // for (;;)
 
-	LIB_LOG(info)  << "stop_server: " << stop_server.load();
+	LIB_LOG(info)  << "[IGenericServer] listen: termianted";
 
 }
 
