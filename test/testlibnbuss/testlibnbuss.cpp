@@ -715,8 +715,63 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
+
+	std::function<void(IGenericServer *, int, job_type_t)> myListener =
+	[&threadedServer](IGenericServer *srv, int fd, enum job_type_t job_type) {
+
+		TEST_LOG(info) << "*** threadedServer: " << &threadedServer;
+
+		switch (job_type) {
+		case CLOSE_SOCKET:
+
+			TEST_LOG(info)	<< "[server][myListener] CLOSE_SOCKET " << fd;
+			//close(fd);
+			srv->close(fd);
+
+			break;
+		case AVAILABLE_FOR_READ:
+			TEST_LOG(info)	<< "[server][myListener] AVAILABLE_FOR_READ fd=" << fd;
+
+			// read all data from socket
+			auto data = IGenericServer::read(fd, 1024*16);
+
+			TEST_LOG(info)	<< "[server][myListener] number of vectors returned: " << data.size();
+
+			int counter = 0;
+			for (std::vector<char> item : data) {
+				TEST_LOG(info)	<< "[server][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+
+//				if (calcCrc) {
+//					serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
+//							reinterpret_cast<const unsigned char*>(item.data()),
+//							item.size());
+//				}
+
+				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
+
+				TEST_LOG(info)	<< "[server][myListener] calling srv2->write " << item.size();
+				threadedServer.write<char>(fd, item);
+
+//				// TODO: if write returns -1, copy remaining data
+//				while (IGenericServer::write(fd, item) == -1) {
+//					struct timespec ts { 0, 1000000 };
+//
+//					nanosleep(&ts, NULL);
+//				}
+			}
+
+			TEST_LOG(info)	<< "[server][myListener] write complete";
+
+			break;
+
+
+		}
+	};
+
+
+
 	// when start returns, server has started listening for incoming connections
-	threadedServer.start(my_listener);
+	threadedServer.start(myListener);
 
 	// non blocking client connection
 	UnixSocketClient usc(true);

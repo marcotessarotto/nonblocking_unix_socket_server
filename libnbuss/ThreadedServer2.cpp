@@ -17,7 +17,6 @@ ThreadedServer2::ThreadedServer2(IGenericServer &server) :
 		writeQueue{},
 		server{server} {
 
-
 }
 
 ThreadedServer2::~ThreadedServer2() {
@@ -43,7 +42,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		callback_function(srv, fd, job_type);
+		callback_function(this, fd, job_type);
 		break;
 
 //		LIB_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
@@ -58,12 +57,15 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
 			readyToWrite.insert(fd);
 			lk.unlock();
+
+			// notify condition variable
 		}
 		break;
 	case AVAILABLE_FOR_READ:
 		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ fd=" << fd;
 
-		callback_function(srv, fd, job_type);
+
+		callback_function(this, fd, job_type);
 
 		// read all data from socket
 		// auto data = IGenericServer::read(fd, 256);
@@ -162,6 +164,8 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 
 	bool fdIsInWriteQueue = isFdInWriteQueue(fd);
 
+	LIB_LOG(info) << "ThreadedServer2::write() fdIsInWriteQueue=" << fdIsInWriteQueue;
+
 	if (!fdIsInWriteQueue) {
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
@@ -205,6 +209,8 @@ add_to_write_queue:
 
 	lk.unlock();
 
+	LIB_LOG(info) << "ThreadedServer2::write() added buffer to write queue";
+
 	return original_data_size;
 }
 
@@ -212,8 +218,11 @@ add_to_write_queue:
  * check if fd is present in writeQueue
  */
 bool ThreadedServer2::isFdInWriteQueue(int fd) {
+
     for (auto it = writeQueue.cbegin(); it != writeQueue.cend(); ++it) {
-    	if (it->fd == fd) {
+    	auto item = *it;
+
+    	if (item.fd == fd) {
     		return true;
     	}
     }
@@ -224,7 +233,7 @@ void ThreadedServer2::writeQueueWorker() {
 	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() starting";
 
 
-
+	// wait on condition variable
 
 
 	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
