@@ -5,8 +5,8 @@ IGenericServer.cpp
 UnixSocketServer.h
 UnixSocketServer.cpp
 FileDescriptor.h
-ThreadDecorator.cpp
-ThreadDecorator.h
+ThreadedServer.cpp
+ThreadedServer.h
 UnixSocketClient.h
 UnixSocketClient.cpp
 IThreadable.h
