@@ -10,6 +10,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <set>
 
 #include "IGenericServer.h"
 #include "IThreadable.h"

@@ -106,8 +106,11 @@ public:
 
 
 	/**
-	 * invoke the write system call; return the number of bytes written on success,
-	 * or std::runtime_error in case of error
+	 * invoke the write system call;
+	 * return the number of bytes written on success (or partial success)
+	 * returns -1 in case of EAGAIN or EWOULDBLOCK (fd not available to write)
+	 *
+	 * throws exception std::runtime_error in case of error
 	 */
 	static ssize_t write(int fd, const char * data, ssize_t data_size);
 

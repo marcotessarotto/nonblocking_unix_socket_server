@@ -330,6 +330,9 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					// be reported by the epoll interface.  The user must call
 					// epoll_ctl() with EPOLL_CTL_MOD to rearm the file descriptor with a new event mask.
 
+
+					LIB_LOG(info) << "[IGenericServer] epoll_ctl EPOLL_CTL_ADD  fd=" << conn_sock;
+
 					ev.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP | EPOLLOUT;
 					ev.data.fd = conn_sock;
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
@@ -341,7 +344,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					activeConnections++;
 
-					LIB_LOG(debug) << "[IGenericServer] accept ok, fd" << conn_sock;
+
 				}
 
 			} else {
@@ -366,7 +369,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 				if ((events[n].events & EPOLLRDHUP)	|| (events[n].events & EPOLLHUP)) {
 
-					LIB_LOG(info)  << "[IGenericServer] "
+					LIB_LOG(info)  << "[IGenericServer][listen] "
 							<< ((events[n].events & EPOLLRDHUP) ? "EPOLLRDHUP " : "")
 							<< ((events[n].events & EPOLLHUP) ? "EPOLLHUP" : "")
 							<<   " fd=" << fd;
@@ -375,7 +378,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					continue;
 				} else if (events[n].events & EPOLLERR) {
-					LIB_LOG(error) << "[IGenericServer] EPOLLERR fd=" << fd;
+					LIB_LOG(error) << "[IGenericServer][listen] EPOLLERR fd=" << fd;
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
@@ -385,7 +388,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 				// EPOLLIN and EPOLLOUT events can arrive at the same time
 				if (events[n].events & EPOLLOUT) {
-					LIB_LOG(info)  << "[IGenericServer] EPOLLOUT fd=" << fd;
+					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_WRITE);
 
@@ -393,7 +396,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 				}
 
 				if (events[n].events & EPOLLIN) {
-					LIB_LOG(info)  << "[IGenericServer] EPOLLIN fd=" << fd;
+					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLIN fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_READ);
 					continue;
