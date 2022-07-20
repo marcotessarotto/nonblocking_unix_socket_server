@@ -107,6 +107,7 @@ int IGenericServer::setFdNonBlocking(int fd) {
 
 /**
  * read all data available on socket and return it as a vector of vector<char>
+ * readBufferSize is the size of each std::vector<char>
  *
  * compiler performs return value optimization (RVO)
  *
@@ -118,7 +119,6 @@ int IGenericServer::setFdNonBlocking(int fd) {
 std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize) {
 	std::vector<std::vector<char>> result;
 
-	//int counter = 0;
 	while (true) {
 		std::vector<char> buffer(readBufferSize);
 
@@ -128,7 +128,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 		p = buffer.data();
 		int buffer_size = buffer.capacity();
 
-		//std::cout << "read #" << counter++ << std::endl;
+		// LIB_LOG(info) << "read #" << counter++ << std::endl;
 
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
@@ -149,7 +149,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 			// data has been read
 			buffer.resize(c);
 
-			// std::cout << "adding buffer to result" << std::endl;
+			// LIB_LOG(info) << "adding buffer to result" << std::endl;
 
 			result.push_back(std::move(buffer));
 		}

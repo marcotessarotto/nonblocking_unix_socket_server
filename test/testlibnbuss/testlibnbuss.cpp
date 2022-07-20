@@ -12,6 +12,7 @@
 #include "testlibnbuss.h"
 
 #include <ThreadedServer.h>
+#include <ThreadedServer2.h>
 #include "UnixSocketClient.h"
 #include "Crc16.h"
 
@@ -110,7 +111,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
 
 		// read all data from socket
-		auto data = UnixSocketServer::read(fd, 256);
+		auto data = IGenericServer::read(fd, 256);
 
 		TEST_LOG(debug)
 		<< "[server][my_listener] number of vectors returned: " << data.size();
@@ -131,7 +132,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			// else copy buffer to queue
 
 			// TODO: if write returns -1, copy remaining data
-			while (UnixSocketServer::write(fd, item) == -1) {
+			while (IGenericServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 
 				nanosleep(&ts, NULL);
@@ -153,8 +154,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
  * UnixSocketServer, UnixSocketClient
  */
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
-	TEST_LOG(info)
-	<< "***UnixSocketServerTest***";
+	TEST_LOG(info) << "***UnixSocketServerTest***";
 
 	string socketName = "/tmp/mysocket_test.sock";
 
@@ -249,7 +249,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
  * single server instance, single client instance; using tcp sockets
  * buffer size: 12 bytes
  * tests:
- * TcpServer, TcpClient, ThreadDecorator
+ * TcpServer, TcpClient, ThreadedServer
  */
 TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
@@ -318,7 +318,7 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
  * single server instance, single client instance; using unix sockets
  * buffer size: 12 bytes
  * tests:
- * UnixSocketServer, UnixSocketClient, ThreadDecorator
+ * UnixSocketServer, UnixSocketClient, ThreadedServer
  */
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 
@@ -331,7 +331,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 
 	ThreadedServer threadedServer(uss);
 
-	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+	// ThreadedServer threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
@@ -371,13 +371,19 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 	EXPECT_EQ(response.size(), 12);
 }
 
+/**
+ * single server instance, single client instance; using unix sockets
+ * buffer size: 4096 * N bytes
+ * tests:
+ * UnixSocketServer, UnixSocketClient, ThreadedServer
+ */
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBufferTest) {
 
-	TEST_LOG(info)
-	<< "***UnixSocketServerClientReadWriteLongBufferTest**";
-
 	calcCrc = true;
-	const ssize_t bufferSize = 4096 * 3;
+	const ssize_t bufferSize = 4096 * 16;
+
+	TEST_LOG(info)
+	<< "***UnixSocketServerClientReadWriteLongBufferTest**  bufferSize=" << bufferSize;
 
 	//Crc16 crc;
 	//uint16_t longBufferCrc;
@@ -388,7 +394,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	ThreadedServer threadedServer(uss);
 
-	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+	// ThreadedServer threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
@@ -405,7 +411,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	std::vector<char> longBuffer(bufferSize);
 
-	//longBuffer.assign(4096*3, '*');
+	//longBuffer.assign(bufferSize, '*');
 	// initialize longBuffer
 	for (std::size_t i = 0; i < longBuffer.size(); ++i) {
 		longBuffer[i] = i % 10;
@@ -419,15 +425,13 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
 
-	TEST_LOG(info)
-	<< "[client] crc16 of data sent by client = " << clientCrc;
+	TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc;
 	// crc16: 61937
 
 	// reset CRC16
 	serverDataCrc16 = CRC_START_16;
 
-	TEST_LOG(info)
-	<< "[client] writing to socket\n";
+	TEST_LOG(info) << "[client] writing to socket\n";
 	usc.write<char>(longBuffer);
 
 	uint16_t clientCrc2 = CRC_START_16;
@@ -461,17 +465,13 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	}
 
-	TEST_LOG(info)
-	<< "[server] crc16 of data received from client = " << serverDataCrc16;
-	TEST_LOG(info)
-	<< "[client] crc16 of data received from server = " << clientCrc2;
+	TEST_LOG(info) << "[server] crc16 of data received from client = " << serverDataCrc16;
+	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
 
-	TEST_LOG(info)
-	<< "[client] closing socket";
+	TEST_LOG(info) << "[client] closing socket";
 	usc.close();
 
-	TEST_LOG(info)
-	<< "[server] long buffer crc = " << serverDataCrc16;
+	TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0)
@@ -510,7 +510,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 
 	ThreadedServer threadedServer(uss);
 
-	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+	// ThreadedServer threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
@@ -598,7 +598,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 
 	ThreadedServer threadedServer(uss);
 
-	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+	// ThreadedServer threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(my_listener);
@@ -687,6 +687,126 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 	TEST_LOG(info)
 	<< "test finished!";
 }
+
+
+
+/**
+ * single server instance, single client instance; using unix sockets
+ * buffer size: 4096 * N bytes
+ * tests:
+ * UnixSocketServer, UnixSocketClient, ThreadedServer2
+ */
+//TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBufferDoubleThreadTest) {
+//
+//	calcCrc = true;
+//	const ssize_t bufferSize = 4096 * 16;
+//
+//	TEST_LOG(info)
+//	<< "***UnixSocketServerClientReadWriteLongBufferDoubleThreadTest**  bufferSize=" << bufferSize;
+//
+//	//Crc16 crc;
+//	//uint16_t longBufferCrc;
+//
+//	string socketName = "/tmp/mysocket_test.sock";
+//
+//	UnixSocketServer uss { socketName, 10 };
+//
+//	ThreadedServer2 threadedServer(uss);
+//
+//	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
+//
+//	// when start returns, server has started listening for incoming connections
+//	threadedServer.start(my_listener);
+//
+//	// non blocking client connection
+//	UnixSocketClient usc(true);
+//
+//	TEST_LOG(info)
+//	<< "[client] connect to server\n";
+//	usc.connect(socketName);
+//
+////	std::string s = "test message";
+////	std::vector<char> v(s.begin(), s.end());
+//
+//	std::vector<char> longBuffer(bufferSize);
+//
+//	//longBuffer.assign(bufferSize, '*');
+//	// initialize longBuffer
+//	for (std::size_t i = 0; i < longBuffer.size(); ++i) {
+//		longBuffer[i] = i % 10;
+//	}
+//
+////	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {
+////	    std::cout << *it << "\n";
+////	}
+//
+//	uint16_t clientCrc = crc.crc_16(
+//			reinterpret_cast<const unsigned char*>(longBuffer.data()),
+//			longBuffer.size());
+//
+//	TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc;
+//	// crc16: 61937
+//
+//	// reset CRC16
+//	serverDataCrc16 = CRC_START_16;
+//
+//	TEST_LOG(info) << "[client] writing to socket\n";
+//	usc.write<char>(longBuffer);
+//
+//	uint16_t clientCrc2 = CRC_START_16;
+//
+//	size_t total_bytes_received = 0;
+//
+//	while (total_bytes_received < bufferSize) {
+//		TEST_LOG(debug)	<< "[client] reading from socket\n";
+//		// read server response
+//		auto response = usc.read(1024);
+//
+//		TEST_LOG(debug)	<< "[client] received data size: " << response.size();
+//
+//		if (response.size() == 0) {
+//			// no data available, sleep for 1 ms
+//			struct timespec t;
+//
+//			t.tv_sec = 0;  // seconds
+//			t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+//
+//			nanosleep(&t, NULL);
+//
+//			continue;
+//		}
+//
+//		total_bytes_received += response.size();
+//
+//		clientCrc2 = crc.update_crc_16(clientCrc2,
+//				reinterpret_cast<const unsigned char*>(response.data()),
+//				response.size());
+//
+//	}
+//
+//	TEST_LOG(info) << "[server] crc16 of data received from client = " << serverDataCrc16;
+//	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
+//
+//	TEST_LOG(info) << "[client] closing socket";
+//	usc.close();
+//
+//	TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
+//
+//	// spin... consider using a condition variable
+//	while (uss.getActiveConnections() > 0)
+//		;
+//
+//	threadedServer.stop();
+//
+//	TEST_LOG(info)
+//	<< "test finished!";
+//
+//	calcCrc = false;
+//
+//	EXPECT_EQ(clientCrc2, serverDataCrc16);
+//	EXPECT_EQ(clientCrc2, clientCrc);
+//}
+
 
 //TEST_F(FooTest, ByDefaultBazTrueIsTrue) {
 //    Foo foo(m_bar);

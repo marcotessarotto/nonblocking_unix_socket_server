@@ -13,23 +13,22 @@ ThreadedServer::ThreadedServer(IGenericServer &server) :
 		server{server},
 		workerThread{}
 		{
-	LIB_LOG(info) << "ThreadDecorator::ThreadDecorator(IGenericServer &server)";
+	LIB_LOG(info) << "ThreadedServer::ThreadedServer(IGenericServer &server)";
 }
 
 ThreadedServer::~ThreadedServer() {
-	LIB_LOG(info) << "ThreadDecorator::~ThreadDecorator";
+	LIB_LOG(info) << "ThreadedServer::~ThreadedServer";
 }
 
 
-void ThreadedServer::mainLoopWorker() {
-
-	LIB_LOG(info) << "mainLoopWorker start";
+void ThreadedServer::listenWorker() {
+	LIB_LOG(info) << "ThreadedServer::mainLoopWorker start";
 
 	// listen returns when another thread calls terminate
 	server.listen(callback_function);
 
 	// thread ends
-	LIB_LOG(info) << "mainLoopWorker end";
+	LIB_LOG(info) << "ThreadedServer::mainLoopWorker end";
 }
 
 void ThreadedServer::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
@@ -43,16 +42,15 @@ void ThreadedServer::start(std::function<void(IGenericServer *, int, enum job_ty
 		throw std::runtime_error("server is already listening");
 	}
 
-
 	this->callback_function = callback_function;
 
 	try {
 		// std::thread is not CopyConstructible or CopyAssignable, although it is MoveConstructible and MoveAssignable.
 		// a temporary object is created and then moveAssigned to workerThread
-		workerThread = std::thread{&ThreadedServer::mainLoopWorker, this};
+		workerThread = std::thread{&ThreadedServer::listenWorker, this};
 
 	} catch (const std::exception &e) {
-		LIB_LOG(error)	<< "[ThreadDecorator::start] exception: " << e.what();
+		LIB_LOG(error)	<< "[ThreadedServer::start] exception: " << e.what();
 	}
 
 	// return when server is ready i.e. listening for incoming connections
@@ -62,7 +60,7 @@ void ThreadedServer::start(std::function<void(IGenericServer *, int, enum job_ty
 
 void ThreadedServer::stop() {
 
-	LIB_LOG(info) << "ThreadDecorator::stop";
+	LIB_LOG(info) << "ThreadedServer::stop";
 
 	// terminate the server thread
 	server.terminate();

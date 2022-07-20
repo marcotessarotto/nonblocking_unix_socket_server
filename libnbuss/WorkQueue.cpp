@@ -7,8 +7,8 @@ namespace nbuss_server {
 static std::atomic<int> producedItems;
 static std::atomic<int> consumedItems;
 
-WorkQueue::WorkQueue(ThreadedServer & threadDecorator, unsigned int numberOfThreads) :
-		threadDecorator{threadDecorator},
+WorkQueue::WorkQueue(ThreadedServer & threadedServer, unsigned int numberOfThreads) :
+		threadedServer{threadedServer},
 		numberOfThreads(numberOfThreads),
 		callback_function{},
 		deque{},
@@ -92,7 +92,7 @@ void WorkQueue::start(std::function<void(IGenericServer *, int, enum job_type_t 
 	}
 
 
-	threadDecorator.start(
+	threadedServer.start(
 		[this](IGenericServer * srv, int fd, enum job_type_t job) {
 				this->producerCallback(srv, fd, job);
 			}
@@ -105,7 +105,7 @@ void WorkQueue::stop() {
 
 	stopConsumers = true;
 
-	threadDecorator.stop();
+	threadedServer.stop();
 
 	for (int i = 0; i < numberOfThreads; i++) {
 		dequeCv.notify_one();

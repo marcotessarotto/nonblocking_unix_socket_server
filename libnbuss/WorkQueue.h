@@ -34,7 +34,7 @@ public:
 	};
 
 private:
-	ThreadedServer &threadDecorator;
+	ThreadedServer &threadedServer;
 	unsigned int numberOfThreads;
 
 	std::deque<Item> deque;

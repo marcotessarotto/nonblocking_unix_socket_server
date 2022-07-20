@@ -29,7 +29,7 @@ protected:
 
 	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
 
-	void mainLoopWorker();
+	void listenWorker();
 
 public:
 	ThreadedServer(IGenericServer &server);
