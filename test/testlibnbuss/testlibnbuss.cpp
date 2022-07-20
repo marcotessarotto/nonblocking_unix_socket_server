@@ -146,6 +146,12 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 }
 
+/**
+ * single server instance, single client instance; using unix sockets;
+ * buffer size: 12 bytes
+ * tests:
+ * UnixSocketServer, UnixSocketClient
+ */
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	TEST_LOG(info)
 	<< "***UnixSocketServerTest***";
@@ -201,6 +207,8 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 
 	// TODO: valgrind block here; but the program alone works
 	// valgrind -s   --leak-check=yes test/testlibnbuss/testlibnbuss
+	// it seems that EPOLLRDHUP EPOLLHUP events are lost, missed(???) or not delivered (?!?)
+	// or something else catches the events (?!?!??!?) or some kind of wrong interaction between gtest and valgring (!?!?!?)
 
 	struct timespec ts1, ts2;
 	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
@@ -237,12 +245,17 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 
 }
 
+/**
+ * single server instance, single client instance; using tcp sockets
+ * buffer size: 12 bytes
+ * tests:
+ * TcpServer, TcpClient, ThreadDecorator
+ */
 TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 	try {
 
-		TEST_LOG(info)
-		<< "***TcpServerClientReadWriteTest***";
+		TEST_LOG(info) << "***TcpServerClientReadWriteTest***";
 
 		// create instance of tcp non blocking server
 
@@ -258,10 +271,6 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 		// when start returns, server has started listening for incoming connections
 		threadedServer.start(my_listener);
 
-//
-//		// ?!?!?! sometimes threadedServer is destroyed here, terminating the program with message:
-//		// terminate called without an active exception
-//
 		TcpClient tc;
 
 		TEST_LOG(info)
@@ -305,10 +314,16 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 
 }
 
-TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
+/**
+ * single server instance, single client instance; using unix sockets
+ * buffer size: 12 bytes
+ * tests:
+ * UnixSocketServer, UnixSocketClient, ThreadDecorator
+ */
+TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UdpServerClientReadWriteTest**";
+	<< "***UnixSocketServerClientReadWriteTest**";
 
 	string socketName = "/tmp/mysocket_test.sock";
 
@@ -356,10 +371,10 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteTest) {
 	EXPECT_EQ(response.size(), 12);
 }
 
-TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) {
+TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBufferTest) {
 
 	TEST_LOG(info)
-	<< "***UdpServerClientReadWriteLongBufferTest**";
+	<< "***UnixSocketServerClientReadWriteLongBufferTest**";
 
 	calcCrc = true;
 	const ssize_t bufferSize = 4096 * 3;
@@ -483,10 +498,10 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
  * 	   read data (the server echoes it),
  * 	   check that the received data is the same as the sent one, using crc16 to check equality
  */
-TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
+TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UdpServerMultipleClientsReadWriteTest**";
+	<< "***UnixSocketServerMultipleClientsReadWriteTest**";
 
 
 	string socketName = "/tmp/mysocket_test.sock";
@@ -572,10 +587,10 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
  * 	   read data (the server echoes it),
  * 	   check that the received data is the same as the sent one, using crc16 to check equality
  */
-TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteTest) {
+TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UdpServerMultipleThreadClientsReadWriteTest**";
+	<< "***UnixSocketServerMultipleThreadClientsReadWriteTest**";
 
 	const string socketName = "/tmp/mysocket_test.sock";
 
