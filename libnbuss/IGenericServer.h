@@ -16,8 +16,9 @@ namespace nbuss_server {
 
 // TODO: consider moving to enum class
 enum job_type_t {
-	DATA_REQUEST, // incoming data is present
-	CLOSE_SOCKET // socket must be closed
+	AVAILABLE_FOR_READ, // the associated file is available for read(2) operations.
+	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
+	AVAILABLE_FOR_WRITE // the associated file is available for write(2) operations.
 };
 
 
@@ -69,11 +70,8 @@ protected:
 
 	std::atomic<int> activeConnections;
 
-	/**
-	 * invoke the write system call; return the number of bytes written on success,
-	 * or std::runtime_error in case of error
-	 */
-	static int _write(int fd, const char * data, ssize_t data_size);
+	/// list of open sockets
+	std::vector<int> socketList;
 
 public:
 
@@ -107,19 +105,23 @@ public:
 	void waitForServerReady();
 
 
-
+	/**
+	 * invoke the write system call; return the number of bytes written on success,
+	 * or std::runtime_error in case of error
+	 */
+	static ssize_t write(int fd, const char * data, ssize_t data_size);
 
 	/**
 	 * write data to the socket
 	 */
 	template <class T>
-	static int write(int fd, std::vector<T> &data) {
-		int data_size = data.size() * sizeof(T);
+	static ssize_t write(int fd, std::vector<T> &data) {
+		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
 		LIB_LOG(debug) << "IGenericServer::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		return _write(fd, p, data_size);
+		return write(fd, p, data_size);
 	}
 
 

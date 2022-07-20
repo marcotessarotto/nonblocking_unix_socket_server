@@ -54,7 +54,8 @@ UnixSocketServer::~UnixSocketServer() {
 }
 
 /**
- * unlink socket, create and bind socket; return server socket else -1 on error
+ * unlink socket file on file system, create and bind socket;
+ * return server socket if successful else return -1 on error
  *
  */
 int UnixSocketServer::open_unix_socket() {
@@ -67,7 +68,6 @@ int UnixSocketServer::open_unix_socket() {
 	sfd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0); // | SOCK_SEQPACKET
 
 	if (sfd == -1) {
-		//syslog(LOG_ERR, "cannot open socket");
 		LIB_LOG(error) << "cannot open socket " << strerror(errno);
 
 		//throw std::runtime_error("cannot open server socket");
@@ -80,7 +80,6 @@ int UnixSocketServer::open_unix_socket() {
 	strncpy(addr.sun_path, sockname.c_str(), sizeof(addr.sun_path) - 1);
 
 	if (bind(sfd, (struct sockaddr*) &addr, sizeof(struct sockaddr_un)) == -1) {
-		//syslog(LOG_ERR, "bind error");
 		LIB_LOG(error) << "bind error " << strerror(errno);
 		return -1;
 	}
@@ -89,38 +88,14 @@ int UnixSocketServer::open_unix_socket() {
 }
 
 
-// this works if only one thread calls this method
-static const char* interpret_event(int event) {
-	static char buffer[256];
-
-	buffer[0] = 0;
-
-	if (event & EPOLLIN)
-		strcat(buffer, "EPOLLIN ");
-	if (event & EPOLLOUT)
-		strcat(buffer, "EPOLLOUT ");
-	if (event & EPOLLRDHUP)
-		strcat(buffer, "EPOLLRDHUP ");
-	if (event & EPOLLHUP)
-		strcat(buffer, "EPOLLHUP ");
-	if (event & EPOLLERR)
-		strcat(buffer, "EPOLLERR ");
-	if (event & EPOLLPRI)
-		strcat(buffer, "EPOLLPRI ");
-
-	return buffer;
-}
-
 
 void UnixSocketServer::setup() {
-
 	// listen_sock will be auto closed when returning from listen
 	listen_sock.fd = open_unix_socket();
 
 	if (listen_sock.fd == -1) {
 		throw std::runtime_error("cannot open server socket");
 	}
-
 }
 
 

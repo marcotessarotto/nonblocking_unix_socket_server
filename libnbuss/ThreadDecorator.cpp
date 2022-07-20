@@ -33,11 +33,27 @@ void ThreadDecorator::mainLoopWorker() {
 }
 
 void ThreadDecorator::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
+
+	std::unique_lock<std::mutex> lk(mtx);
+	bool _is_listening = is_listening;
+	lk.unlock();
+
+	if (_is_listening) {
+		LIB_LOG(error) << "server is already listening";
+		throw std::runtime_error("server is already listening");
+	}
+
+
 	this->callback_function = callback_function;
 
-	// std::thread is not CopyConstructible or CopyAssignable, although it is MoveConstructible and MoveAssignable.
-	// a temporary object is created and then moveAssigned to workerThread
-	workerThread = std::thread{&ThreadDecorator::mainLoopWorker, this};
+	try {
+		// std::thread is not CopyConstructible or CopyAssignable, although it is MoveConstructible and MoveAssignable.
+		// a temporary object is created and then moveAssigned to workerThread
+		workerThread = std::thread{&ThreadDecorator::mainLoopWorker, this};
+
+	} catch (const std::exception &e) {
+		LIB_LOG(error)	<< "[ThreadDecorator::start] exception: " << e.what();
+	}
 
 	// return when server is ready i.e. listening for incoming connections
 	server.waitForServerReady();

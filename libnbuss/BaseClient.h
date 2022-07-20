@@ -15,8 +15,6 @@ protected:
 
 	bool nonBlockingSocket;
 
-	void _write(const char * data, ssize_t data_size);
-
 public:
 	BaseClient(bool nonBlockingSocket = false);
 	virtual ~BaseClient();
@@ -24,16 +22,18 @@ public:
 	void close();
 
 	template <class T>
-	void write(std::vector<T> &data) {
-		int data_size = data.size() * sizeof(T);
-		const char * p =  reinterpret_cast<char*>(data.data());
+	ssize_t write(const std::vector<T> &data) {
+		ssize_t data_size = data.size() * sizeof(T);
+		const char * p =  reinterpret_cast<const char*>(data.data());
 
 		LIB_LOG(debug) << "BaseClient::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		_write(p, data_size);
+		return write(p, data_size);
 	}
 
-	void write(std::string &data);
+	ssize_t write(const char * data, ssize_t data_size);
+
+	ssize_t write(const std::string &data);
 
 	/**
 	 * read from socket, up to buffer_size bytes.
@@ -43,6 +43,8 @@ public:
 	 * @throws std::runtime_error in case of error on read syscall
 	 */
 	std::vector<char> read(int buffer_size = 1024);
+
+	int getFd() { return data_socket; }
 };
 
 } /* namespace nbuss_client */

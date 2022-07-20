@@ -72,6 +72,10 @@ void WorkQueue::consumer() {
 
 		// TODO: process Item i
 
+		/*
+		 * note: if fd is closed, subsequent events relative to fd should be removed (before closing fd)
+		 */
+
 	}
 end:
 LIB_LOG(info) << "[WorkQueue::consumer] stopping consumer thread";

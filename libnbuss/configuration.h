@@ -3,6 +3,6 @@
 
 
 // size of events array used in UnixSocketServer::listen method
-#define MAX_EVENTS 10
+#define MAX_EVENTS 32
 
 #endif /* CONFIGURATION_H_ */
