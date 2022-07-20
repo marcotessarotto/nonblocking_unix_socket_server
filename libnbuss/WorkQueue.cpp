@@ -7,7 +7,7 @@ namespace nbuss_server {
 static std::atomic<int> producedItems;
 static std::atomic<int> consumedItems;
 
-WorkQueue::WorkQueue(ThreadDecorator & threadDecorator, unsigned int numberOfThreads) :
+WorkQueue::WorkQueue(ThreadedServer & threadDecorator, unsigned int numberOfThreads) :
 		threadDecorator{threadDecorator},
 		numberOfThreads(numberOfThreads),
 		callback_function{},

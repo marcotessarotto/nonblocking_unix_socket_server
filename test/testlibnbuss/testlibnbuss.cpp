@@ -11,7 +11,7 @@
 
 #include "testlibnbuss.h"
 
-#include <ThreadDecorator.h>
+#include <ThreadedServer.h>
 #include "UnixSocketClient.h"
 #include "Crc16.h"
 
@@ -262,7 +262,7 @@ TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
 		TcpServer ts { 10001, "0.0.0.0", 10 };
 
 		// listen method is called in another thread
-		ThreadDecorator threadedServer { ts };
+		ThreadedServer threadedServer { ts };
 
 		std::atomic_thread_fence(std::memory_order_release);
 
@@ -329,7 +329,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 
 	UnixSocketServer uss { socketName, 10 };
 
-	ThreadDecorator threadedServer(uss);
+	ThreadedServer threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
@@ -386,7 +386,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	UnixSocketServer uss { socketName, 10 };
 
-	ThreadDecorator threadedServer(uss);
+	ThreadedServer threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
@@ -508,7 +508,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 
 	UnixSocketServer uss { socketName, 10 };
 
-	ThreadDecorator threadedServer(uss);
+	ThreadedServer threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
@@ -596,7 +596,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 
 	UnixSocketServer uss { socketName, 10 };
 
-	ThreadDecorator threadedServer(uss);
+	ThreadedServer threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
