@@ -344,6 +344,9 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					activeConnections++;
 
+					callback_function(this, conn_sock, NEW_SOCKET);
+
+
 
 				}
 

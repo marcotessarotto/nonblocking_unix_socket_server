@@ -40,6 +40,12 @@ void ThreadedServer2::listenWorker() {
 void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
 	switch (job_type) {
+	case NEW_SOCKET:
+		// TODO: init structure associated to socket
+		// structure contains: write buffer
+
+
+		break;
 	case CLOSE_SOCKET:
 
 		callback_function(this, fd, job_type);

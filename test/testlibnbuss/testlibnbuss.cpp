@@ -96,6 +96,10 @@ bool calcCrc = false;
 static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	switch (job_type) {
+	case NEW_SOCKET:
+		TEST_LOG(info)	<< "[server][my_listener] NEW_SOCKET " << fd;
+
+		break;
 	case CLOSE_SOCKET:
 
 		TEST_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;

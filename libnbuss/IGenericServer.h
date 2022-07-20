@@ -18,7 +18,8 @@ namespace nbuss_server {
 enum job_type_t {
 	AVAILABLE_FOR_READ, // the associated file is available for read(2) operations.
 	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
-	AVAILABLE_FOR_WRITE // the associated file is available for write(2) operations.
+	AVAILABLE_FOR_WRITE, // the associated file is available for write(2) operations.
+	NEW_SOCKET // new connection
 };
 
 
