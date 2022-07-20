@@ -12,7 +12,7 @@ has support for tcp non blocking socket server
               cout << "closing socket " << fd << endl;
               srv->close(fd);
               break;
-	        case DATA_REQUEST:
+	      case AVAILABLE_FOR_READ:
               // read all data from socket
               auto data = UnixSocketServer::read(fd);
               .....		 
