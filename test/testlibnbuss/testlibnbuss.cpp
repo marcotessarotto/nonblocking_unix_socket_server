@@ -71,6 +71,9 @@ void NonblockingUnixSocketServerTest::SetUp() {
 void NonblockingUnixSocketServerTest::TearDown() {
 }
 
+/**
+ * check that server istance throws an exception when provided with invalid parameters
+ */
 TEST_F(NonblockingUnixSocketServerTest, TestParameters) {
 
 	TEST_LOG(info)
@@ -85,23 +88,26 @@ static Crc16 crc;
 uint16_t serverDataCrc16;
 bool calcCrc = false;
 
+/**
+ * listener used by most tests
+ * implementation of an echo server
+ */
 static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	switch (job_type) {
 	case CLOSE_SOCKET:
 
-		TEST_LOG(debug)
-		<< "[server][my_listener] closing socket " << fd;
+		TEST_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
 		//close(fd);
 		srv->close(fd);
 
 		break;
 	case AVAILABLE_FOR_WRITE:
+		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_WRITE fd=" << fd;
 		// TODO: check if there are buffers to write to this socket
 		break;
 	case AVAILABLE_FOR_READ:
-		TEST_LOG(debug)
-		<< "[server][my_listener] incoming data fd=" << fd;
+		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
 
 		// read all data from socket
 		auto data = UnixSocketServer::read(fd, 256);
@@ -136,8 +142,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	}
 
-	TEST_LOG(info)
-	<< "[server][my_listener] ending - fd=" << fd;
+	TEST_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
 
 }
 
@@ -468,10 +473,21 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerClientReadWriteLongBufferTest) 
 	EXPECT_EQ(clientCrc2, clientCrc);
 }
 
+/**
+ * 	one server instance,
+ * 	loop N times, serially:
+ * 	   create a client instance,
+ * 	   connect,
+ * 	   generate random data,
+ * 	   write data,
+ * 	   read data (the server echoes it),
+ * 	   check that the received data is the same as the sent one, using crc16 to check equality
+ */
 TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
 
 	TEST_LOG(info)
 	<< "***UdpServerMultipleClientsReadWriteTest**";
+
 
 	string socketName = "/tmp/mysocket_test.sock";
 
@@ -546,7 +562,16 @@ TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleClientsReadWriteTest) {
 
 }
 
-
+/**
+ * 	one server instance,
+ * 	create N threads which in parallel:
+ * 	   create a client instance,
+ * 	   connect,
+ * 	   generate random data,
+ * 	   write data,
+ * 	   read data (the server echoes it),
+ * 	   check that the received data is the same as the sent one, using crc16 to check equality
+ */
 TEST_F(NonblockingUnixSocketServerTest, UdpServerMultipleThreadClientsReadWriteTest) {
 
 	TEST_LOG(info)

@@ -24,6 +24,7 @@ namespace nbuss_server {
 IGenericServer::IGenericServer(unsigned int backlog) :
 		stop_server{false},
 		is_listening{false},
+		socketList{},
 		backlog{backlog},
 		activeConnections{0} {
 
@@ -233,30 +234,25 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	lk.unlock();
 	cv.notify_one();
 
-	//syslog(LOG_DEBUG, "[IGenericServer] listen_sock=%d\n", listen_sock.fd);
 	LIB_LOG(info) << "[IGenericServer] listen_sock=" << listen_sock.fd;
 
 
-	//std::cout << "IGenericServer::listen 1\n";
 	// note: epoll is linux specific
 	// epollfd will be auto closed when returning
 	epollfd.fd = epoll_create1(0);
 
 	if (epollfd.fd == -1) {
-		//syslog(LOG_ERR, "[IGenericServer] epoll_create1 error (%s)", strerror(errno));
 		LIB_LOG(error) << "[IGenericServer] epoll_create1 error" << strerror(errno);
 
 		throw std::runtime_error("epoll_create1 error");
 	}
 
-	//syslog(LOG_DEBUG, "[IGenericServer] epoll_create1 ok: epollfd=%d\n", epollfd.fd);
 	LIB_LOG(debug) << "[IGenericServer] epoll_create1 ok: epollfd=" << epollfd.fd;
 
 	// monitor read side of pipe
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = commandPipe.getReadFd();
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
-		//syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
 		LIB_LOG(error) << "[IGenericServer] epoll_ctl: listen_sock error " << strerror(errno);
 
 		throw std::runtime_error("epoll_ctl error");
@@ -290,7 +286,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 			continue;
 		} else if (nfds == -1) {
 
-			//syslog(LOG_ERR, "[IGenericServer] epoll_wait error (%s)", strerror(errno));
 			LIB_LOG(error) << "[IGenericServer] epoll_wait error " << strerror(errno);
 
 			throw std::runtime_error("epoll_wait error");
@@ -301,9 +296,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 			fd = events[n].data.fd;
 
-//			syslog(LOG_DEBUG,
-//					"[IGenericServer] n=%d events[n].events=%d events[n].data.fd=%d msg=%s", n,
-//					events[n].events, fd, interpret_event(events[n].events));
 			LIB_LOG(info) << "[IGenericServer] n=" << n << " events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
 
 			if (fd == listen_sock.fd) {
@@ -317,15 +309,15 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 						// no pending connections in queue
 						continue;
 					} else if (conn_sock == -1) {
-//						if (stop_server.load()) {
-//							LIB_LOG(info) << "stop_server: true";
-//							return;
-//						}
-						//syslog(LOG_ERR, "[IGenericServer] accept error (%s)", strerror(errno));
+
 						LIB_LOG(error) << "[IGenericServer] accept error " << strerror(errno);
 
 						throw std::runtime_error("accept error");
 					}
+
+					// test: introducing a delay (1 s) between accept4 and epoll_clt(EPOLL_CTL_ADD),
+					// then the first EPOLLIN event is delivered correctly (no events are lost)
+					// sleep(1);
 
 					// EPOLLRDHUP: Stream  socket peer closed connection, or shut down writing half of connection.
 					// EPOLLHUP: Hang up happened on the associated file descriptor.
@@ -338,15 +330,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					// be reported by the epoll interface.  The user must call
 					// epoll_ctl() with EPOLL_CTL_MOD to rearm the file descriptor with a new event mask.
 
-					ev.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP;
+					ev.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP | EPOLLOUT;
 					ev.data.fd = conn_sock;
-					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev)
-							== -1) {
-//						if (stop_server.load()) {
-//							LIB_LOG(info) << "stop_server: true";
-//							return;
-//						}
-						//syslog(LOG_ERR, "[IGenericServer] epoll_ctl error (%s)",strerror(errno));
+					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
+
 						LIB_LOG(error) << "[IGenericServer] epoll_ctl error: " << strerror(errno);
 
 						throw std::runtime_error("epoll_ctl error");
@@ -355,72 +342,97 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					activeConnections++;
 
 					LIB_LOG(debug) << "[IGenericServer] accept ok, fd" << conn_sock;
-					//syslog(LOG_DEBUG, "[IGenericServer] accept ok, fd=%d\n", conn_sock);
 				}
 
 			} else {
 
-				if ((events[n].events & EPOLLIN)
-						&& (events[n].events & EPOLLRDHUP)
-						&& (events[n].events & EPOLLHUP)) {
+				/**
+				 * behaviour:
+				 *
+				 * on EPOLLHUP || EPOLLRDHUP events,send CLOSE_SOCKET to callback
+				 *
+				 * EPOLLOUT (but no EPOLLRDHUP or EPOLLHUP or EPOLLERR) => AVAILABLE_FOR_WRITE
+				 *
+				 * EPOLLIN (but no EPOLLRDHUP or EPOLLHUP or EPOLLERR) => AVAILABLE_FOR_READ
+				 *
+				 * EPOLLERR => CLOSE_SOCKET
+				 *
+				 * examples:
+				 *
+				 * EPOLLIN EPOLLRDHUP EPOLLHUP => CLOSE_SOCKET
+				 *
+				 * EPOLLIN EPOLLOUT => AVAILABLE_FOR_READ, AVAILABLE_FOR_WRITE
+				 */
 
-					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN EPOLLRDHUP EPOLLHUP fd=" << fd;
-					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN EPOLLRDHUP EPOLLHUP", fd);
+				if ((events[n].events & EPOLLRDHUP)	|| (events[n].events & EPOLLHUP)) {
 
-					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
-
-				} else if ((events[n].events & EPOLLIN)
-						&& (events[n].events & EPOLLRDHUP)) {
-
-					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN EPOLLRDHUP fd=" << fd;
-					// Stream  socket peer closed connection, or shut down writing half of connection.
-					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
-
-				} else if (events[n].events & EPOLLIN) {
-					LIB_LOG(debug)  << "[IGenericServer] EPOLLIN fd=" << fd;
-					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLIN", fd);
-
-					callback_function(this, fd, AVAILABLE_FOR_READ);
-
-				} else if (events[n].events & EPOLLRDHUP) {
-					LIB_LOG(debug)  << "[IGenericServer] EPOLLRDHUP fd=" << fd;
-					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer", events[n].data.fd);
-//					  from man 2 epoll_ctl
-//					  EPOLLRDHUP: Stream socket peer closed connection, or shut down writing
-//		              half of connection.  (This flag is especially useful for
-//		              writing simple code to detect peer shutdown when using
-//		              edge-triggered monitoring.)
-
-//		              Hang up happened on the associated file descriptor.
-//
-//		              epoll_wait(2) will always wait for this event; it is not
-//		              necessary to set it in events when calling epoll_ctl().
-//
-//		              Note that when reading from a channel such as a pipe or a
-//		              stream socket, this event merely indicates that the peer
-//		              closed its end of the channel.  Subsequent reads from the
-//		              channel will return 0 (end of file) only after all
-//		              outstanding data in the channel has been consumed.
-
-					// what do we want to do?
-					// there could be still data to be read, but we can write to socket (thus we can respond)
+					LIB_LOG(info)  << "[IGenericServer] "
+							<< ((events[n].events & EPOLLRDHUP) ? "EPOLLRDHUP " : "")
+							<< ((events[n].events & EPOLLHUP) ? "EPOLLHUP" : "")
+							<<   " fd=" << fd;
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
 
-				} else if (events[n].events & EPOLLHUP) {
-					LIB_LOG(debug) << "[IGenericServer] EPOLLHUP fd=" << fd;
-					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
-
-					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
-
+					continue;
 				} else if (events[n].events & EPOLLERR) {
 					LIB_LOG(error) << "[IGenericServer] EPOLLERR fd=" << fd;
-					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLERR\n", events[n].data.fd);
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+					continue;
 				}
+
+				// EPOLLIN and EPOLLOUT events can arrive at the same time
+				if (events[n].events & EPOLLOUT) {
+					LIB_LOG(info)  << "[IGenericServer] EPOLLOUT fd=" << fd;
+
+					callback_function(this, fd, AVAILABLE_FOR_WRITE);
+
+					// no continue here; there can be a EPOLLIN event
+				}
+
+				if (events[n].events & EPOLLIN) {
+					LIB_LOG(info)  << "[IGenericServer] EPOLLIN fd=" << fd;
+
+					callback_function(this, fd, AVAILABLE_FOR_READ);
+					continue;
+				}
+
+//				else if (events[n].events & EPOLLRDHUP) {
+//					LIB_LOG(debug)  << "[IGenericServer] EPOLLRDHUP fd=" << fd;
+//					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer", events[n].data.fd);
+////					  from man 2 epoll_ctl
+////					  EPOLLRDHUP: Stream socket peer closed connection, or shut down writing
+////		              half of connection.  (This flag is especially useful for
+////		              writing simple code to detect peer shutdown when using
+////		              edge-triggered monitoring.)
+//
+////		              Hang up happened on the associated file descriptor.
+////
+////		              epoll_wait(2) will always wait for this event; it is not
+////		              necessary to set it in events when calling epoll_ctl().
+////
+////		              Note that when reading from a channel such as a pipe or a
+////		              stream socket, this event merely indicates that the peer
+////		              closed its end of the channel.  Subsequent reads from the
+////		              channel will return 0 (end of file) only after all
+////		              outstanding data in the channel has been consumed.
+//
+//					// what do we want to do?
+//					// there could be still data to be read, but we can write to socket (thus we can respond)
+//
+//					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+//
+//				} else if (events[n].events & EPOLLHUP) {
+//					LIB_LOG(debug) << "[IGenericServer] EPOLLHUP fd=" << fd;
+//					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
+//
+//					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+//
+//				} else
+
+
 
 			} // else
 
@@ -428,7 +440,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	} // for (;;)
 
-	LIB_LOG(info)  << "[IGenericServer] listen: termianted";
+	LIB_LOG(info)  << "[IGenericServer] listen: terminated";
 
 }
 

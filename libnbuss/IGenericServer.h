@@ -70,6 +70,9 @@ protected:
 
 	std::atomic<int> activeConnections;
 
+	/// list of open sockets
+	std::vector<int> socketList;
+
 public:
 
 	IGenericServer(unsigned int backlog = 10);
