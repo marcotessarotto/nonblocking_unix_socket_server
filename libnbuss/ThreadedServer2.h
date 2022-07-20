@@ -45,9 +45,10 @@ protected:
 	void internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type);
 
 	/// set of file descriptors ready to write
-	std::set<int> readyToWrite;
+	std::set<int> readyToWriteSet;
 	/// mutex for access to readyToWrite
 	std::mutex readyToWriteMutex;
+	std::condition_variable readyToWriteCv;
 
 
 	struct WriteItem {
@@ -58,8 +59,9 @@ protected:
 
 	/// queue of write items waiting to be written (when respective fd becomes available to write)
 	std::deque<WriteItem> writeQueue;
-
 	std::mutex writeQueueMutex;
+
+	// rule against deadlock: lock first writeQueueMutex and then lock readyToWriteSet
 
 	/// caller must hold lock writeQueueMutex when calling this function
 	/// check if fd is present in writeQueue

@@ -13,7 +13,7 @@ ThreadedServer2::ThreadedServer2(IGenericServer &server) :
 		stopServer{false},
 		listenWorkerThread{},
 		writerWorkerThread{},
-		readyToWrite{},
+		readyToWriteSet{},
 		writeQueue{},
 		server{server} {
 
@@ -55,42 +55,19 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			// TODO: check if there are buffers to write to this socket
 
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
-			readyToWrite.insert(fd);
+			readyToWriteSet.insert(fd);
 			lk.unlock();
 
-			// notify condition variable
+			// notify thread waiting on condition variable
+			readyToWriteCv.notify_one();
 		}
 		break;
 	case AVAILABLE_FOR_READ:
 		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ fd=" << fd;
 
-
 		callback_function(this, fd, job_type);
 
-		// read all data from socket
-		// auto data = IGenericServer::read(fd, 256);
-
-		//LIB_LOG(debug) << "[server][my_listener] number of vectors returned: " << data.size();
-
-//		int counter = 0;
-//		for (std::vector<char> item : data) {
-//			LIB_LOG(trace)
-//			<< "[server][my_listener] buffer " << counter++ << ": "
-//					<< item.size() << " bytes";
-//
-//
-//			// TODO: if write queue for fd is empty, write buffer
-//			// else copy buffer to queue
-//
-//			// TODO: if write returns -1, copy remaining data
-//			while (IGenericServer::write(fd, item) == -1) {
-//				struct timespec ts { 0, 1000000 };
-//
-//				nanosleep(&ts, NULL);
-//			}
-//		}
 		break;
-
 
 	}
 
@@ -108,7 +85,7 @@ void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_t
 		throw std::runtime_error("server is already running");
 	}
 
-	readyToWrite.clear();
+	readyToWriteSet.clear();
 
 	this->callback_function = callback_function;
 
@@ -152,7 +129,7 @@ void ThreadedServer2::stop() {
 ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 
 	// are there buffers waiting to be written on fd?
-	// if yes, add this request to the work queue
+	// if yes, add this buffer to the work queue
 
 	// if not: call write:
 	//    if partially successful, add remaining data to work queue;
@@ -167,6 +144,7 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 	LIB_LOG(info) << "ThreadedServer2::write() fdIsInWriteQueue=" << fdIsInWriteQueue;
 
 	if (!fdIsInWriteQueue) {
+		// fd is not present in write queue, let's try to write to
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
@@ -174,6 +152,8 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 			return bytesWritten;
 		} else if (bytesWritten == -1) {
 			// EAGAIN or EWOULDBLOCK (fd not available to write)
+
+			// remove fd from readyToWrite
 
 			goto add_to_write_queue;
 		} else if (bytesWritten < data_size) {
@@ -194,6 +174,9 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 			goto add_to_write_queue;
 		}
 	}
+	//else {
+		// fd is present in write queue, add buffer (see below)
+	//}
 
 add_to_write_queue:
 	// add buffer to write queue (copy data)
@@ -234,6 +217,39 @@ void ThreadedServer2::writeQueueWorker() {
 
 
 	// wait on condition variable
+	std::unique_lock<std::mutex> lk(readyToWriteMutex);
+	while (readyToWriteSet.empty()) {
+		readyToWriteCv.wait(lk);
+	}
+	lk.unlock();
+
+	// enumerate writeQueue and check if fd is in readyToWrite set
+	std::unique_lock<std::mutex> lk2(writeQueueMutex);
+
+    for (auto it = writeQueue.cbegin(); it != writeQueue.cend(); ++it) {
+
+    	auto item = *it;
+
+    	// checl if item.fd is in readyToWrite set
+    	lk.lock();
+    	bool isFdInReadyToWriteSet = readyToWriteSet.count(item.fd) > 0;
+
+    	if (isFdInReadyToWriteSet) {
+    		// try to write buffer
+    	}
+
+    	lk.unlock();
+
+
+
+    }
+
+	lk2.unlock();
+	//readyToWrite.insert(fd);
+
+
+	// notify thread waiting on condition variable
+	readyToWriteCv.notify_one();
 
 
 	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
