@@ -10,9 +10,12 @@
 #include <condition_variable>
 #include <vector>
 #include <set>
+#include <map>
 
 #include "IGenericServer.h"
 #include "IThreadable.h"
+
+#include "SocketData.h"
 
 namespace nbuss_server {
 
@@ -44,6 +47,15 @@ protected:
 
 	void internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type);
 
+
+	std::map<int, SocketData> internalSocketData;
+
+	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
+	// performing an insertion if such key does not already exist.
+	// https://en.cppreference.com/w/cpp/container/map/operator_at
+	SocketData & getSocketData(int fd);
+
+
 	/// set of file descriptors ready to write
 	std::set<int> readyToWriteSet;
 	/// mutex for access to readyToWrite
@@ -51,21 +63,21 @@ protected:
 	std::condition_variable readyToWriteCv;
 
 
-	struct WriteItem {
-		int fd;
-		char * data;
-		ssize_t data_size;
-	};
-
-	/// queue of write items waiting to be written (when respective fd becomes available to write)
-	std::deque<WriteItem> writeQueue;
-	std::mutex writeQueueMutex;
+//	struct WriteItem {
+//		int fd;
+//		char * data;
+//		ssize_t data_size;
+//	};
+//
+//	/// queue of write items waiting to be written (when respective fd becomes available to write)
+//	std::deque<WriteItem> writeQueue;
+//	std::mutex writeQueueMutex;
 
 	// rule against deadlock: lock first writeQueueMutex and then lock readyToWriteSet
 
 	/// caller must hold lock writeQueueMutex when calling this function
 	/// check if fd is present in writeQueue
-	bool isFdInWriteQueue(int fd);
+	//bool isFdInWriteQueue(int fd);
 
 
 public:
@@ -112,6 +124,12 @@ public:
 		return write(fd, p, data_size);
 	}
 
+	// read method is inherited by IGenericServer
+
+	/**
+	 * close socket and remove internal structures
+	 */
+	void close(int fd);
 
 };
 

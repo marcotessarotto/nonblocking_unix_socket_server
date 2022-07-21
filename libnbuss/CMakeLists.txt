@@ -24,8 +24,10 @@ BaseClient.h
 BaseClient.cpp
 Logger.h
 Logger.cpp
-ThreadedServer2.cpp
 ThreadedServer2.h
+ThreadedServer2.cpp
+SocketData.h
+SocketData.cpp
 )
 
 # Declare the library
