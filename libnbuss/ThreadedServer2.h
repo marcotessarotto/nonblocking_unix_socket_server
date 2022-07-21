@@ -31,7 +31,7 @@ protected:
 	bool running;
 
 	/// if true, the server must stop
-	bool stopServer;
+	std::atomic<bool> stopServer;
 
 	/// thread which calls listen method of IGenericServer
 	std::thread listenWorkerThread;

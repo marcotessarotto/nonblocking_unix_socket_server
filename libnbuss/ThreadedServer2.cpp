@@ -151,15 +151,20 @@ void ThreadedServer2::stop() {
 
 	LIB_LOG(info) << "ThreadedServer2::stop";
 
+
+	LIB_LOG(info) << "ThreadedServer2::stop before stopServer = false;";
 	// we use readyToWriteMutex because writerWorkerThread uses this with the condition variable
 	std::unique_lock<std::mutex> lk(readyToWriteMutex);
-	stopServer = false;
+	stopServer = true;
 	lk.unlock();
 	// wake up thread, in case it is waiting on cv
 	readyToWriteCv.notify_one();
 
 	// terminate the server thread
+	LIB_LOG(info) << "ThreadedServer2::stop before server.terminate()";
 	server.terminate();
+
+	readyToWriteCv.notify_one();
 
 	// join threads
 
@@ -290,10 +295,12 @@ void ThreadedServer2::close(int fd) {
 void ThreadedServer2::writeQueueWorker() {
 	LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] starting";
 
+	std::unique_lock<std::mutex> lk(readyToWriteMutex, std::defer_lock);
+
 	while (true) {
 
 		// wait on condition variable
-		std::unique_lock<std::mutex> lk(readyToWriteMutex);
+		lk.lock();
 
 		// check if thread has to stop
 		if (stopServer) {
@@ -301,14 +308,14 @@ void ThreadedServer2::writeQueueWorker() {
 			return;
 		}
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait";
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait stopServer=" << stopServer;
 
 		// while server is running and readyToWriteSet is empty, wait on condition variable
 		while (!stopServer && readyToWriteSet.empty()) {
 			readyToWriteCv.wait(lk);
 		}
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait";
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait stopServer=" << stopServer;
 
 		// check if thread has to stop
 		if (stopServer) {
