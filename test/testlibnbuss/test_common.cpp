@@ -65,7 +65,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 
 
 
-			// TODO: if write returns -1, copy remaining data
+			// TODO: if write returns -1, wait 1 ms and retry
 			while (IGenericServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 

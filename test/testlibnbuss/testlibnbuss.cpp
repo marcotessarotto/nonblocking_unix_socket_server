@@ -56,7 +56,7 @@ NonblockingUnixSocketServerTest::~NonblockingUnixSocketServerTest() {
 void NonblockingUnixSocketServerTest::SetUp() {
 	openlog("testlibnbuss", LOG_CONS | LOG_PERROR, LOG_USER);
 
-	init_log();
+	// init_log();
 
 	//logging::core::get()->
 
@@ -140,74 +140,6 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 }
 
 
-/**
- * single server instance, single client instance; using tcp sockets
- * buffer size: 12 bytes
- * tests:
- * TcpServer, TcpClient, ThreadedServer
- */
-TEST_F(NonblockingUnixSocketServerTest, TcpServerClientReadWriteTest) {
-
-	try {
-
-		TEST_LOG(info) << "***TcpServerClientReadWriteTest***";
-
-		// create instance of tcp non blocking server
-
-		TcpServer ts { 10001, "0.0.0.0", 10 };
-
-		// listen method is called in another thread
-		ThreadedServer threadedServer { ts };
-
-		std::atomic_thread_fence(std::memory_order_release);
-
-		TEST_LOG(info)
-		<< "[server] starting server\n";
-		// when start returns, server has started listening for incoming connections
-		threadedServer.start(my_listener);
-
-		TcpClient tc;
-
-		TEST_LOG(info)
-		<< "[client] connect to server\n";
-		tc.connect("0.0.0.0", 10001);
-
-		std::string s = "test message";
-		std::vector<char> v(s.begin(), s.end());
-
-		TEST_LOG(debug)	<< "[client] writing to socket\n";
-		tc.write<char>(v);
-
-		TEST_LOG(debug)	<< "[client] reading from socket\n";
-		// read server response
-		auto response = tc.read(1024);
-
-		TEST_LOG(info)
-		<< "[client] received data size: " << response.size();
-
-		TEST_LOG(info)
-		<< "[client] closing socket";
-		tc.close();
-
-		// spin... consider using a condition variable
-		while (ts.getActiveConnections() > 0)
-			;
-
-		TEST_LOG(info)
-		<< "[server] stopping server";
-		threadedServer.stop();
-
-		TEST_LOG(info)
-		<< "[main] test finished!";
-
-		EXPECT_EQ(response.size(), 12);
-
-	} catch (const std::exception &e) {
-		TEST_LOG(error)
-		<< "exception: " << e.what();
-	}
-
-}
 
 
 /**
@@ -241,8 +173,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	// non blocking client connection
 	UnixSocketClient usc(true);
 
-	TEST_LOG(info)
-	<< "[client] connect to server\n";
+	TEST_LOG(info) << "[client] connect to server";
 	usc.connect(socketName);
 
 //	std::string s = "test message";
@@ -270,7 +201,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	// reset CRC16
 	serverDataCrc16 = CRC_START_16;
 
-	TEST_LOG(info) << "[client] writing to socket\n";
+	TEST_LOG(info) << "[client] writing to socket";
 	usc.write<char>(longBuffer);
 
 	uint16_t clientCrc2 = CRC_START_16;
@@ -278,7 +209,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	size_t total_bytes_received = 0;
 
 	while (total_bytes_received < bufferSize) {
-		TEST_LOG(debug)	<< "[client] reading from socket\n";
+		TEST_LOG(debug)	<< "[client] reading from socket";
 		// read server response
 		auto response = usc.read(1024);
 
@@ -310,7 +241,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	TEST_LOG(info) << "[client] closing socket";
 	usc.close();
 
-	TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
+	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0)
@@ -318,8 +249,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 
 	threadedServer.stop();
 
-	TEST_LOG(info)
-	<< "test finished!";
+	TEST_LOG(info) << "test finished!";
 
 	calcCrc = false;
 
@@ -340,7 +270,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UnixSocketServerMultipleClientsReadWriteTest**";
+	<< "***UnixSocketServerMultipleClientsReadWriteTest** " << __FILE__;
 
 
 	string socketName = "/tmp/mysocket_test.sock";
@@ -360,7 +290,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 
 		UnixSocketClient usc;
 
-		TEST_LOG(info) << "[client " << i << "] connect to server\n";
+		TEST_LOG(info) << "[client " << i << "] connect to server";
 		usc.connect(socketName);
 
 		/////
@@ -375,10 +305,10 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
 				inputBuffer.size()*sizeof(std::uint8_t));
 
-		TEST_LOG(debug) << "[client] writing to socket\n";
+		TEST_LOG(debug) << "[client] writing to socket";
 		usc.write<std::uint8_t>(inputBuffer);
 
-		TEST_LOG(debug) << "[client] reading from socket\n";
+		TEST_LOG(debug) << "[client] reading from socket";
 		// read server response
 		auto response = usc.read(1024);
 
@@ -429,7 +359,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UnixSocketServerMultipleThreadClientsReadWriteTest**";
+	<< "***UnixSocketServerMultipleThreadClientsReadWriteTest** " << __FILE__;
 
 	const string socketName = "/tmp/mysocket_test.sock";
 
@@ -467,10 +397,10 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
 				inputBuffer.size()*sizeof(std::uint8_t));
 
-		TEST_LOG(debug) << "[client][ " << id << "] writing to socket\n";
+		TEST_LOG(debug) << "[client][ " << id << "] writing to socket";
 		usc.write<std::uint8_t>(inputBuffer);
 
-		TEST_LOG(debug) << "[client][ " << id << "] reading from socket\n";
+		TEST_LOG(debug) << "[client][ " << id << "] reading from socket";
 
 		ssize_t total_bytes_read = 0;
 		uint16_t clientCrc2 = CRC_START_16;

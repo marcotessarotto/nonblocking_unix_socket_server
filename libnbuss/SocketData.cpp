@@ -6,7 +6,7 @@ namespace nbuss_server {
 
 SocketData::SocketData() :
 		uses(0)  {
-	LIB_LOG(info) << "SocketData::SocketData";
+	LIB_LOG(trace) << "SocketData::SocketData";
 }
 
 SocketData::~SocketData() {

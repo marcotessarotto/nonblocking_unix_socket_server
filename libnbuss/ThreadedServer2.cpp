@@ -308,14 +308,14 @@ void ThreadedServer2::writeQueueWorker() {
 			return;
 		}
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait stopServer=" << stopServer;
+		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait stopServer=" << stopServer;
 
 		// while server is running and readyToWriteSet is empty, wait on condition variable
 		while (!stopServer && readyToWriteSet.empty()) {
 			readyToWriteCv.wait(lk);
 		}
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait stopServer=" << stopServer;
+		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait stopServer=" << stopServer;
 
 		// check if thread has to stop
 		if (stopServer) {
@@ -349,7 +349,7 @@ void ThreadedServer2::writeQueueWorker() {
 		// get write queue
 		auto writeQueue = sd.getWriteQueue();
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd=" << fd << " writeQueue.size()=" << writeQueue.size();
+		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] fd=" << fd << " writeQueue.size()=" << writeQueue.size();
 
 		while (writeQueue.size() > 0) {
 			// try to write buffer on write queue:

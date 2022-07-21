@@ -36,7 +36,7 @@ static bool calcCrc = false;
 TEST_F(NonblockingUnixSocketServerTest, CheckConstructorException) {
 
 	TEST_LOG(info)
-	<< "***CheckConstructorException**";
+	<< "***CheckConstructorException** " << __FILE__;
 
 	// expect exception
 
@@ -119,7 +119,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 
 	TEST_LOG(info)
-	<< "***UnixSocketServerClientReadWriteTest**";
+	<< "***UnixSocketServerClientReadWriteTest** " << __FILE__;
 
 	string socketName = "/tmp/mysocket_test.sock";
 

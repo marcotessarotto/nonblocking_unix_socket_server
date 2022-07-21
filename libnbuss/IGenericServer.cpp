@@ -128,7 +128,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 		p = buffer.data();
 		int buffer_size = buffer.capacity();
 
-		// LIB_LOG(info) << "read #" << counter++ << std::endl;
+		// LIB_LOG(info) << "read #" << counter++;
 
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
@@ -149,7 +149,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 			// data has been read
 			buffer.resize(c);
 
-			// LIB_LOG(info) << "adding buffer to result" << std::endl;
+			// LIB_LOG(info) << "adding buffer to result";
 
 			result.push_back(std::move(buffer));
 		}
@@ -196,7 +196,7 @@ static const char* interpret_event(int event) {
 
 void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_type_t)> callback_function) {
 
-	LIB_LOG(info) << "IGenericServer::listen" << std::endl;
+	LIB_LOG(trace) << "IGenericServer::listen";
 
 	if (listen_sock.fd == -1) {
 		throw std::runtime_error("server socket is not open");
@@ -206,7 +206,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn([this]() {
-		LIB_LOG(info) << "[IGenericServer] listen cleanup" << std::endl;
+		LIB_LOG(info) << "[IGenericServer] listen cleanup";
 
 		this->closeSockets();
 
@@ -342,13 +342,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 						throw std::runtime_error("epoll_ctl error");
 					}
 
-					//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
 					activeConnections++;
-					//lk.unlock();
+
 
 					callback_function(this, conn_sock, NEW_SOCKET);
-
-
 
 				}
 
@@ -393,7 +390,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 				// EPOLLIN and EPOLLOUT events can arrive at the same time
 				if (events[n].events & EPOLLOUT) {
-					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
+					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_WRITE);
 

@@ -2,9 +2,11 @@ file(GLOB SRCS
  main.cpp
  testlibnbuss.cpp
  unixsocket_tests.cpp
+ test_1server_1client_unixsocket.cpp
  test_common.cpp
  test_threadedserver2.cpp
- *.cpp
+ tcpsocket_tests.cpp
+ #*.cpp
  )
 
 ADD_EXECUTABLE(testlibnbuss ${SRCS})
