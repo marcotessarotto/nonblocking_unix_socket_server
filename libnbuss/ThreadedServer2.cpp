@@ -272,15 +272,19 @@ void ThreadedServer2::writeQueueWorker() {
 		// get write queue
 		auto writeQueue = sd.getWriteQueue();
 
-		if (writeQueue.size() > 0) {
+		while (writeQueue.size() > 0) {
 			// try to write buffer on write queue
 
 			// get buffer on the back of the queue
 			SocketData::WriteItem item = writeQueue.back();
-			writeQueue.pop_back();
+			writeQueue.pop_back(); // remove item from back of queue
 
 			// try to writebuffer
+			ssize_t res = write2(fd, sd, item, writeQueue);
 
+			if (res == -1) {
+
+			}
 		}
 
 		lk2.unlock();
@@ -291,6 +295,54 @@ void ThreadedServer2::writeQueueWorker() {
 
 
 	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
+}
+
+/**
+ * when called, we must hold the lock sd.writeQueueMutex
+ *
+ * item can be reused i.e. inserted again at the back of the queue
+ *
+ * return -1 when socket is no more available to write
+ */
+ssize_t ThreadedServer2::write2(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue /*int fd, const char * data, ssize_t data_size*/) {
+
+
+	//    call write:
+	//      if write is completely successful, ok! return value (>= 0)
+	//      if write is partially successful, add remaining data to write queue; return -1;
+	//      if write is not successful (EAGAIN or EWOULDBLOCK), add data to write queue; return -1;
+
+	// write queue is empty, let's try to write to fd
+	ssize_t bytesWritten = IGenericServer::write(fd, item.data, item.data_size);
+
+	if (bytesWritten == item.data_size) {
+		// ok! all data has been written
+		return bytesWritten;
+	} else if (bytesWritten == -1) {
+		// EAGAIN or EWOULDBLOCK (fd not available to write)
+
+		//goto add_to_write_queue;
+	} else if (bytesWritten < item.data_size) {
+		// partially successful, add data which has not been written to write queue
+
+		item.data += bytesWritten;
+		item.data_size -= bytesWritten;
+
+		//goto add_to_write_queue;
+	}
+
+
+//add_to_write_queue:
+	// add buffer to the back of write queue
+
+	writeQueue.push_back(item);
+
+	ssize_t wqsize = writeQueue.size();
+
+
+	LIB_LOG(info) << "ThreadedServer2::write2() added buffer to back of write queue fd=" << fd << " write queue size=" << wqsize;
+
+	return -1;
 }
 
 

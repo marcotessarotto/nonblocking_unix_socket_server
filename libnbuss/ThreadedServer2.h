@@ -62,16 +62,10 @@ protected:
 	std::mutex readyToWriteMutex;
 	std::condition_variable readyToWriteCv;
 
+	/// caller must hold lock writeQueueMutex when calling this function
+	ssize_t write2(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue);
 
-//	struct WriteItem {
-//		int fd;
-//		char * data;
-//		ssize_t data_size;
-//	};
-//
-//	/// queue of write items waiting to be written (when respective fd becomes available to write)
-//	std::deque<WriteItem> writeQueue;
-//	std::mutex writeQueueMutex;
+
 
 	// rule against deadlock: lock first writeQueueMutex and then lock readyToWriteSet
 

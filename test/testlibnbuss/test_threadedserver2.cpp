@@ -27,8 +27,8 @@ using namespace nbuss_client;
 
 
 static Crc16 crc;
-static uint16_t serverDataCrc16;
-static bool calcCrc = false;
+//static uint16_t serverDataCrc16;
+//static bool calcCrc = false;
 
 /**
  * single server instance, single client instance; using unix sockets
@@ -39,9 +39,9 @@ static bool calcCrc = false;
 TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 	// TODO must complete ThreadedServer2
-	return;
+	//return;
 
-	calcCrc = true;
+	//calcCrc = true;
 	const ssize_t bufferSize = 4096 * 16;
 
 	TEST_LOG(info)
@@ -54,46 +54,43 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 	UnixSocketServer uss { socketName, 10 };
 
-	ThreadedServer2 threadedServer(uss);
+	ThreadedServer2 threadedServer2(uss);
 
 	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 
 	std::function<void(IGenericServer *, int, job_type_t)> myListener =
-	[&threadedServer](IGenericServer *srv, int fd, enum job_type_t job_type) {
+	[&threadedServer2](IGenericServer *srv, int fd, enum job_type_t job_type) {
 
-		TEST_LOG(info) << "*** threadedServer: " << &threadedServer;
+		TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
 
 		switch (job_type) {
 		case CLOSE_SOCKET:
 
-			TEST_LOG(info)	<< "[server][myListener] CLOSE_SOCKET " << fd;
-			//close(fd);
-			srv->close(fd);
+			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
+
+			threadedServer2.close(fd);
 
 			break;
 		case AVAILABLE_FOR_READ:
-			TEST_LOG(info)	<< "[server][myListener] AVAILABLE_FOR_READ fd=" << fd;
+			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
 			// read all data from socket
 			auto data = IGenericServer::read(fd, 1024*16);
 
-			TEST_LOG(info)	<< "[server][myListener] number of vectors returned: " << data.size();
+			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
 			int counter = 0;
 			for (std::vector<char> item : data) {
-				TEST_LOG(info)	<< "[server][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+				TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
 
-//				if (calcCrc) {
-//					serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
-//							reinterpret_cast<const unsigned char*>(item.data()),
-//							item.size());
-//				}
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
-				TEST_LOG(info)	<< "[server][myListener] calling srv2->write " << item.size();
-				threadedServer.write<char>(fd, item);
+				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+				threadedServer2.write<char>(fd, item);
+
+				//srv2->write<char>(fd, item);
 
 //				// TODO: if write returns -1, copy remaining data
 //				while (IGenericServer::write(fd, item) == -1) {
@@ -103,7 +100,7 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 //				}
 			}
 
-			TEST_LOG(info)	<< "[server][myListener] write complete";
+			TEST_LOG(info)	<< "[lambda][myListener] write complete";
 
 			break;
 
@@ -114,16 +111,13 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 
 	// when start returns, server has started listening for incoming connections
-	threadedServer.start(myListener);
+	threadedServer2.start(myListener);
 
 	// non blocking client connection
 	UnixSocketClient usc(true);
 
 	TEST_LOG(info) << "[client] connect to server\n";
 	usc.connect(socketName);
-
-//	std::string s = "test message";
-//	std::vector<char> v(s.begin(), s.end());
 
 	std::vector<char> longBuffer(bufferSize);
 
@@ -133,19 +127,14 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 		longBuffer[i] = i % 10;
 	}
 
-//	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {
-//	    std::cout << *it << "\n";
-//	}
 
+	// calculate crc16 of data we are going to send
 	uint16_t clientCrc = crc.crc_16(
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
 
 	TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc;
-	// crc16: 61937
 
-	// reset CRC16
-	serverDataCrc16 = CRC_START_16;
 
 	TEST_LOG(info) << "[client] writing to socket\n";
 	usc.write<char>(longBuffer);
@@ -181,25 +170,25 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 	}
 
-	TEST_LOG(info) << "[server] crc16 of data received from client = " << serverDataCrc16;
+	TEST_LOG(info) << "[server] crc16 of data received from client = " << clientCrc;
 	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
 
 	TEST_LOG(info) << "[client] closing socket";
 	usc.close();
 
-	TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
+	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0)
 		;
 
-	threadedServer.stop();
+	threadedServer2.stop();
 
 	TEST_LOG(info)
 	<< "test finished!";
 
-	calcCrc = false;
+	//calcCrc = false;
 
-	EXPECT_EQ(clientCrc2, serverDataCrc16);
+	//EXPECT_EQ(clientCrc2, serverDataCrc16);
 	EXPECT_EQ(clientCrc2, clientCrc);
 }
