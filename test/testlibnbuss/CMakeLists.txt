@@ -1,4 +1,10 @@
-file(GLOB SRCS *.cpp)
+file(GLOB SRCS
+ main.cpp
+ testlibnbuss.cpp
+ unixsocket_tests.cpp
+ test_common.cpp
+ *.cpp
+ )
 
 ADD_EXECUTABLE(testlibnbuss ${SRCS})
 
