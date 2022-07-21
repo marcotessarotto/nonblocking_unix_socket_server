@@ -180,8 +180,17 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.getActiveConnections();
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
-		;
+	while (uss.getActiveConnections() > 0) {
+		TEST_LOG(info) << uss.getActiveConnections();
+
+		struct timespec t;
+
+		t.tv_sec = 0;  // seconds
+		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
+
+		nanosleep(&t, NULL);
+
+	}
 
 	threadedServer2.stop();
 

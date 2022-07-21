@@ -342,7 +342,9 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 						throw std::runtime_error("epoll_ctl error");
 					}
 
+					//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
 					activeConnections++;
+					//lk.unlock();
 
 					callback_function(this, conn_sock, NEW_SOCKET);
 
@@ -455,8 +457,18 @@ void IGenericServer::close(int fd) {
 	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
 		::close(fd);
+		//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
 		activeConnections--;
+		//lk.unlock();
 	}
+}
+
+
+
+int IGenericServer::getActiveConnections() {
+	//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
+	//return activeConnections;
+	return activeConnections.load();
 }
 
 ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {

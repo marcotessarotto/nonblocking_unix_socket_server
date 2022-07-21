@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <vector>
 #include <functional>
+#include <mutex>
 #include "FileDescriptor.h"
 #include "UnixPipe.h"
 
@@ -70,6 +71,8 @@ protected:
 	unsigned int backlog;
 
 	std::atomic<int> activeConnections;
+	//int activeConnections;
+	//std::mutex activeConnectionsMutex;
 
 	/// list of open sockets
 	std::vector<int> socketList;
@@ -148,7 +151,7 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections() { return activeConnections.load(std::memory_order_seq_cst); }
+	int getActiveConnections(); // { return activeConnections.load(std::memory_order_seq_cst); }
 
 	/**
 	 * close socket and decrease counter of active connections

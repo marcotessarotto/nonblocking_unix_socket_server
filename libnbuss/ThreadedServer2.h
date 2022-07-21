@@ -67,14 +67,6 @@ protected:
 	ssize_t write2(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue);
 
 
-
-	// rule against deadlock: lock first writeQueueMutex and then lock readyToWriteSet
-
-	/// caller must hold lock writeQueueMutex when calling this function
-	/// check if fd is present in writeQueue
-	//bool isFdInWriteQueue(int fd);
-
-
 public:
 	ThreadedServer2(IGenericServer &server);
 	virtual ~ThreadedServer2();

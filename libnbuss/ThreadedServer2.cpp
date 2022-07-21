@@ -162,8 +162,11 @@ void ThreadedServer2::stop() {
 	server.terminate();
 
 	// join threads
+
+	LIB_LOG(info) << "ThreadedServer2::stop before listenWorkerThread.join()";
 	listenWorkerThread.join();
 
+	LIB_LOG(info) << "ThreadedServer2::stop before writerWorkerThread.join()";
 	writerWorkerThread.join();
 
 }
@@ -275,7 +278,7 @@ void ThreadedServer2::close(int fd) {
 	sd.cleanup(false);
 
 	// close socket while sd is locked
-	IGenericServer::close(fd);
+	server.close(fd);
 
 	sd.release();
 
