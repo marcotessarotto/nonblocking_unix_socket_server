@@ -54,7 +54,7 @@ protected:
 	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
 	// performing an insertion if such key does not already exist.
 	// https://en.cppreference.com/w/cpp/container/map/operator_at
-	SocketData & getSocketData(int fd);
+	SocketData & getSocketData(int fd, bool usemutex = true);
 
 
 	/// set of file descriptors ready to write

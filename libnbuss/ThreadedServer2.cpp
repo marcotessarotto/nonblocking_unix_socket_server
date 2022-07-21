@@ -37,10 +37,21 @@ void ThreadedServer2::listenWorker() {
 	LIB_LOG(info) << "ThreadedServer2::mainLoopWorker end";
 }
 
-SocketData &ThreadedServer2::getSocketData(int fd) {
-	std::unique_lock<std::mutex> lk(internalSocketDataMutex);
-	return internalSocketData[fd];
+SocketData &ThreadedServer2::getSocketData(int fd, bool usemutex) {
+	if (usemutex) {
+		std::unique_lock<std::mutex> lk(internalSocketDataMutex);
+		return internalSocketData[fd];
+	} else {
+		return internalSocketData[fd];
+	}
 }
+
+/*
+ * allocate internal structure for socket
+ * cleanup internal structure for socket (for successive reuse)
+ *
+ *
+ */
 
 void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
@@ -54,21 +65,24 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			//internalSocketData.insert(std::pair<int, SocketData>{fd, SocketData(fd)});
 			//internalSocketData.emplace(fd);
 
-			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
-			// not necessary, [] operator creates new instance in case
-			// https://stackoverflow.com/a/42001375/974287
-			internalSocketData.emplace(std::piecewise_construct, std::make_tuple(fd), std::make_tuple());
 
-			lk.unlock();
+			// this creates instance of SocketData, if no value is associated to key
+			getSocketData(fd);
+
+//			// this works too
+//			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
+//			// not necessary, [] operator creates new instance in case
+//			// https://stackoverflow.com/a/42001375/974287
+//			internalSocketData.emplace(std::piecewise_construct, std::make_tuple(fd), std::make_tuple());
+//
+//			lk.unlock();
 		}
 
 		break;
 	case CLOSE_SOCKET:
 
-		//internalSocketData.erase(fd);
-
 		callback_function(this, fd, job_type);
-		break;
+//		break;
 
 //		LIB_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
 //		//close(fd);
@@ -93,7 +107,6 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		callback_function(this, fd, job_type);
 
 		break;
-
 	}
 
 	LIB_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
@@ -256,10 +269,17 @@ void ThreadedServer2::close(int fd) {
 	// get internal data associated to the socket
 	SocketData &sd = internalSocketData[fd];
 
-	LIB_LOG(info) << "ThreadedServer2::close() before lk1 fd=" << fd;
-	// get lock on internal data associated to fd
-	std::unique_lock<std::mutex> lk1(sd.getWriteQueueMutex());
-	sd.doNotUse = true;
+	lk0.unlock();
+
+	// wait until sd is not used anymore as set as 'do not use'
+	sd.setDoNotUse();
+
+	//
+
+//	LIB_LOG(info) << "ThreadedServer2::close() before lk1 fd=" << fd;
+//	// get lock on internal data associated to fd
+//	std::unique_lock<std::mutex> lk1(sd.getWriteQueueMutex());
+//	sd.setDoNotUse();
 
 	LIB_LOG(info) << "ThreadedServer2::close() before lk2 fd=" << fd;
 	std::unique_lock<std::mutex> lk2(readyToWriteMutex);
@@ -276,9 +296,9 @@ void ThreadedServer2::close(int fd) {
 	// release lock on readyToWriteMutex
 	lk2.unlock();
 
-	lk1.unlock();
+	//lk1.unlock();
 
-	lk0.unlock();
+
 
 	LIB_LOG(info) << "ThreadedServer2::close() after 3 unlocks fd=" << fd;
 
@@ -332,7 +352,7 @@ void ThreadedServer2::writeQueueWorker() {
 		// get lock on internal data
 		std::unique_lock<std::mutex> lk2(sd.getWriteQueueMutex());
 
-		if (sd.doNotUse) {
+		if (sd.isDoNotUser()) {
 			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] internal data of fd=" << fd << " is marked as DO NOT USE, skipping";
 
 			continue;
