@@ -46,6 +46,8 @@ public:
 
 	std::deque<WriteItem> &getWriteQueue() { return writeQueue; }
 
+	//void cleanup();
+
 };
 
 } /* namespace nbuss_server */

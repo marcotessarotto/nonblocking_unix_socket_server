@@ -452,7 +452,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 void IGenericServer::close(int fd) {
 
-	LIB_LOG(trace)  << "IGenericServer::close " << fd;
+	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
 		::close(fd);
 		activeConnections--;

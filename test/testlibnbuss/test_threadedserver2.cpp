@@ -178,6 +178,7 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
+	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.getActiveConnections();
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0)
 		;

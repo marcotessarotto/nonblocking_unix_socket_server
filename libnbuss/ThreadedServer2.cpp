@@ -236,6 +236,8 @@ add_to_write_queue:
 // IGenericServer::close
 void ThreadedServer2::close(int fd) {
 
+	LIB_LOG(info) << "ThreadedServer2::close() fd=" << fd;
+
 	// TODO: cleanup internal data associated to fd
 
 	// maybe do we need a general mutex for each socket, not stored in the internal structure?
@@ -243,26 +245,43 @@ void ThreadedServer2::close(int fd) {
 	// we need to be sure that no other thread is working with fd
 	// while we remove and destroy the internal data associated to fd
 
+	// 0 - get lock on internalSocketData
 	// 1 - get and lock internal structure associated to fd
 	// 2 - while holding lock to internal structure:
 	//     get lock on readyToWriteSet and remove fd from set
 	// 3 - destroy internal structure
 
+	std::unique_lock<std::mutex> lk0(internalSocketDataMutex);
 
 	// get internal data associated to the socket
-	SocketData &sd = getSocketData(fd);
+	SocketData &sd = internalSocketData[fd];
+
+	LIB_LOG(info) << "ThreadedServer2::close() before lk1 fd=" << fd;
 	// get lock on internal data associated to fd
-	std::unique_lock<std::mutex> lk(sd.getWriteQueueMutex());
+	std::unique_lock<std::mutex> lk1(sd.getWriteQueueMutex());
 	sd.doNotUse = true;
 
-
+	LIB_LOG(info) << "ThreadedServer2::close() before lk2 fd=" << fd;
 	std::unique_lock<std::mutex> lk2(readyToWriteMutex);
 	// remove fd from readyToWriteSet
+
+	LIB_LOG(info) << "ThreadedServer2::close() before erase fd=" << fd;
+
 	readyToWriteSet.erase(fd);
+
+	// TODO:
+	// erase internal structure from internalSocketData
+
+
 	// release lock on readyToWriteMutex
 	lk2.unlock();
 
-	lk.unlock();
+	lk1.unlock();
+
+	lk0.unlock();
+
+	LIB_LOG(info) << "ThreadedServer2::close() after 3 unlocks fd=" << fd;
+
 
 	//
 	IGenericServer::close(fd);
@@ -273,6 +292,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 	while (true) {
 
+		// FIXME: cv should use internalSocketDataMutex instead of readyToWriteMutex
 		// wait on condition variable
 		std::unique_lock<std::mutex> lk(readyToWriteMutex);
 
@@ -299,13 +319,15 @@ void ThreadedServer2::writeQueueWorker() {
 		// so that other threads can add items to the set
 		lk.unlock();
 
-		// get file descriptor of socket which is ready to write to
+		// get file descriptor of socket which is available to write
 		int fd = node.value();
 
 		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
 
 		// get internal data associated to the socket
 		SocketData &sd = getSocketData(fd);
+
+		// FIXME: we must get lock on internalSocketDataMutex
 
 		// get lock on internal data
 		std::unique_lock<std::mutex> lk2(sd.getWriteQueueMutex());
