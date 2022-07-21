@@ -3,6 +3,7 @@ file(GLOB SRCS
  testlibnbuss.cpp
  unixsocket_tests.cpp
  test_common.cpp
+ test_threadedserver2.cpp
  *.cpp
  )
 
