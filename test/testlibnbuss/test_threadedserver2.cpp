@@ -45,7 +45,7 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 	const ssize_t bufferSize = 4096 * 16;
 
 	TEST_LOG(info)
-	<< "***UnixSocketServerClientReadWriteLongBufferDoubleThreadTest**  bufferSize=" << bufferSize;
+	<< "***TestUnixSocketThreadedServer2**  bufferSize=" << bufferSize;
 
 	//Crc16 crc;
 	//uint16_t longBufferCrc;
@@ -181,14 +181,14 @@ TEST_F(NonblockingUnixSocketServerTest, TestUnixSocketThreadedServer2) {
 	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.getActiveConnections();
 	// spin... consider using a condition variable
 	while (uss.getActiveConnections() > 0) {
-		TEST_LOG(info) << uss.getActiveConnections();
+		// TEST_LOG(info) << uss.getActiveConnections();
 
-		struct timespec t;
-
-		t.tv_sec = 0;  // seconds
-		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
-
-		nanosleep(&t, NULL);
+//		struct timespec t;
+//
+//		t.tv_sec = 0;  // seconds
+//		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
+//
+//		nanosleep(&t, NULL);
 
 	}
 
