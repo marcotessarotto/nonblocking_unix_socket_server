@@ -34,7 +34,7 @@ public:
 private:
 
 	// use writeQueueMutex to synchronize
-	bool doNotUse; // if true, this instance is marked for destruction
+	//bool doNotUse; // if true, this instance is marked for destruction
 
 	/// number of uses; 0 = not used
 	int uses; // >= 0
@@ -60,31 +60,36 @@ public:
 
 	void cleanup(bool useLock = true);
 
-	/**
-	 * if doNotUse is false, increase uses and return true;
-	 * else return false
-	 */
-	bool incUse();
 
-	/**
-	 * if doNotUse is false: if uses > 0, decrease uses and return uses, else return 0
-	 * if doNotUse is true return -1
-	 */
-	int decUse();
-
-	/**
-	 * if doNotUse is false, return uses
-	 * else return -1
-	 */
-	int getUses();
+	void lock();
+	void release();
 
 
-	/**
-	 * set instance as do not use; wait until operation can be done
-	 */
-	void setDoNotUse();
+//	/**
+//	 * if doNotUse is false, increase uses and return true;
+//	 * else return false
+//	 */
+//	bool incUse();
+//
+//	/**
+//	 * if doNotUse is false: if uses > 0, decrease uses and return uses, else return 0
+//	 * if doNotUse is true return -1
+//	 */
+//	int decUse();
+//
+//	/**
+//	 * if doNotUse is false, return uses
+//	 * else return -1
+//	 */
+//	int getUses();
 
-	bool isDoNotUser();
+
+//	/**
+//	 * set instance as do not use; wait until operation can be done
+//	 */
+//	void setDoNotUse();
+//
+//	bool isDoNotUser();
 
 };
 

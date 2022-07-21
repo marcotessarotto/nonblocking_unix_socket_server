@@ -265,46 +265,23 @@ void ThreadedServer2::close(int fd) {
 	// 3 - destroy internal structure
 
 	std::unique_lock<std::mutex> lk0(internalSocketDataMutex);
-
 	// get internal data associated to the socket
 	SocketData &sd = internalSocketData[fd];
-
 	lk0.unlock();
 
-	// wait until sd is not used anymore as set as 'do not use'
-	sd.setDoNotUse();
+	// lock internal data associated to the socket
+	sd.lock();
 
-	//
+	sd.cleanup(false);
 
-//	LIB_LOG(info) << "ThreadedServer2::close() before lk1 fd=" << fd;
-//	// get lock on internal data associated to fd
-//	std::unique_lock<std::mutex> lk1(sd.getWriteQueueMutex());
-//	sd.setDoNotUse();
-
-	LIB_LOG(info) << "ThreadedServer2::close() before lk2 fd=" << fd;
-	std::unique_lock<std::mutex> lk2(readyToWriteMutex);
-	// remove fd from readyToWriteSet
-
-	LIB_LOG(info) << "ThreadedServer2::close() before erase fd=" << fd;
-
-	readyToWriteSet.erase(fd);
-
-	// TODO:
-	// erase internal structure from internalSocketData
-
-
-	// release lock on readyToWriteMutex
-	lk2.unlock();
-
-	//lk1.unlock();
-
-
-
-	LIB_LOG(info) << "ThreadedServer2::close() after 3 unlocks fd=" << fd;
-
-
-	//
+	// close socket while sd is locked
 	IGenericServer::close(fd);
+
+	sd.release();
+
+	LIB_LOG(info) << "ThreadedServer2::close() complete fd=" << fd;
+
+
 }
 
 void ThreadedServer2::writeQueueWorker() {
@@ -312,9 +289,14 @@ void ThreadedServer2::writeQueueWorker() {
 
 	while (true) {
 
-		// FIXME: cv should use internalSocketDataMutex instead of readyToWriteMutex
 		// wait on condition variable
 		std::unique_lock<std::mutex> lk(readyToWriteMutex);
+
+		// check if thread has to stop
+		if (stopServer) {
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
+			return;
+		}
 
 		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait";
 
@@ -342,21 +324,17 @@ void ThreadedServer2::writeQueueWorker() {
 		// get file descriptor of socket which is available to write
 		int fd = node.value();
 
+		// at this point, we could have a fd which has been closed, with an associated internal
+		// structure (SocketData) which has an empty write list;
+		// the write list is empty because it has been emptied by the close method.
+		// so we can proceed even if fd is closed.
+
 		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
 
 		// get internal data associated to the socket
 		SocketData &sd = getSocketData(fd);
 
-		// FIXME: we must get lock on internalSocketDataMutex
-
-		// get lock on internal data
-		std::unique_lock<std::mutex> lk2(sd.getWriteQueueMutex());
-
-		if (sd.isDoNotUser()) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] internal data of fd=" << fd << " is marked as DO NOT USE, skipping";
-
-			continue;
-		}
+		sd.lock();
 
 		// get write queue
 		auto writeQueue = sd.getWriteQueue();
@@ -364,22 +342,23 @@ void ThreadedServer2::writeQueueWorker() {
 		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd=" << fd << " writeQueue.size()=" << writeQueue.size();
 
 		while (writeQueue.size() > 0) {
-			// try to write buffer on write queue
+			// try to write buffer on write queue:
 
 			// get buffer on the back of the queue
 			SocketData::WriteItem item = writeQueue.back();
 			writeQueue.pop_back(); // remove item from back of queue
 
-			// try to writebuffer
+			// try to write buffer
 			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] write2 on fd=" << fd;
 			ssize_t res = write2(fd, sd, item, writeQueue);
 
+			// socket is no more available to write
 			if (res == -1) {
-
+				break;
 			}
 		}
 
-		lk2.unlock();
+		sd.release();
 
 	}
 
@@ -390,7 +369,7 @@ void ThreadedServer2::writeQueueWorker() {
 }
 
 /**
- * when called, we must hold the lock sd.writeQueueMutex
+ * when called, we must hold the lock to sd (with sd.lock)
  *
  * item can be reused i.e. inserted again at the back of the queue
  *
@@ -413,24 +392,18 @@ ssize_t ThreadedServer2::write2(int fd, SocketData &sd, SocketData::WriteItem &i
 	} else if (bytesWritten == -1) {
 		// EAGAIN or EWOULDBLOCK (fd not available to write)
 
-		//goto add_to_write_queue;
 	} else if (bytesWritten < item.data_size) {
 		// partially successful, add data which has not been written to write queue
 
 		item.data += bytesWritten;
 		item.data_size -= bytesWritten;
-
-		//goto add_to_write_queue;
 	}
 
-
-//add_to_write_queue:
 	// add buffer to the back of write queue
 
 	writeQueue.push_back(item);
 
 	ssize_t wqsize = writeQueue.size();
-
 
 	LIB_LOG(info) << "ThreadedServer2::write2() added buffer to back of write queue fd=" << fd << " write queue size=" << wqsize;
 
