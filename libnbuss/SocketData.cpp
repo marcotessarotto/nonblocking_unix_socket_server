@@ -3,7 +3,7 @@
 namespace nbuss_server {
 
 //SocketData::SocketData(int fd) : fd{fd} {
-SocketData::SocketData()  {
+SocketData::SocketData() : doNotUse{false}  {
 
 }
 

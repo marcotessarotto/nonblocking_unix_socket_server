@@ -49,6 +49,7 @@ protected:
 
 
 	std::map<int, SocketData> internalSocketData;
+	std::mutex internalSocketDataMutex;
 
 	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
 	// performing an insertion if such key does not already exist.

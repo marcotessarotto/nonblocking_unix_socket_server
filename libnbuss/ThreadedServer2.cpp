@@ -38,6 +38,7 @@ void ThreadedServer2::listenWorker() {
 }
 
 SocketData &ThreadedServer2::getSocketData(int fd) {
+	std::unique_lock<std::mutex> lk(internalSocketDataMutex);
 	return internalSocketData[fd];
 }
 
@@ -46,17 +47,20 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 
 	switch (job_type) {
 	case NEW_SOCKET:
-		// create new SocketData instance and map fd to it in internalSocketData
+		{
+			// create new SocketData instance and map fd to it in internalSocketData
 
-		// SocketData: cannot copy or move because has mutex
-		//internalSocketData.insert(std::pair<int, SocketData>{fd, SocketData(fd)});
-		//internalSocketData.emplace(fd);
+			// SocketData: cannot copy or move because has mutex
+			//internalSocketData.insert(std::pair<int, SocketData>{fd, SocketData(fd)});
+			//internalSocketData.emplace(fd);
 
+			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
+			// not necessary, [] operator creates new instance in case
+			// https://stackoverflow.com/a/42001375/974287
+			internalSocketData.emplace(std::piecewise_construct, std::make_tuple(fd), std::make_tuple());
 
-		// not necessary, [] operator creates new instance in case
-		// https://stackoverflow.com/a/42001375/974287
-		internalSocketData.emplace(std::piecewise_construct, std::make_tuple(fd), std::make_tuple());
-
+			lk.unlock();
+		}
 
 		break;
 	case CLOSE_SOCKET:
@@ -79,7 +83,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			readyToWriteSet.insert(fd);
 			lk.unlock();
 
-			// notify thread waiting on condition variable
+			// notify worker thread waiting on condition variable
 			readyToWriteCv.notify_one();
 		}
 		break;
@@ -182,15 +186,18 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
+			LIB_LOG(info) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 			// ok! all data has been written
 			return bytesWritten;
 		} else if (bytesWritten == -1) {
 			// EAGAIN or EWOULDBLOCK (fd not available to write)
-
+			LIB_LOG(info) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
 
 			goto add_to_write_queue;
 		} else if (bytesWritten < data_size) {
 			// partially successful, add data which has not been written to write queue
+
+			LIB_LOG(info) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 
 			data += bytesWritten;
 			data_size -= bytesWritten;
@@ -229,26 +236,58 @@ add_to_write_queue:
 // IGenericServer::close
 void ThreadedServer2::close(int fd) {
 
+	// TODO: cleanup internal data associated to fd
+
+	// maybe do we need a general mutex for each socket, not stored in the internal structure?
+
+	// we need to be sure that no other thread is working with fd
+	// while we remove and destroy the internal data associated to fd
+
+	// 1 - get and lock internal structure associated to fd
+	// 2 - while holding lock to internal structure:
+	//     get lock on readyToWriteSet and remove fd from set
+	// 3 - destroy internal structure
+
+
+	// get internal data associated to the socket
+	SocketData &sd = getSocketData(fd);
+	// get lock on internal data associated to fd
+	std::unique_lock<std::mutex> lk(sd.getWriteQueueMutex());
+	sd.doNotUse = true;
+
+
+	std::unique_lock<std::mutex> lk2(readyToWriteMutex);
+	// remove fd from readyToWriteSet
+	readyToWriteSet.erase(fd);
+	// release lock on readyToWriteMutex
+	lk2.unlock();
+
+	lk.unlock();
+
 	//
 	IGenericServer::close(fd);
 }
 
 void ThreadedServer2::writeQueueWorker() {
-	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() starting";
+	LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] starting";
 
 	while (true) {
 
 		// wait on condition variable
 		std::unique_lock<std::mutex> lk(readyToWriteMutex);
 
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait";
+
 		// while server is running and readyToWriteSet is empty, wait on condition variable
 		while (!stopServer && readyToWriteSet.empty()) {
 			readyToWriteCv.wait(lk);
 		}
 
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait";
+
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
 			return;
 		}
 
@@ -263,14 +302,24 @@ void ThreadedServer2::writeQueueWorker() {
 		// get file descriptor of socket which is ready to write to
 		int fd = node.value();
 
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
+
 		// get internal data associated to the socket
 		SocketData &sd = getSocketData(fd);
 
 		// get lock on internal data
 		std::unique_lock<std::mutex> lk2(sd.getWriteQueueMutex());
 
+		if (sd.doNotUse) {
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] internal data of fd=" << fd << " is marked as DO NOT USE, skipping";
+
+			continue;
+		}
+
 		// get write queue
 		auto writeQueue = sd.getWriteQueue();
+
+		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd=" << fd << " writeQueue.size()=" << writeQueue.size();
 
 		while (writeQueue.size() > 0) {
 			// try to write buffer on write queue
@@ -280,6 +329,7 @@ void ThreadedServer2::writeQueueWorker() {
 			writeQueue.pop_back(); // remove item from back of queue
 
 			// try to writebuffer
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] write2 on fd=" << fd;
 			ssize_t res = write2(fd, sd, item, writeQueue);
 
 			if (res == -1) {

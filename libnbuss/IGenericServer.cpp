@@ -465,28 +465,29 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	}
 
 	ssize_t c;
-	int bytes_written = 0;
+	//int bytes_written = 0;
 
 	const char * p = data;
 
 	while (true) {
 		c = ::write(fd, p, data_size);
 
+		//LIB_LOG(trace) << "[IGenericServer::write] write result: " << c;
+
 		if (c > 0 && c < data_size) {
 			p += c;
 			data_size -= c;
 		} else {
+			if (c > 0) {
+				p += c;
+			}
 			break;
 		}
 	}
 
-	// if socket is in non-blocking mode, buffer could be full
+	// socket not available to write
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		// can this happen? yes, if client socket is in non blocking mode
-		LIB_LOG(warning) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
-
-		// TODO: manage non blocking write calls
-		// possible solution: implement a write queue
+		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		return -1;
 	} else if (c == -1) {
@@ -494,8 +495,10 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 		throw std::runtime_error("write error");
 	}
 
+	//LIB_LOG(trace) << "[IGenericServer::write] p-data " << (p - data);
+
 	// return number of bytes written
-	return (int)(p - data);
+	return (ssize_t)(p - data);
 }
 
 

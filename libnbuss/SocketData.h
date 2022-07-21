@@ -29,13 +29,14 @@ public:
 		ssize_t data_size;
 	};
 
+	// use writeQueueMutex to synchronize
+	bool doNotUse; // if true, this instance is marked for destruction
+
 private:
 
 	/// queue of write items waiting to be written (when respective fd becomes available to write)
 	std::deque<WriteItem> writeQueue;
 	std::mutex writeQueueMutex;
-
-
 
 public:
 	SocketData();
