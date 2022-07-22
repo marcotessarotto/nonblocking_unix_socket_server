@@ -11,9 +11,7 @@
 
 #include "testlibnbuss.h"
 
-#include <ThreadedServer.h>
-#include <ThreadedServer2.h>
-#include "UnixSocketClient.h"
+
 #include "Crc16.h"
 
 #include "Logger.h"
@@ -64,16 +62,16 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	UnixSocketClient usc;
 
 	TEST_LOG(info)
-	<< "[client] connect to server\n";
+	<< "[client] connect to serve";
 	usc.connect(socketName);
 
 	std::string s = "test message";
 	std::vector<char> v(s.begin(), s.end());
 
-	TEST_LOG(debug)	<< "[client] writing to socket\n";
+	TEST_LOG(debug)	<< "[client] writing to socket";
 	usc.write<char>(v);
 
-	TEST_LOG(debug) << "[client] reading from socket\n";
+	TEST_LOG(debug) << "[client] reading from socket";
 	// read server response
 	auto response = usc.read(1024);
 

@@ -11,9 +11,6 @@
 
 #include "testlibnbuss.h"
 
-#include <ThreadedServer.h>
-#include <ThreadedServer2.h>
-#include "UnixSocketClient.h"
 #include "Crc16.h"
 
 #include "Logger.h"

@@ -1,5 +1,8 @@
 #include "gtest/gtest.h"
 
+#include "ThreadedServer.h"
+#include "ThreadedServer2.h"
+#include "UnixSocketClient.h"
 
 #include "UnixSocketServer.h"
 #include "UnixSocketClient.h"
