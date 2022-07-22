@@ -210,10 +210,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 		this->closeSockets();
 
-		std::unique_lock<std::mutex> lk(this->mtx);
-		this->is_listening = false;
-		lk.unlock();
-
 	});
 
 	// initialization added after check with:
