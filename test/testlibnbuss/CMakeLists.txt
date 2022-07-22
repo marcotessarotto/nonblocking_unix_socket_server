@@ -1,6 +1,19 @@
-file(GLOB SRCS *.cpp)
 
-ADD_EXECUTABLE(testlibnbuss ${SRCS})
+ 
+ set(testlibnbuss_SRCS
+  main.cpp
+  tcpsocket_tests.cpp
+  test_1server_1client_unixsocket.cpp
+  test_common.cpp
+  test_threadedserver2.cpp  
+  testlibnbuss.h
+  testlibnbuss.cpp
+  unixsocket_tests.cpp
+)
+ 
+
+ADD_EXECUTABLE(testlibnbuss 
+${testlibnbuss_SRCS})
 
 
 find_package(Boost REQUIRED log log_setup )

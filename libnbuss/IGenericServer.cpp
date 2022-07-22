@@ -107,6 +107,7 @@ int IGenericServer::setFdNonBlocking(int fd) {
 
 /**
  * read all data available on socket and return it as a vector of vector<char>
+ * readBufferSize is the size of each std::vector<char>
  *
  * compiler performs return value optimization (RVO)
  *
@@ -118,7 +119,6 @@ int IGenericServer::setFdNonBlocking(int fd) {
 std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize) {
 	std::vector<std::vector<char>> result;
 
-	//int counter = 0;
 	while (true) {
 		std::vector<char> buffer(readBufferSize);
 
@@ -128,7 +128,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 		p = buffer.data();
 		int buffer_size = buffer.capacity();
 
-		//std::cout << "read #" << counter++ << std::endl;
+		// LIB_LOG(info) << "read #" << counter++;
 
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
@@ -149,7 +149,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 			// data has been read
 			buffer.resize(c);
 
-			// std::cout << "adding buffer to result" << std::endl;
+			// LIB_LOG(info) << "adding buffer to result";
 
 			result.push_back(std::move(buffer));
 		}
@@ -196,7 +196,7 @@ static const char* interpret_event(int event) {
 
 void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_type_t)> callback_function) {
 
-	LIB_LOG(info) << "IGenericServer::listen" << std::endl;
+	LIB_LOG(trace) << "IGenericServer::listen";
 
 	if (listen_sock.fd == -1) {
 		throw std::runtime_error("server socket is not open");
@@ -206,7 +206,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn([this]() {
-		LIB_LOG(info) << "[IGenericServer] listen cleanup" << std::endl;
+		LIB_LOG(info) << "[IGenericServer] listen cleanup";
 
 		this->closeSockets();
 
@@ -330,6 +330,9 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					// be reported by the epoll interface.  The user must call
 					// epoll_ctl() with EPOLL_CTL_MOD to rearm the file descriptor with a new event mask.
 
+
+					LIB_LOG(info) << "[IGenericServer] epoll_ctl EPOLL_CTL_ADD  fd=" << conn_sock;
+
 					ev.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP | EPOLLOUT;
 					ev.data.fd = conn_sock;
 					if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, conn_sock, &ev) == -1) {
@@ -341,7 +344,9 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					activeConnections++;
 
-					LIB_LOG(debug) << "[IGenericServer] accept ok, fd" << conn_sock;
+
+					callback_function(this, conn_sock, NEW_SOCKET);
+
 				}
 
 			} else {
@@ -366,7 +371,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 				if ((events[n].events & EPOLLRDHUP)	|| (events[n].events & EPOLLHUP)) {
 
-					LIB_LOG(info)  << "[IGenericServer] "
+					LIB_LOG(info)  << "[IGenericServer][listen] "
 							<< ((events[n].events & EPOLLRDHUP) ? "EPOLLRDHUP " : "")
 							<< ((events[n].events & EPOLLHUP) ? "EPOLLHUP" : "")
 							<<   " fd=" << fd;
@@ -375,7 +380,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 					continue;
 				} else if (events[n].events & EPOLLERR) {
-					LIB_LOG(error) << "[IGenericServer] EPOLLERR fd=" << fd;
+					LIB_LOG(error) << "[IGenericServer][listen] EPOLLERR fd=" << fd;
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
@@ -385,7 +390,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 				// EPOLLIN and EPOLLOUT events can arrive at the same time
 				if (events[n].events & EPOLLOUT) {
-					LIB_LOG(info)  << "[IGenericServer] EPOLLOUT fd=" << fd;
+					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_WRITE);
 
@@ -393,7 +398,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 				}
 
 				if (events[n].events & EPOLLIN) {
-					LIB_LOG(info)  << "[IGenericServer] EPOLLIN fd=" << fd;
+					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLIN fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_READ);
 					continue;
@@ -446,11 +451,21 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 void IGenericServer::close(int fd) {
 
-	LIB_LOG(trace)  << "IGenericServer::close " << fd;
+	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
 		::close(fd);
+		//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
 		activeConnections--;
+		//lk.unlock();
 	}
+}
+
+
+
+int IGenericServer::getActiveConnections() {
+	//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
+	//return activeConnections;
+	return activeConnections.load();
 }
 
 ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
@@ -459,28 +474,29 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	}
 
 	ssize_t c;
-	int bytes_written = 0;
+	//int bytes_written = 0;
 
 	const char * p = data;
 
 	while (true) {
 		c = ::write(fd, p, data_size);
 
+		//LIB_LOG(trace) << "[IGenericServer::write] write result: " << c;
+
 		if (c > 0 && c < data_size) {
 			p += c;
 			data_size -= c;
 		} else {
+			if (c > 0) {
+				p += c;
+			}
 			break;
 		}
 	}
 
-	// if socket is in non-blocking mode, buffer could be full
+	// socket not available to write
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		// can this happen? yes, if client socket is in non blocking mode
-		LIB_LOG(warning) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
-
-		// TODO: manage non blocking write calls
-		// possible solution: implement a write queue
+		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		return -1;
 	} else if (c == -1) {
@@ -488,8 +504,10 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 		throw std::runtime_error("write error");
 	}
 
+	//LIB_LOG(trace) << "[IGenericServer::write] p-data " << (p - data);
+
 	// return number of bytes written
-	return (int)(p - data);
+	return (ssize_t)(p - data);
 }
 
 

@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <vector>
 #include <functional>
+#include <mutex>
 #include "FileDescriptor.h"
 #include "UnixPipe.h"
 
@@ -18,7 +19,8 @@ namespace nbuss_server {
 enum job_type_t {
 	AVAILABLE_FOR_READ, // the associated file is available for read(2) operations.
 	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
-	AVAILABLE_FOR_WRITE // the associated file is available for write(2) operations.
+	AVAILABLE_FOR_WRITE, // the associated file is available for write(2) operations.
+	NEW_SOCKET // new connection
 };
 
 
@@ -69,6 +71,8 @@ protected:
 	unsigned int backlog;
 
 	std::atomic<int> activeConnections;
+	//int activeConnections;
+	//std::mutex activeConnectionsMutex;
 
 	/// list of open sockets
 	std::vector<int> socketList;
@@ -106,8 +110,11 @@ public:
 
 
 	/**
-	 * invoke the write system call; return the number of bytes written on success,
-	 * or std::runtime_error in case of error
+	 * invoke the write system call;
+	 * return the number of bytes written on success (or partial success)
+	 * returns -1 in case of EAGAIN or EWOULDBLOCK (fd not available to write)
+	 *
+	 * throws exception std::runtime_error in case of error
 	 */
 	static ssize_t write(int fd, const char * data, ssize_t data_size);
 
@@ -144,7 +151,7 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections() { return activeConnections.load(std::memory_order_seq_cst); }
+	int getActiveConnections(); // { return activeConnections.load(std::memory_order_seq_cst); }
 
 	/**
 	 * close socket and decrease counter of active connections

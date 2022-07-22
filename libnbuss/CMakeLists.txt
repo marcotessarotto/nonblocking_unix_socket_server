@@ -5,8 +5,8 @@ IGenericServer.cpp
 UnixSocketServer.h
 UnixSocketServer.cpp
 FileDescriptor.h
-ThreadDecorator.cpp
-ThreadDecorator.h
+ThreadedServer.cpp
+ThreadedServer.h
 UnixSocketClient.h
 UnixSocketClient.cpp
 IThreadable.h
@@ -24,6 +24,10 @@ BaseClient.h
 BaseClient.cpp
 Logger.h
 Logger.cpp
+ThreadedServer2.h
+ThreadedServer2.cpp
+SocketData.h
+SocketData.cpp
 )
 
 # Declare the library

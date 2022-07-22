@@ -1,10 +1,10 @@
 #include <syslog.h>
+#include <ThreadedServer.h>
 
 #include <iostream>
 #include <cassert>
 
 #include "UnixSocketServer.h"
-#include "ThreadDecorator.h"
 #include "UnixSocketClient.h"
 #include "TcpServer.h"
 #include "TcpClient.h"
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
 		TcpServer ts(10001, "0.0.0.0", 10);
 
 		// listen method is called in another thread
-		ThreadDecorator threadedServer(ts);
+		ThreadedServer threadedServer(ts);
 
 		cout << "[server] starting server\n";
 		// when start returns, server has started listening for incoming connections
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
 	UnixSocketServer uss(socketName, 10);
 
 	// listen method is called in another thread
-	ThreadDecorator threadedServer(uss);
+	ThreadedServer threadedServer(uss);
 
 	// ThreadDecorator threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 

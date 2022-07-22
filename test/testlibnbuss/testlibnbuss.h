@@ -1,5 +1,8 @@
 #include "gtest/gtest.h"
 
+#include "ThreadedServer.h"
+#include "ThreadedServer2.h"
+#include "UnixSocketClient.h"
 
 #include "UnixSocketServer.h"
 #include "UnixSocketClient.h"
@@ -8,6 +11,7 @@
 #include "TcpClient.h"
 
 
+void listener_echo_server(nbuss_server::IGenericServer *srv, int fd, enum nbuss_server::job_type_t job_type);
 
 
 // testing class NonblockingUnixSocketServer

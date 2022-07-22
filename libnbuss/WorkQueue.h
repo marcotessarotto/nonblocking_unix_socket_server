@@ -10,10 +10,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <set>
 
 #include "IGenericServer.h"
 #include "IThreadable.h"
-#include "ThreadDecorator.h"
+#include "ThreadedServer.h"
 
 namespace nbuss_server {
 
@@ -34,7 +35,7 @@ public:
 	};
 
 private:
-	ThreadDecorator &threadDecorator;
+	ThreadedServer &threadedServer;
 	unsigned int numberOfThreads;
 
 	std::deque<Item> deque;
@@ -54,7 +55,7 @@ private:
 	void consumer();
 
 public:
-	WorkQueue(ThreadDecorator & threadDecorator, unsigned int numberOfThreads = 1);
+	WorkQueue(ThreadedServer & threadDecorator, unsigned int numberOfThreads = 1);
 	virtual ~WorkQueue();
 
 

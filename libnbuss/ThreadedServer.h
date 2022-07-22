@@ -1,5 +1,5 @@
-#ifndef LIBNBUSS_THREADDECORATOR_H_
-#define LIBNBUSS_THREADDECORATOR_H_
+#ifndef LIBNBUSS_THREADEDSERVER_H_
+#define LIBNBUSS_THREADEDSERVER_H_
 
 #include <thread>
 
@@ -17,7 +17,7 @@ namespace nbuss_server {
  * time to extend the behavior (start and stop methods).
  *
  */
-class ThreadDecorator : public virtual IThreadable {
+class ThreadedServer : public virtual IThreadable {
 
 protected:
 	IGenericServer &server;
@@ -29,12 +29,12 @@ protected:
 
 	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
 
-	void mainLoopWorker();
+	void listenWorker();
 
 public:
-	ThreadDecorator(IGenericServer &server);
+	ThreadedServer(IGenericServer &server);
 
-	virtual ~ThreadDecorator();
+	virtual ~ThreadedServer();
 
     /**
      * starts a new thread which will listen for incoming connections and process them
@@ -54,4 +54,4 @@ public:
 
 } /* namespace nbuss_server */
 
-#endif /* LIBNBUSS_THREADDECORATOR_H_ */
+#endif /* LIBNBUSS_THREADEDSERVER_H_ */
