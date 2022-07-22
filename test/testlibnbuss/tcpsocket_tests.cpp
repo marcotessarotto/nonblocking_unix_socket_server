@@ -36,7 +36,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 
 	try {
 
-		TEST_LOG(info) << "***TcpServerClientReadWriteTest***";
+		TEST_LOG(info) << "***TcpServerClientReadWriteTest*** " << __FILE__;
 
 		// create instance of tcp non blocking server
 

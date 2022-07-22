@@ -151,7 +151,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	const ssize_t bufferSize = 4096 * 16;
 
 	TEST_LOG(info)
-	<< "***UnixSocketServerClientReadWriteLongBufferTest**  bufferSize=" << bufferSize;
+	<< "***UnixSocketServerClientReadWriteLongBufferTest**  bufferSize=" << bufferSize << " " << __FILE__;
 
 	//Crc16 crc;
 	//uint16_t longBufferCrc;
