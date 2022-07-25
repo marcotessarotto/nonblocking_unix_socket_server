@@ -259,9 +259,11 @@ void ThreadedServer2::close(int fd) {
 
 	LIB_LOG(info) << "ThreadedServer2::close() fd=" << fd;
 
-	// TODO: cleanup internal data associated to fd
 
-	// maybe do we need a general mutex for each socket, not stored in the internal structure?
+	// no more events from fd
+	server.remove_from_epoll(fd);
+
+	// each SocketData instance has a semaphore
 
 	// we need to be sure that no other thread is working with fd
 	// while we remove and destroy the internal data associated to fd
@@ -277,9 +279,10 @@ void ThreadedServer2::close(int fd) {
 	SocketData &sd = internalSocketData[fd];
 	lk0.unlock();
 
-	// lock internal data associated to the socket
+	// get lock on internal data associated to the socket
 	sd.lock();
 
+	// cleanup internal data associated to fd
 	sd.cleanup(false);
 
 	// close socket while sd is locked

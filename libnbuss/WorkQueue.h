@@ -14,7 +14,7 @@
 
 #include "IGenericServer.h"
 #include "IThreadable.h"
-#include "ThreadedServer.h"
+#include "ThreadedServer2.h"
 
 namespace nbuss_server {
 
@@ -37,7 +37,7 @@ public:
 	};
 
 private:
-	ThreadedServer &threadedServer;
+	ThreadedServer2 &threadedServer;
 	unsigned int numberOfThreads;
 
 	std::deque<Item> deque;
@@ -57,7 +57,7 @@ private:
 	void consumer();
 
 public:
-	WorkQueue(ThreadedServer & threadDecorator, unsigned int numberOfThreads = 1);
+	WorkQueue(ThreadedServer2 & threadedServer, unsigned int numberOfThreads = 1);
 	virtual ~WorkQueue();
 
 	/// start server

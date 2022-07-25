@@ -10,6 +10,8 @@
 #include "TcpServer.h"
 #include "TcpClient.h"
 
+#include "WorkQueue.h"
+
 
 void listener_echo_server(nbuss_server::IGenericServer *srv, int fd, enum nbuss_server::job_type_t job_type);
 

@@ -7,7 +7,7 @@ namespace nbuss_server {
 static std::atomic<int> producedItems;
 static std::atomic<int> consumedItems;
 
-WorkQueue::WorkQueue(ThreadedServer & threadedServer, unsigned int numberOfThreads) :
+WorkQueue::WorkQueue(ThreadedServer2 & threadedServer, unsigned int numberOfThreads) :
 		threadedServer{threadedServer},
 		numberOfThreads(numberOfThreads),
 		callback_function{},
@@ -87,6 +87,8 @@ LIB_LOG(info) << "[WorkQueue::consumer] stopping consumer thread";
 
 void WorkQueue::start(std::function<void(WorkQueue *, int, enum job_type_t )> callback_function) {
 
+	LIB_LOG(info) << "WorkQueue::start()";
+
 	stopConsumers = false;
 
 	this->callback_function = callback_function;
@@ -102,6 +104,8 @@ void WorkQueue::start(std::function<void(WorkQueue *, int, enum job_type_t )> ca
 				this->producerCallback(srv, fd, job);
 			}
 		);
+
+	LIB_LOG(info) << "WorkQueue::start() complete";
 }
 
 void WorkQueue::stop() {
