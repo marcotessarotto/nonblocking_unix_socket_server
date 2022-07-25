@@ -25,7 +25,7 @@ WorkQueue::~WorkQueue() {
 void WorkQueue::producerCallback(IGenericServer * srv, int fd, enum job_type_t job) {
 	int num;
 
-	Item i{srv, fd, job};
+	Item i{fd, job};
 
 	std::unique_lock<std::mutex> lk(dequeMutex);
 
@@ -37,7 +37,7 @@ void WorkQueue::producerCallback(IGenericServer * srv, int fd, enum job_type_t j
 	dequeCv.notify_one();
 	//producedItems++;
 
-	LIB_LOG(info) << "[WorkQueue::callback] [Producer] items in deque=" << num;
+	LIB_LOG(info) << "[WorkQueue::callback] [Producer] items in deque size=" << num;
 
 }
 
@@ -68,9 +68,12 @@ void WorkQueue::consumer() {
 
 		lk.unlock();
 
-		LIB_LOG(info) << "[WorkQueue::consumer] processing item - fd=" << i.fd;
+		LIB_LOG(info) << "[WorkQueue::consumer] processing item - fd=" << i.fd << " process=" << i.process;
 
-		// TODO: process Item i
+		if (i.process) {
+			// process Item i
+			callback_function(this, i.fd, i.job);
+		}
 
 		/*
 		 * note: if fd is closed, subsequent events relative to fd should be removed (before closing fd)
@@ -82,9 +85,11 @@ LIB_LOG(info) << "[WorkQueue::consumer] stopping consumer thread";
 
 }
 
-void WorkQueue::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
+void WorkQueue::start(std::function<void(WorkQueue *, int, enum job_type_t )> callback_function) {
 
 	stopConsumers = false;
+
+	this->callback_function = callback_function;
 
 	consumerThreads.resize(numberOfThreads);
 	for (int i = 0; i < numberOfThreads; i++) {
@@ -119,6 +124,30 @@ void WorkQueue::stop() {
 	deque.clear();
 	consumerThreads.clear();
 
+	LIB_LOG(info) << "WorkQueue::stop() complete";
 }
+
+
+void WorkQueue::close(int fd) {
+	LIB_LOG(info) << "WorkQueue::close() fd=" << fd;
+
+	std::unique_lock<std::mutex> lk(dequeMutex);
+
+	// enumerate items in deque and mark as do not process items belonging to fd
+    for (auto it = deque.rbegin(); it != deque.rend(); ++it) {
+        if (it->fd == fd) {
+        	it->process = false;
+        }
+    }
+
+	lk.unlock();
+
+
+}
+
+void WorkQueue::remove_from_epoll(int fd) {
+	threadedServer.remove_from_epoll(fd);
+}
+
 
 } /* namespace nbuss_server */

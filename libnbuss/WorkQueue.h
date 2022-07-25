@@ -19,8 +19,9 @@
 namespace nbuss_server {
 
 /**
- * this is not a real decorator; constructor takes an instance of ThreadDecorator as a parameter
- * WorkQueue implements a work queue where incoming traffic events from server are stored
+ * WorkQueue implements a work queue where incoming traffic events from server are stored.
+ * constructor takes an instance of ThreadedServer as a parameter.
+ *
  * to be processed by one or more consumers
  *
  */
@@ -29,9 +30,10 @@ class WorkQueue {
 public:
 
 	struct Item {
-		IGenericServer * srv;
+		//IGenericServer * srv;
 		int fd;
 		enum job_type_t job;
+		bool process = true;
 	};
 
 private:
@@ -46,7 +48,7 @@ private:
 
 	std::vector<std::thread> consumerThreads;
 
-	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
+	std::function<void(WorkQueue *,int, enum job_type_t )> callback_function;
 
 	/// callback used as producer
 	void producerCallback(IGenericServer * srv, int fd, enum job_type_t job);
@@ -58,10 +60,19 @@ public:
 	WorkQueue(ThreadedServer & threadDecorator, unsigned int numberOfThreads = 1);
 	virtual ~WorkQueue();
 
+	/// start server
+	void start(std::function<void(WorkQueue *, int, enum job_type_t )> callback_function);
 
-	void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
-
+	/// stop server
 	void stop();
+
+	/// remove items from work queue belonging to socket and then close it
+	void close(int fd);
+
+	/**
+	 * remove socket from epoll watch list
+	 */
+	void remove_from_epoll(int fd);
 
 };
 
