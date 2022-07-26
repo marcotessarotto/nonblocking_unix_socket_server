@@ -104,6 +104,8 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 	TEST_LOG(info) << "[client] connect to server";
 	usc.connect(socketName);
 
+	//sleep(2);
+
 	std::vector<char> longBuffer(bufferSize);
 
 	//longBuffer.assign(bufferSize, '*');
@@ -176,6 +178,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	}
 
+	TEST_LOG(info) << "[server] stopping server";
 	workQueue.stop();
 
 	TEST_LOG(info) << "test finished!";

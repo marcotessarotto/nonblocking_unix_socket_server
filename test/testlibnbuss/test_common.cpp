@@ -45,6 +45,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_WRITE fd=" << fd;
 		// TODO: check if there are buffers to write to this socket
 		break;
+	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
 		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_READ fd=" << fd;
 
