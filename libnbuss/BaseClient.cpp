@@ -42,12 +42,18 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 		}
 	}
 
-	// TODO: if socket is in non-blocking mode, buffer could be full
+	// if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		// can this happen? yes, if client socket is in non blocking mode
 		LIB_LOG(warning) << "[BaseClient::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
-		return -1;
+		// example: write syscall is called two times, the first successful butbut partial,
+		// the second returns -1 because it would block
+		if ((ssize_t)(p - data) > 0) {
+			return (ssize_t)(p - data);
+		} else {
+			return -1;
+		}
+
 	} else if (c == -1) {
 		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
 		throw std::runtime_error("write error");
@@ -56,31 +62,6 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 	return (int)(p - data);
 }
 
-
-//void BaseClient::write(std::vector<char> &data) {
-//	if (data_socket == -1) {
-//		throw std::invalid_argument("invalid socket descriptor");
-//	}
-//
-//	int c;
-//
-//	int data_size = data.size() * sizeof(T);
-//	char * p = data.data();
-//
-//	// TODO: implement while
-//	c = ::write(data_socket, p, data_size);
-//
-//	// TODO: if socket is in non-blocking mode, buffer could be full
-//	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-//		// can this happen? yes, because client socket is in non blocking mode
-//	}
-//
-//	// TODO: check
-//	if (c == -1) {
-//		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
-//		throw std::runtime_error("write error");
-//	}
-//}
 
 ssize_t BaseClient::write(const std::string &data) {
 	ssize_t data_size = data.size() * sizeof(char);

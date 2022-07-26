@@ -20,7 +20,8 @@ enum job_type_t {
 	AVAILABLE_FOR_READ, // the associated file is available for read(2) operations.
 	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
 	AVAILABLE_FOR_WRITE, // the associated file is available for write(2) operations.
-	NEW_SOCKET // new connection
+	NEW_SOCKET, // new connection
+	AVAILABLE_FOR_READ_AND_WRITE // both AVAILABLE_FOR_READ and AVAILABLE_FOR_WRITE
 };
 
 
@@ -111,8 +112,10 @@ public:
 
 	/**
 	 * invoke the write system call;
-	 * return the number of bytes written on success (or partial success)
-	 * returns -1 in case of EAGAIN or EWOULDBLOCK (fd not available to write)
+	 * return the number of bytes written on success
+	 * or partial success: two calls to write syscall, the first is partially successful
+	 * but the second returns -1 (EAGAIN or EWOULDBLOCK)
+	 * if the first write syscall returns -1 (EAGAIN or EWOULDBLOCK), then the function returns -1.
 	 *
 	 * throws exception std::runtime_error in case of error
 	 */

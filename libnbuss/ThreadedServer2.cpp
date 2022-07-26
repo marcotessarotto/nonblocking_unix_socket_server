@@ -46,17 +46,27 @@ SocketData &ThreadedServer2::getSocketData(int fd, bool usemutex) {
 	}
 }
 
-/*
- * allocate internal structure for socket
- * cleanup internal structure for socket (for successive reuse)
- *
- *
- */
+
 
 void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
 
 	switch (job_type) {
+	case AVAILABLE_FOR_READ_AND_WRITE: {
+			LIB_LOG(info) << "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ_AND_WRITE fd=" << fd;
+			// add socket to ready to write list
+
+			std::unique_lock<std::mutex> lk(readyToWriteMutex);
+			readyToWriteSet.insert(fd);
+			lk.unlock();
+
+			// notify worker thread waiting on condition variable
+			readyToWriteCv.notify_one();
+
+			LIB_LOG(info) << "[ThreadedServer2][internalCallback] callback_function";
+			callback_function(this, fd, AVAILABLE_FOR_READ);
+		}
+		break;
 	case NEW_SOCKET:
 		{
 			// create new SocketData instance and map fd to it in internalSocketData
@@ -154,7 +164,7 @@ void ThreadedServer2::stop() {
 	LIB_LOG(info) << "ThreadedServer2::stop";
 
 
-	LIB_LOG(info) << "ThreadedServer2::stop before stopServer = false;";
+	//LIB_LOG(info) << "ThreadedServer2::stop before stopServer = false;";
 	// we use readyToWriteMutex because writerWorkerThread uses this with the condition variable
 	std::unique_lock<std::mutex> lk(readyToWriteMutex);
 	stopServer = true;
@@ -163,7 +173,7 @@ void ThreadedServer2::stop() {
 	readyToWriteCv.notify_one();
 
 	// terminate the server thread
-	LIB_LOG(info) << "ThreadedServer2::stop before server.terminate()";
+	//LIB_LOG(info) << "ThreadedServer2::stop before server.terminate()";
 	server.terminate();
 
 	readyToWriteCv.notify_one();

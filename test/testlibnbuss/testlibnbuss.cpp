@@ -96,6 +96,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_WRITE fd=" << fd;
 		// TODO: check if there are buffers to write to this socket
 		break;
+	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
 		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
 
@@ -120,7 +121,6 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			// TODO: if write queue for fd is empty, write buffer
 			// else copy buffer to queue
 
-			// TODO: if write returns -1, copy remaining data
 			while (IGenericServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 

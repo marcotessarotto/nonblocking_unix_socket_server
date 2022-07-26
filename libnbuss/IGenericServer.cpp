@@ -364,6 +364,11 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 				 *
 				 * EPOLLIN EPOLLOUT => AVAILABLE_FOR_READ, AVAILABLE_FOR_WRITE
 				 */
+//				bool IS_EPOLLRDHUP = events[n].events & EPOLLRDHUP;
+//				bool IS_EPOLLHUP = events[n].events & EPOLLHUP;
+//				bool IS_EPOLLERR = events[n].events & EPOLLERR;
+//				bool IS_EPOLLOUT = events[n].events & EPOLLOUT;
+//				bool IS_EPOLLIN = events[n].events & EPOLLIN;
 
 				if ((events[n].events & EPOLLRDHUP)	|| (events[n].events & EPOLLHUP)) {
 
@@ -381,19 +386,23 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
 					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+
 					continue;
 				}
 
 				// EPOLLIN and EPOLLOUT events can arrive at the same time
-				if (events[n].events & EPOLLOUT) {
+				if ((events[n].events & EPOLLIN) && (events[n].events & EPOLLOUT) ) {
+					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLIN EPOLLOUT fd=" << fd;
+
+					callback_function(this, fd, AVAILABLE_FOR_READ_AND_WRITE);
+
+				} else if (events[n].events & EPOLLOUT) {
 					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_WRITE);
 
 					// no continue here; there can be a EPOLLIN event
-				}
-
-				if (events[n].events & EPOLLIN) {
+				} else if (events[n].events & EPOLLIN) {
 					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLIN fd=" << fd;
 
 					callback_function(this, fd, AVAILABLE_FOR_READ);
@@ -452,14 +461,11 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	}
 
 	ssize_t c;
-	//int bytes_written = 0;
 
 	const char * p = data;
 
 	while (true) {
 		c = ::write(fd, p, data_size);
-
-		//LIB_LOG(trace) << "[IGenericServer::write] write result: " << c;
 
 		if (c > 0 && c < data_size) {
 			p += c;
@@ -476,7 +482,14 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
-		return -1;
+		// example: write syscall is called two times, the first successful but partial,
+		// the second returns -1 because it would block
+		if ((ssize_t)(p - data) > 0) {
+			return (ssize_t)(p - data);
+		} else {
+			return -1;
+		}
+
 	} else if (c == -1) {
 		LIB_LOG(error) << "[IGenericServer::write] write error " << strerror(errno);
 		throw std::runtime_error("write error");

@@ -57,9 +57,6 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
 
-			//threadedServer2.close(fd);
-
-			// TODO: fix, this does not work
 			srv->close(fd);
 
 			break;
@@ -103,6 +100,8 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	TEST_LOG(info) << "[client] connect to server";
 	usc.connect(socketName);
+
+	//sleep(2);
 
 	std::vector<char> longBuffer(bufferSize);
 
@@ -176,6 +175,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	}
 
+	TEST_LOG(info) << "[server] stopping server";
 	workQueue.stop();
 
 	TEST_LOG(info) << "test finished!";
