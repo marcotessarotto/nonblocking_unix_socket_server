@@ -121,7 +121,6 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			// TODO: if write queue for fd is empty, write buffer
 			// else copy buffer to queue
 
-			// TODO: if write returns -1, copy remaining data
 			while (IGenericServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 

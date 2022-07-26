@@ -57,31 +57,6 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 }
 
 
-//void BaseClient::write(std::vector<char> &data) {
-//	if (data_socket == -1) {
-//		throw std::invalid_argument("invalid socket descriptor");
-//	}
-//
-//	int c;
-//
-//	int data_size = data.size() * sizeof(T);
-//	char * p = data.data();
-//
-//	// TODO: implement while
-//	c = ::write(data_socket, p, data_size);
-//
-//	// TODO: if socket is in non-blocking mode, buffer could be full
-//	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-//		// can this happen? yes, because client socket is in non blocking mode
-//	}
-//
-//	// TODO: check
-//	if (c == -1) {
-//		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
-//		throw std::runtime_error("write error");
-//	}
-//}
-
 ssize_t BaseClient::write(const std::string &data) {
 	ssize_t data_size = data.size() * sizeof(char);
 	const char * p =  reinterpret_cast<const char*>(data.data());

@@ -44,6 +44,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 	case AVAILABLE_FOR_WRITE:
 		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_WRITE fd=" << fd;
 		// TODO: check if there are buffers to write to this socket
+		// implementation of write buffer is in ThreadedServer2
 		break;
 	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
@@ -61,14 +62,14 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 			<< "[listener_echo_server] buffer " << counter++ << ": "
 					<< item.size() << " bytes";
 
-
-
 			// TODO: if write returns -1, wait 1 ms and retry
+			// write buffer problem is solved by ThreadedServer2
 			while (IGenericServer::write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 
 				nanosleep(&ts, NULL);
 			}
+
 		}
 		break;
 
