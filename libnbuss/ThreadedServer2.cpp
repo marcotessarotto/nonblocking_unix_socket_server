@@ -69,6 +69,8 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			// this creates instance of SocketData, if no value is associated to key
 			getSocketData(fd);
 
+			callback_function(this, fd, job_type);
+
 //			// this works too
 //			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
 //			// not necessary, [] operator creates new instance in case
@@ -109,7 +111,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		break;
 	}
 
-	LIB_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
+	//LIB_LOG(debug)	<< "[server][my_listener] finished - fd=" << fd;
 }
 
 void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
@@ -259,9 +261,11 @@ void ThreadedServer2::close(int fd) {
 
 	LIB_LOG(info) << "ThreadedServer2::close() fd=" << fd;
 
-	// TODO: cleanup internal data associated to fd
 
-	// maybe do we need a general mutex for each socket, not stored in the internal structure?
+	// no more events from fd
+	server.remove_from_epoll(fd);
+
+	// each SocketData instance has a semaphore
 
 	// we need to be sure that no other thread is working with fd
 	// while we remove and destroy the internal data associated to fd
@@ -277,9 +281,10 @@ void ThreadedServer2::close(int fd) {
 	SocketData &sd = internalSocketData[fd];
 	lk0.unlock();
 
-	// lock internal data associated to the socket
+	// get lock on internal data associated to the socket
 	sd.lock();
 
+	// cleanup internal data associated to fd
 	sd.cleanup(false);
 
 	// close socket while sd is locked
@@ -304,7 +309,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
 			return;
 		}
 
@@ -319,7 +324,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
 			return;
 		}
 
@@ -373,9 +378,7 @@ void ThreadedServer2::writeQueueWorker() {
 	}
 
 
-
-
-	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
+	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() terminated";
 }
 
 /**

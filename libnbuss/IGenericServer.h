@@ -158,6 +158,11 @@ public:
 	 */
 	void close(int fd);
 
+	/**
+	 * remove socket from epoll watch list
+	 */
+	void remove_from_epoll(int fd);
+
 };
 
 }

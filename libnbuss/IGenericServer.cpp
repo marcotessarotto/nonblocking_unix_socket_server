@@ -210,10 +210,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 		this->closeSockets();
 
-		std::unique_lock<std::mutex> lk(this->mtx);
-		this->is_listening = false;
-		lk.unlock();
-
 	});
 
 	// initialization added after check with:
@@ -404,41 +400,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					continue;
 				}
 
-//				else if (events[n].events & EPOLLRDHUP) {
-//					LIB_LOG(debug)  << "[IGenericServer] EPOLLRDHUP fd=" << fd;
-//					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLRDHUP: has been closed by remote peer", events[n].data.fd);
-////					  from man 2 epoll_ctl
-////					  EPOLLRDHUP: Stream socket peer closed connection, or shut down writing
-////		              half of connection.  (This flag is especially useful for
-////		              writing simple code to detect peer shutdown when using
-////		              edge-triggered monitoring.)
-//
-////		              Hang up happened on the associated file descriptor.
-////
-////		              epoll_wait(2) will always wait for this event; it is not
-////		              necessary to set it in events when calling epoll_ctl().
-////
-////		              Note that when reading from a channel such as a pipe or a
-////		              stream socket, this event merely indicates that the peer
-////		              closed its end of the channel.  Subsequent reads from the
-////		              channel will return 0 (end of file) only after all
-////		              outstanding data in the channel has been consumed.
-//
-//					// what do we want to do?
-//					// there could be still data to be read, but we can write to socket (thus we can respond)
-//
-//					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
-//
-//				} else if (events[n].events & EPOLLHUP) {
-//					LIB_LOG(debug) << "[IGenericServer] EPOLLHUP fd=" << fd;
-//					//syslog(LOG_DEBUG, "[IGenericServer] fd=%d EPOLLHUP\n", events[n].data.fd);
-//
-//					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
-//
-//				} else
-
-
-
 			} // else
 
 		} // for (n = 0; n < nfds; ++n)
@@ -447,6 +408,23 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 	LIB_LOG(info)  << "[IGenericServer] listen: terminated";
 
+}
+
+void IGenericServer::remove_from_epoll(int fd) {
+
+	if (fd == -1 || epollfd.fd == -1 || fd == epollfd.fd || fd == commandPipe.getReadFd() || fd == listen_sock.fd) {
+		LIB_LOG(error) << "[IGenericServer][remove_from_epoll] wrong fd=" << fd;
+		return;
+	}
+
+	if (epoll_ctl(epollfd.fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
+
+		LIB_LOG(error) << "[IGenericServer]][remove_from_epoll] epoll_ctl error: " << strerror(errno);
+
+		//throw std::runtime_error("epoll_ctl error");
+	} else {
+		LIB_LOG(info) << "[IGenericServer]][remove_from_epoll] OK removed fd=" << fd;
+	}
 }
 
 void IGenericServer::close(int fd) {

@@ -2,13 +2,14 @@
  
  set(testlibnbuss_SRCS
   main.cpp
-  tcpsocket_tests.cpp
-  test_1server_1client_unixsocket.cpp
-  test_common.cpp
-  test_threadedserver2.cpp  
-  testlibnbuss.h
-  testlibnbuss.cpp
   unixsocket_tests.cpp
+  tcpsocket_tests.cpp
+  threadedserver2_test.cpp
+  workqueue_test.cpp
+  test_1server_1client_unixsocket.cpp
+  test_common.cpp  
+  testlibnbuss.h
+  testlibnbuss.cpp  
 )
  
 
