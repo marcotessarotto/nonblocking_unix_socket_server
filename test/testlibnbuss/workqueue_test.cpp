@@ -57,10 +57,10 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
 
-			threadedServer2.close(fd);
+			//threadedServer2.close(fd);
 
 			// TODO: fix, this does not work
-			//srv->close(fd);
+			srv->close(fd);
 
 			break;
 		case AVAILABLE_FOR_READ:

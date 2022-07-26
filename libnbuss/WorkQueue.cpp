@@ -146,7 +146,7 @@ void WorkQueue::close(int fd) {
 
 	lk.unlock();
 
-
+	threadedServer.close(fd);
 }
 
 void WorkQueue::remove_from_epoll(int fd) {

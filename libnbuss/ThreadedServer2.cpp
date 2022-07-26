@@ -69,6 +69,8 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			// this creates instance of SocketData, if no value is associated to key
 			getSocketData(fd);
 
+			callback_function(this, fd, job_type);
+
 //			// this works too
 //			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
 //			// not necessary, [] operator creates new instance in case
@@ -109,7 +111,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		break;
 	}
 
-	LIB_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
+	//LIB_LOG(debug)	<< "[server][my_listener] finished - fd=" << fd;
 }
 
 void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
@@ -307,7 +309,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
 			return;
 		}
 
@@ -322,7 +324,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] ending";
+			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
 			return;
 		}
 
@@ -376,9 +378,7 @@ void ThreadedServer2::writeQueueWorker() {
 	}
 
 
-
-
-	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() ending";
+	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() terminated";
 }
 
 /**
