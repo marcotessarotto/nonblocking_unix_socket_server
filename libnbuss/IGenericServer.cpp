@@ -461,14 +461,11 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	}
 
 	ssize_t c;
-	//int bytes_written = 0;
 
 	const char * p = data;
 
 	while (true) {
 		c = ::write(fd, p, data_size);
-
-		//LIB_LOG(trace) << "[IGenericServer::write] write result: " << c;
 
 		if (c > 0 && c < data_size) {
 			p += c;
@@ -485,7 +482,14 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
-		return -1;
+		// example: write syscall is called two times, the first successful but partial,
+		// the second returns -1 because it would block
+		if ((ssize_t)(p - data) > 0) {
+			return (ssize_t)(p - data);
+		} else {
+			return -1;
+		}
+
 	} else if (c == -1) {
 		LIB_LOG(error) << "[IGenericServer::write] write error " << strerror(errno);
 		throw std::runtime_error("write error");

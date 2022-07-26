@@ -42,12 +42,18 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 		}
 	}
 
-	// TODO: if socket is in non-blocking mode, buffer could be full
+	// if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		// can this happen? yes, if client socket is in non blocking mode
 		LIB_LOG(warning) << "[BaseClient::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
-		return -1;
+		// example: write syscall is called two times, the first successful butbut partial,
+		// the second returns -1 because it would block
+		if ((ssize_t)(p - data) > 0) {
+			return (ssize_t)(p - data);
+		} else {
+			return -1;
+		}
+
 	} else if (c == -1) {
 		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
 		throw std::runtime_error("write error");
