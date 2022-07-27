@@ -120,7 +120,11 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 	std::vector<std::vector<char>> result;
 
 	while (true) {
-		std::vector<char> buffer(readBufferSize);
+
+		// skip creation of temporary object and copy of temp object (item 42)
+		std::vector<char> &buffer = result.emplace_back(readBufferSize);
+
+		//std::vector<char> buffer(readBufferSize);
 
 		int c;
 		char * p;
@@ -135,15 +139,19 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 
 		// no data available to read
 		if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+			result.pop_back();
 			break;
 		}
 
 		if (c == -1) {
 			// error returned by read syscall
 			LIB_LOG(error) <<  "read error " << strerror(errno);
+
+			throw std::runtime_error(strerror(errno));
 			break;
 		} else if (c == 0) {
-			// eof
+			// eof, should not happen when using non blocking sockets
+			result.pop_back();
 			break;
 		} else {
 			// data has been read
@@ -151,7 +159,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 
 			// LIB_LOG(info) << "adding buffer to result";
 
-			result.push_back(std::move(buffer));
+			//result.push_back(std::move(buffer));
 		}
 	}
 
