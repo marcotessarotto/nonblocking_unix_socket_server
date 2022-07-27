@@ -92,7 +92,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 
 	// no data available to read
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		LIB_LOG(error) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
+		LIB_LOG(warning) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		buffer.resize(0);
 

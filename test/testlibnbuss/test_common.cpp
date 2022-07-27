@@ -81,4 +81,14 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 }
 
 
+void initialize1(std::vector<char> & buffer) {
+	//longBuffer.assign(bufferSize, '*');
+	// initialize longBuffer
+	for (std::size_t i = 0; i < buffer.size(); ++i) {
+		buffer[i] = i % 10;
+	}
 
+	//	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {
+	//	    std::cout << *it << "\n";
+	//	}
+}
