@@ -71,13 +71,14 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 			// implement an echo server
 			int counter = 0;
 			for (std::vector<char> item : data) {
-				TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+				TEST_LOG(debug)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
 				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
 
+				counter++;
 			}
 
 			TEST_LOG(trace)	<< "[lambda][myListener] write complete";
@@ -90,8 +91,6 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 
 	// when start returns, server has started listening for incoming connections
-	//threadedServer2.start(myListener);
-
 	workQueue.start(myListener);
 
 
@@ -112,7 +111,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
 
-	TEST_LOG(info) << "[client] writing to socket";
+	TEST_LOG(info) << "[client] writing data to socket, data size=" << longBuffer.size();
 	usc.write<char>(longBuffer);
 
 	uint16_t clientCrc2 = CRC_START_16;

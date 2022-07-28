@@ -138,15 +138,19 @@ public:
 
 
 	/**
-	 * read all available data from socket and return vector of vectors
+	 * read all available data from socket and return multiple buffers as a vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096, int * _errno = nullptr) noexcept;
+	static std::vector<std::vector<char>> read(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
+	/**
+	 * read data from socket in a buffer of size readBufferSize
+	 */
+	static std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
 	 * set socket as non blocking
 	 */
-	int setFdNonBlocking(int fd);
+	int setFdNonBlocking(int fd) noexcept;
 
 	/**
 	 * close listening socket and epoll socket
@@ -156,17 +160,17 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections(); // { return activeConnections.load(std::memory_order_seq_cst); }
+	int getActiveConnections() noexcept;
 
 	/**
 	 * close socket and decrease counter of active connections
 	 */
-	void close(int fd);
+	void close(int fd) noexcept;
 
 	/**
 	 * remove socket from epoll watch list
 	 */
-	void remove_from_epoll(int fd);
+	void remove_from_epoll(int fd, int * _errno = nullptr) noexcept;
 
 };
 

@@ -85,7 +85,7 @@ void initialize1(std::vector<char> & buffer) {
 	//longBuffer.assign(bufferSize, '*');
 	// initialize longBuffer
 	for (std::size_t i = 0; i < buffer.size(); ++i) {
-		buffer[i] = i % 10;
+		buffer[i] = i % 11;
 	}
 
 	//	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {

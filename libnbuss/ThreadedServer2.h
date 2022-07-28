@@ -107,7 +107,7 @@ public:
 		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
-		LIB_LOG(info) << "ThreadedServer2::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
+		LIB_LOG(debug) << "ThreadedServer2::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
 		return write(fd, p, data_size);
 	}

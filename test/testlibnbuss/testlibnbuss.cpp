@@ -411,6 +411,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 
 		TEST_LOG(info) << "[client][ " << id << "] received data size: " << total_bytes_read;
 
+		TEST_LOG(info) << "[client][ " << id << "] crc16 of sent data: " << clientCrc;
 		TEST_LOG(info) << "[client][ " << id << "] crc16 of received data: " << clientCrc2;
 
 		EXPECT_EQ(clientCrc, clientCrc2);
@@ -425,7 +426,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 	const int N = 10;
 	std::thread th[N];
 
-	TEST_LOG(info) << "starting " << N << " threads, each thread open a connection to server";
+	TEST_LOG(info) << "starting " << N << " threads, each thread opens a connection to server";
 
 	for (int i = 0; i < N; i++){
 		th[i] = std::thread{clientThread, i};

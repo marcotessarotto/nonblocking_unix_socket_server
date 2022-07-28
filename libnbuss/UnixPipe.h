@@ -19,7 +19,6 @@ public:
 		c = pipe(fd);
 
 		if (c == -1) {
-			//syslog(LOG_ERR, "error on pipe syscall");
 			LIB_LOG(error) << "error on pipe syscall " << strerror(errno);
 		}
 	}
@@ -37,27 +36,25 @@ public:
 		return fd[1];
 	}
 
-	int write(char ch) {
+	int write(char ch) noexcept {
 		int c;
 
 		c = ::write(fd[1], &ch, sizeof(ch));
 
 		if (c == -1) {
-			//syslog(LOG_ERR, "error on write syscall");
 			LIB_LOG(error) << "error on write syscall " << strerror(errno);
 		}
 
 		return c;
 	}
 
-	int read() {
+	int read() noexcept {
 		char ch;
 		int c;
 
 		c = ::read(fd[0], &ch, sizeof(ch));
 
 		if (c == -1) {
-			//syslog(LOG_ERR, "error on read syscall");
 			LIB_LOG(error) << "error on read syscall " << strerror(errno);
 
 			return c;

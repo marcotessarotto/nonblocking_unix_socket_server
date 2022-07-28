@@ -63,7 +63,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 			// notify worker thread waiting on condition variable
 			readyToWriteCv.notify_one();
 
-			LIB_LOG(info) << "[ThreadedServer2][internalCallback] callback_function";
+			//LIB_LOG(info) << "[ThreadedServer2][internalCallback] callback_function";
 			callback_function(this, fd, AVAILABLE_FOR_READ);
 		}
 		break;
@@ -213,18 +213,18 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
-			LIB_LOG(info) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(debug) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 			// ok! all data has been written
 			return bytesWritten;
 		} else if (bytesWritten == -1) {
 			// EAGAIN or EWOULDBLOCK (fd not available to write)
-			LIB_LOG(info) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
+			LIB_LOG(debug) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
 
 			goto add_to_write_queue;
 		} else if (bytesWritten < data_size) {
 			// partially successful, add data which has not been written to write queue
 
-			LIB_LOG(info) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(debug) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 
 			data += bytesWritten;
 			data_size -= bytesWritten;

@@ -50,7 +50,7 @@ void IGenericServer::waitForServerReady() {
 		cv.wait(lk);
 	lk.unlock();
 
-	LIB_LOG(info) << "IGenericServer::waitForServerReady() server is_listening=" << is_listening;
+	LIB_LOG(info) << "IGenericServer::waitForServerReady() server is ready";
 }
 
 /**
@@ -91,7 +91,7 @@ end:
 }
 
 
-int IGenericServer::setFdNonBlocking(int fd) {
+int IGenericServer::setFdNonBlocking(int fd) noexcept {
 	int res;
 
 	res = fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -164,6 +164,39 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 	}
 
 	return result;
+}
+
+std::vector<char> IGenericServer::read_one(int fd, size_t buffer_size, int * _errno) noexcept {
+
+	std::vector<char> buffer(buffer_size);
+
+	ssize_t c;
+	char * p;
+
+	p = buffer.data();
+
+	// read from socket
+	c = ::read(fd, p, buffer_size);
+
+	if (_errno != nullptr) *_errno = errno;
+
+	if (c >= 0) {
+		// ok we received data
+
+		buffer.resize(c);
+	} else if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+		// no data available to read
+		LIB_LOG(warning) << "[IGenericServer::read_one] errno == EAGAIN || errno == EWOULDBLOCK";
+
+		buffer.resize(0);
+	} else if (c == -1) {
+		// some other error returned by read syscall
+		LIB_LOG(error) << "[IGenericServer::read_one] errno: " << strerror(errno);
+
+		buffer.resize(0);
+	}
+
+	return buffer;
 }
 
 void IGenericServer::closeSockets() {
@@ -427,14 +460,19 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 }
 
-void IGenericServer::remove_from_epoll(int fd) {
+void IGenericServer::remove_from_epoll(int fd, int * _errno) noexcept {
 
 	if (fd == -1 || epollfd.fd == -1 || fd == epollfd.fd || fd == commandPipe.getReadFd() || fd == listen_sock.fd) {
 		LIB_LOG(error) << "[IGenericServer][remove_from_epoll] wrong fd=" << fd;
+		*_errno = -1;
 		return;
 	}
 
-	if (epoll_ctl(epollfd.fd, EPOLL_CTL_DEL, fd, NULL) == -1) {
+	int res = epoll_ctl(epollfd.fd, EPOLL_CTL_DEL, fd, NULL);
+
+	if (_errno != nullptr) *_errno = errno;
+
+	if (res == -1) {
 
 		LIB_LOG(error) << "[IGenericServer]][remove_from_epoll] epoll_ctl error: " << strerror(errno);
 
@@ -444,7 +482,7 @@ void IGenericServer::remove_from_epoll(int fd) {
 	}
 }
 
-void IGenericServer::close(int fd) {
+void IGenericServer::close(int fd) noexcept {
 
 	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
@@ -454,8 +492,7 @@ void IGenericServer::close(int fd) {
 }
 
 
-
-int IGenericServer::getActiveConnections() {
+int IGenericServer::getActiveConnections() noexcept {
 	return activeConnections.load();
 }
 
