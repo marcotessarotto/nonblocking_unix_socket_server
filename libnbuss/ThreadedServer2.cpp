@@ -210,25 +210,25 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 
 	bool isWriteQueueEmpty = writeQueue.size() == 0; // is write queue empty?
 
-	LIB_LOG(info) << "ThreadedServer2::write() isWriteQueueEmpty=" << isWriteQueueEmpty;
+	LIB_LOG(debug) << "ThreadedServer2::write() isWriteQueueEmpty=" << isWriteQueueEmpty;
 
 	if (isWriteQueueEmpty) {
 		// write queue is empty, let's try to write to fd
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
-			LIB_LOG(debug) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(info) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 			// ok! all data has been written
 			return bytesWritten;
 		} else if (bytesWritten == -1) {
 			// EAGAIN or EWOULDBLOCK (fd not available to write)
-			LIB_LOG(debug) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
+			LIB_LOG(info) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
 
 			goto add_to_write_queue;
 		} else if (bytesWritten < data_size) {
 			// partially successful, add data which has not been written to write queue
 
-			LIB_LOG(debug) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(info) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 
 			data += bytesWritten;
 			data_size -= bytesWritten;

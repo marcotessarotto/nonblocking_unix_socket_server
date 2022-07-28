@@ -42,6 +42,8 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 		}
 	}
 
+    LIB_LOG(info) << "[BaseClient::write] write syscall result: " << c;
+
 	// if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		LIB_LOG(warning) << "[BaseClient::write] errno == EAGAIN || errno == EWOULDBLOCK";
@@ -92,7 +94,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 
 	// no data available to read
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		LIB_LOG(warning) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
+		LIB_LOG(trace) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		buffer.resize(0);
 
@@ -101,7 +103,6 @@ std::vector<char> BaseClient::read(int buffer_size) {
 		// error returned by read syscall
 		LIB_LOG(error) << "[BaseClient::read] errno == " << strerror(errno);
 
-		//perror("read");
 		throw std::runtime_error("read error");
 	}
 

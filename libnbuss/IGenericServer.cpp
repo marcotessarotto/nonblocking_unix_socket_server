@@ -526,7 +526,7 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int 
 
 	// socket not available to write
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
+		LIB_LOG(debug) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		// example: write syscall is called two times, the first successful but partial,
 		// the second returns -1 because it would block
