@@ -67,13 +67,10 @@ protected:
 	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
-
 	/// backlog for listening server socket
 	unsigned int backlog;
 
 	std::atomic<int> activeConnections;
-	//int activeConnections;
-	//std::mutex activeConnectionsMutex;
 
 	/// list of open sockets
 	std::vector<int> socketList;
@@ -112,39 +109,48 @@ public:
 
 	/**
 	 * invoke the write system call;
-	 * return the number of bytes written on success
-	 * or partial success: two calls to write syscall, the first is partially successful
-	 * but the second returns -1 (EAGAIN or EWOULDBLOCK)
+	 *
+	 * return the number of bytes written on success or partial success;
+	 * return -1 if write fails; errno is written in _errno if not null pointer
+	 *
+	 *  example: two calls to write syscall are made, the first is partially successful
+	 *  but the second returns -1 (EAGAIN or EWOULDBLOCK); in this case _errno is set but the
+	 *  number of bytes written is returned
+	 *
 	 * if the first write syscall returns -1 (EAGAIN or EWOULDBLOCK), then the function returns -1.
 	 *
-	 * throws exception std::runtime_error in case of error
+	 *
 	 */
-	static ssize_t write(int fd, const char * data, ssize_t data_size);
+	static ssize_t write(int fd, const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
 
 	/**
 	 * write data to the socket
 	 */
 	template <class T>
-	static ssize_t write(int fd, std::vector<T> &data) {
+	static ssize_t write(int fd, std::vector<T> &data, int * _errno = nullptr) noexcept {
 		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
 		LIB_LOG(debug) << "IGenericServer::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		return write(fd, p, data_size);
+		return write(fd, p, data_size, _errno);
 	}
 
 
 	/**
-	 * read all available data from socket and return vector of vectors
+	 * read all available data from socket and return multiple buffers as a vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096);
-
+	static std::vector<std::vector<char>> read(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
-	 * set socket as non blocking
+	 * read data from socket in a buffer of size readBufferSize
 	 */
-	int setFdNonBlocking(int fd);
+	static std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
+
+	/**
+	 * set socket as non blocking if non_blocking is true, else set as blocking
+	 */
+	static int setFdNonBlocking(int fd, bool non_blocking) noexcept;
 
 	/**
 	 * close listening socket and epoll socket
@@ -154,17 +160,17 @@ public:
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections(); // { return activeConnections.load(std::memory_order_seq_cst); }
+	int getActiveConnections() noexcept;
 
 	/**
 	 * close socket and decrease counter of active connections
 	 */
-	void close(int fd);
+	void close(int fd) noexcept;
 
 	/**
 	 * remove socket from epoll watch list
 	 */
-	void remove_from_epoll(int fd);
+	void remove_from_epoll(int fd, int * _errno = nullptr) noexcept;
 
 };
 

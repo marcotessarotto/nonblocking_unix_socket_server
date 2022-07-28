@@ -33,7 +33,7 @@ static Crc16 crc;
  */
 TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 
-	const ssize_t bufferSize = 4096 * 16;
+	const ssize_t bufferSize = 4096 * 16 * 1;
 
 	TEST_LOG(info) << "***TestUnixSocketThreadedServer2**  bufferSize=" << bufferSize << " " << __FILE__;
 
@@ -50,6 +50,8 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 	std::function<void(IGenericServer *, int, job_type_t)> myListener =
 	[&threadedServer2](IGenericServer *srv, int fd, enum job_type_t job_type) {
 
+		static int counter = 0;
+
 		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
 
 		switch (job_type) {
@@ -63,24 +65,34 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 		case AVAILABLE_FOR_READ:
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
-			// read all data from socket
-			auto data = IGenericServer::read(fd, 1024*16);
+			while (true) {
+				int _errno;
+				// read all data from socket
+				auto data = IGenericServer::read(fd, 1024*128, &_errno);
 
-			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
+				if ((_errno == EAGAIN || _errno == EWOULDBLOCK) && data.size() == 0) {
+					if (counter++ < 20)
+						TEST_LOG(info) << "errno and data.size() == 0";
+					break;
+				}
 
-			// implement an echo server
-			int counter = 0;
-			for (std::vector<char> item : data) {
-				TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+				if (counter < 20)
+				   TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
-				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
+				// implement an echo server
+				int counter = 0;
+				for (std::vector<char> item : data) {
+					TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
 
-				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
-				threadedServer2.write<char>(fd, item);
+					ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
+					TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+					threadedServer2.write<char>(fd, item);
+
+				}
 			}
 
-			TEST_LOG(trace)	<< "[lambda][myListener] write complete";
+			//TEST_LOG(info)	<< "[lambda][myListener] write complete";
 
 			break;
 
@@ -93,7 +105,7 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 	threadedServer2.start(myListener);
 
 	// non blocking client connection
-	UnixSocketClient usc(true);
+	UnixSocketClient usc(false);
 
 	TEST_LOG(info) << "[client] connect to server";
 	usc.connect(socketName);
@@ -122,11 +134,14 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 	size_t total_bytes_received = 0;
 
 	while (total_bytes_received < bufferSize) {
-		TEST_LOG(debug)	<< "[client] reading from socket";
+		TEST_LOG(trace)	<< "[client] reading from socket";
 		// read server response
-		auto response = usc.read(1024);
+		auto response = usc.read(1024*32);
 
-		TEST_LOG(debug)	<< "[client] received data size: " << response.size();
+		if (response.size() > 0)
+			TEST_LOG(info)	<< "[client] received data size: " << response.size();
+
+		TEST_LOG(info) << total_bytes_received;
 
 		if (response.size() == 0) {
 			// no data available, sleep for 1 ms

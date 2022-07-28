@@ -28,7 +28,7 @@ static Crc16 crc;
 TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 
-	const ssize_t bufferSize = 4096 * 16;
+	const ssize_t bufferSize = 4096 * 16 * 1;
 
 	TEST_LOG(info) << "***TestUnixSocketWithWorkQueue**  bufferSize=" << bufferSize << " " << __FILE__;
 
@@ -71,13 +71,14 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 			// implement an echo server
 			int counter = 0;
 			for (std::vector<char> item : data) {
-				TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+				TEST_LOG(debug)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
 				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
 
+				counter++;
 			}
 
 			TEST_LOG(trace)	<< "[lambda][myListener] write complete";
@@ -90,8 +91,6 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 
 	// when start returns, server has started listening for incoming connections
-	//threadedServer2.start(myListener);
-
 	workQueue.start(myListener);
 
 
@@ -105,21 +104,14 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	std::vector<char> longBuffer(bufferSize);
 
-	//longBuffer.assign(bufferSize, '*');
-	// initialize longBuffer
-	for (std::size_t i = 0; i < longBuffer.size(); ++i) {
-		longBuffer[i] = i % 10;
-	}
-
+	initialize1(longBuffer);
 
 	// calculate crc16 of data we are going to send
 	uint16_t clientCrc = crc.crc_16(
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
 
-	//TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc;
-
-	TEST_LOG(info) << "[client] writing to socket";
+	TEST_LOG(info) << "[client] writing data to socket, data size=" << longBuffer.size();
 	usc.write<char>(longBuffer);
 
 	uint16_t clientCrc2 = CRC_START_16;
@@ -153,7 +145,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	}
 
-	TEST_LOG(info) << "[server] crc16 of data received from client = " << clientCrc;
+	TEST_LOG(info) << "[server] crc16 of data sent by client = " << clientCrc;
 	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
 
 	TEST_LOG(info) << "[client] closing socket";

@@ -8,6 +8,10 @@ int main(int argc, char **argv)
 
     init_log();
 
+    // TestUnixSocketThreadedServer2 TcpServerClientReadWriteTest
+    // ::testing::GTEST_FLAG(filter) = "*.TestUnixSocketThreadedServer2";
+    //::testing::GTEST_FLAG(filter) = "*.TestUnixSocketThreadedServer2";
+
     int ret = RUN_ALL_TESTS();
     return ret;
 }

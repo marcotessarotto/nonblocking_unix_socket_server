@@ -22,9 +22,12 @@ BaseClient::~BaseClient() {
 }
 
 
-ssize_t BaseClient::write(const char * data, ssize_t data_size) {
+ssize_t BaseClient::write(const char * data, ssize_t data_size, int * _errno) noexcept {
 	if (data_socket == -1) {
-		throw std::invalid_argument("invalid socket descriptor");
+		LIB_LOG(error) << "invalid socket descriptor";
+		if (_errno != nullptr) *_errno = -1;
+		// throw std::invalid_argument("invalid socket descriptor");
+		return -1;
 	}
 
 	ssize_t c;
@@ -42,6 +45,10 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 		}
 	}
 
+	if (_errno != nullptr) *_errno = errno;
+
+    LIB_LOG(info) << "[BaseClient::write] write syscall result: " << c;
+
 	// if socket is in non-blocking mode, buffer could be full
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		LIB_LOG(warning) << "[BaseClient::write] errno == EAGAIN || errno == EWOULDBLOCK";
@@ -56,20 +63,21 @@ ssize_t BaseClient::write(const char * data, ssize_t data_size) {
 
 	} else if (c == -1) {
 		LIB_LOG(error) << "[BaseClient::write] write error " << strerror(errno);
-		throw std::runtime_error("write error");
+		//throw std::runtime_error("write error");
+		return -1;
 	}
 
 	return (int)(p - data);
 }
 
 
-ssize_t BaseClient::write(const std::string &data) {
+ssize_t BaseClient::write(const std::string &data, int * _errno) noexcept {
 	ssize_t data_size = data.size() * sizeof(char);
 	const char * p =  reinterpret_cast<const char*>(data.data());
 
 	LIB_LOG(debug) << "BaseClient::Write data_size = " << data_size;
 
-	return write(p, data_size);
+	return write(p, data_size, _errno);
 }
 
 
@@ -92,7 +100,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 
 	// no data available to read
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-		LIB_LOG(error) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
+		LIB_LOG(trace) << "[BaseClient::read] errno == EAGAIN || errno == EWOULDBLOCK";
 
 		buffer.resize(0);
 
@@ -101,7 +109,6 @@ std::vector<char> BaseClient::read(int buffer_size) {
 		// error returned by read syscall
 		LIB_LOG(error) << "[BaseClient::read] errno == " << strerror(errno);
 
-		//perror("read");
 		throw std::runtime_error("read error");
 	}
 

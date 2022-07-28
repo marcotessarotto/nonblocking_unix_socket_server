@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "UnixSocketClient.h"
+#include "IGenericServer.h"
 
 #include "Logger.h"
 
@@ -39,7 +40,6 @@ void UnixSocketClient::connect(const std::string &sockname) {
 
 
     if (data_socket == -1) {
-        //perror("socket");
         LIB_LOG(error) << "socket error: " << strerror(errno);
         throw std::runtime_error("socket error");
     }
@@ -53,11 +53,44 @@ void UnixSocketClient::connect(const std::string &sockname) {
     ret = ::connect (data_socket, (const struct sockaddr *) &addr,
                    sizeof(struct sockaddr_un));
     if (ret == -1) {
-    	//perror("connect");
     	LIB_LOG(error) << "connect error: " << strerror(errno);
         throw std::runtime_error("connect error");
     }
 
+
+}
+
+ssize_t UnixSocketClient::write(const char * data, ssize_t data_size, int * _errno) noexcept {
+
+	if (data_size <= 4096) {
+		return BaseClient::write(data, data_size, _errno);
+	}
+
+	int res;
+
+	if (nonBlockingSocket) {
+		// set data_socket as blocking
+		res = nbuss_server::IGenericServer::setFdNonBlocking(data_socket, false);
+		if (res == -1) {
+			// cannot set socket to blocking, fail
+			if (_errno != nullptr) *_errno = -1;
+			return -1;
+		}
+	}
+
+	int retval = BaseClient::write(data, data_size, _errno);
+
+	if (nonBlockingSocket) {
+		// set data_socket as non blocking
+		res = nbuss_server::IGenericServer::setFdNonBlocking(data_socket, true);
+		if (res == -1) {
+			// cannot set socket to non blocking, fail
+			if (_errno != nullptr) *_errno = -1;
+			return -1;
+		}
+	}
+
+	return retval;
 
 }
 

@@ -62,13 +62,31 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 			<< "[listener_echo_server] buffer " << counter++ << ": "
 					<< item.size() << " bytes";
 
-			// TODO: if write returns -1, wait 1 ms and retry
-			// write buffer problem is solved by ThreadedServer2
-			while (IGenericServer::write(fd, item) == -1) {
-				struct timespec ts { 0, 1000000 };
+			while (true) {
+				int _errno;
+				int res;
 
-				nanosleep(&ts, NULL);
+				res = IGenericServer::write(fd, item, &_errno);
+
+				if (res >= 0)
+					break;
+
+				if (res == -1 && ((_errno == EAGAIN) || (_errno == EWOULDBLOCK))) {
+					struct timespec ts { 0, 1000000 };
+
+					nanosleep(&ts, NULL);
+				} else {
+					terminate();
+				}
 			}
+
+			// TODO: if write returns -1 and errno == EAGAIN or EWOULDBLOCK, wait 1 ms and retry
+			// write buffer problem is solved by ThreadedServer2
+//			while (IGenericServer::write(fd, item) == -1) {
+//				struct timespec ts { 0, 1000000 };
+//
+//				nanosleep(&ts, NULL);
+//			}
 
 		}
 		break;
@@ -81,4 +99,14 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 }
 
 
+void initialize1(std::vector<char> & buffer) {
+	//longBuffer.assign(bufferSize, '*');
+	// initialize longBuffer
+	for (std::size_t i = 0; i < buffer.size(); ++i) {
+		buffer[i] = i % 11;
+	}
 
+	//	for(auto it = std::begin(longBuffer); it != std::end(longBuffer); ++it) {
+	//	    std::cout << *it << "\n";
+	//	}
+}
