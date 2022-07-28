@@ -28,7 +28,7 @@ static Crc16 crc;
 TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 
-	const ssize_t bufferSize = 4096 * 16;
+	const ssize_t bufferSize = 4096 * 16 * 1;
 
 	TEST_LOG(info) << "***TestUnixSocketWithWorkQueue**  bufferSize=" << bufferSize << " " << __FILE__;
 

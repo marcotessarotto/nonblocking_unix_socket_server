@@ -91,12 +91,18 @@ end:
 }
 
 
-int IGenericServer::setFdNonBlocking(int fd) noexcept {
+int IGenericServer::setFdNonBlocking(int fd, bool non_blocking) noexcept {
 	int res;
 
-	res = fcntl(fd, F_SETFL, O_NONBLOCK);
+	res = fcntl(fd, F_GETFL, 0);
 	if (res == -1) {
-		LIB_LOG(error) <<  "fcntl - error setting O_NONBLOCK " << strerror(errno);
+		LIB_LOG(error) <<  "fcntl - error F_GETFL " << strerror(errno);
+		return res;
+	}
+
+	res = fcntl(fd, F_SETFL, res & (non_blocking ? O_NONBLOCK : !O_NONBLOCK));
+	if (res == -1) {
+		LIB_LOG(error) <<  "fcntl - error F_SETFL " << strerror(errno);
 	}
 
 	return res;

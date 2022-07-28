@@ -137,6 +137,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 	std::vector<char> v(s.begin(), s.end());
 
 	TEST_LOG(debug) << "[client] writing to socket";
+
 	usc.write<char>(v);
 
 	TEST_LOG(debug) << "[client] reading from socket";

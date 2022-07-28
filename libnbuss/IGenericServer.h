@@ -127,13 +127,13 @@ public:
 	 * write data to the socket
 	 */
 	template <class T>
-	static ssize_t write(int fd, std::vector<T> &data) {
+	static ssize_t write(int fd, std::vector<T> &data, int * _errno = nullptr) noexcept {
 		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
 		LIB_LOG(debug) << "IGenericServer::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
 
-		return write(fd, p, data_size);
+		return write(fd, p, data_size, _errno);
 	}
 
 
@@ -148,9 +148,9 @@ public:
 	static std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
-	 * set socket as non blocking
+	 * set socket as non blocking if non_blocking is true, else set as blocking
 	 */
-	int setFdNonBlocking(int fd) noexcept;
+	static int setFdNonBlocking(int fd, bool non_blocking) noexcept;
 
 	/**
 	 * close listening socket and epoll socket

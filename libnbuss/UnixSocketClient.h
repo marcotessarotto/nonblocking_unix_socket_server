@@ -14,11 +14,6 @@ class UnixSocketClient : public BaseClient {
 	/// socket name on file system
 	std::string sockname;
 
-	/// socket descriptor
-	//int data_socket;
-
-	//bool nonBlockingSocket;
-
 public:
 	UnixSocketClient(bool nonBlockingSocket = false);
 	virtual ~UnixSocketClient();
@@ -26,19 +21,25 @@ public:
 
 	void connect(const std::string &sockname);
 
-//	void close();
-//
-//	void write(std::vector<char> data);
-//	void write(std::string data);
+	template <class T>
+	ssize_t write(const std::vector<T> &data, int * _errno = nullptr) {
+		ssize_t data_size = data.size() * sizeof(T);
+		const char * p =  reinterpret_cast<const char*>(data.data());
+
+		LIB_LOG(debug) << "UnixSocketClient::Write<> data_size = " << data_size << " sizeof(T)=" << sizeof(T);
+
+		return write(p, data_size, _errno);
+	}
 
 	/**
-	 * read from socket, up to buffer_size bytes.
-	 * if socket is set in blocking mode, read blocks waiting for data
-	 * if socket is set in non blocking mode: read returns data or a buffer of size 0 if no data is available
+	 * call write syscall; data to write is at address data, length data_size.
+	 * if _errno is specified, errno from syscall is written at *_errno
 	 *
-	 * @throws std::runtime_error in case of error on read syscall
+	 * if write_blocking_mode is true and socket is in non blocking mode, then the socket will be
+	 * temporarily set in blocking mode for the write syscall, and when the syscall returns
+	 * the socket will be set in non blocking mode again
 	 */
-//	std::vector<char> read(int buffer_size);
+	virtual ssize_t write(const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
 
 };
 
