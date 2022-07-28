@@ -67,13 +67,10 @@ protected:
 	/// pipe used for signaling to listening thread that it must terminate
 	UnixPipe commandPipe;
 
-
 	/// backlog for listening server socket
 	unsigned int backlog;
 
 	std::atomic<int> activeConnections;
-	//int activeConnections;
-	//std::mutex activeConnectionsMutex;
 
 	/// list of open sockets
 	std::vector<int> socketList;

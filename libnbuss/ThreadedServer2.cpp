@@ -94,12 +94,6 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 	case CLOSE_SOCKET:
 
 		callback_function(this, fd, job_type);
-//		break;
-
-//		LIB_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
-//		//close(fd);
-//		srv->close(fd);
-
 		break;
 	case AVAILABLE_FOR_WRITE: {
 			LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_WRITE fd=" << fd;

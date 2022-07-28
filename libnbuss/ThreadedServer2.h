@@ -75,7 +75,8 @@ public:
      * starts a new thread which will listen for incoming connections and process them
      *
      * callback function is called when incoming data is ready.
-     * callback function parameters are: socket file descriptor and job type
+     * callback function parameters are:
+     *    pointer to server instance of type ThreadedServer2, socket file descriptor and job type
      *
      * @throws std::runtime_error
      */
