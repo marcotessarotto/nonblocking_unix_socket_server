@@ -109,14 +109,19 @@ public:
 
 	/**
 	 * invoke the write system call;
-	 * return the number of bytes written on success
-	 * or partial success: two calls to write syscall, the first is partially successful
-	 * but the second returns -1 (EAGAIN or EWOULDBLOCK)
+	 *
+	 * return the number of bytes written on success or partial success;
+	 * return -1 if write fails; errno is written in _errno if not null pointer
+	 *
+	 *  example: two calls to write syscall are made, the first is partially successful
+	 *  but the second returns -1 (EAGAIN or EWOULDBLOCK); in this case _errno is set but the
+	 *  number of bytes written is returned
+	 *
 	 * if the first write syscall returns -1 (EAGAIN or EWOULDBLOCK), then the function returns -1.
 	 *
-	 * throws exception std::runtime_error in case of error
+	 *
 	 */
-	static ssize_t write(int fd, const char * data, ssize_t data_size);
+	static ssize_t write(int fd, const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
 
 	/**
 	 * write data to the socket
@@ -135,7 +140,7 @@ public:
 	/**
 	 * read all available data from socket and return vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096);
+	static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096, int * _errno = nullptr) noexcept;
 
 
 	/**

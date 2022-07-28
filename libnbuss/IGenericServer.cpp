@@ -9,7 +9,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <syslog.h>
 #include <errno.h>
 
 #include "IGenericServer.h"
@@ -97,7 +96,6 @@ int IGenericServer::setFdNonBlocking(int fd) {
 
 	res = fcntl(fd, F_SETFL, O_NONBLOCK);
 	if (res == -1) {
-		//syslog(LOG_ERR,"fcntl - error setting O_NONBLOCK");
 		LIB_LOG(error) <<  "fcntl - error setting O_NONBLOCK " << strerror(errno);
 	}
 
@@ -116,7 +114,7 @@ int IGenericServer::setFdNonBlocking(int fd) {
  * alternatives: return pointer to container; pass a reference to container as parameter;
  * or https://stackoverflow.com/a/1092572/974287
  */
-std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize) {
+std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize, int * _errno) noexcept {
 	std::vector<std::vector<char>> result;
 
 	while (true) {
@@ -137,6 +135,8 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 		// read from non blocking socket
 		c = ::read(fd, p, buffer_size);
 
+		if (_errno != nullptr) *_errno = errno;
+
 		// no data available to read
 		if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 			result.pop_back();
@@ -147,7 +147,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 			// error returned by read syscall
 			LIB_LOG(error) <<  "read error " << strerror(errno);
 
-			throw std::runtime_error(strerror(errno));
+			//throw std::runtime_error(strerror(errno));
 			break;
 		} else if (c == 0) {
 			// eof, should not happen when using non blocking sockets
@@ -449,23 +449,22 @@ void IGenericServer::close(int fd) {
 	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
 		::close(fd);
-		//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
 		activeConnections--;
-		//lk.unlock();
 	}
 }
 
 
 
 int IGenericServer::getActiveConnections() {
-	//std::unique_lock<std::mutex> lk(activeConnectionsMutex);
-	//return activeConnections;
 	return activeConnections.load();
 }
 
-ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
+ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int * _errno) noexcept {
 	if (fd == -1) {
-		throw std::invalid_argument("invalid socket descriptor");
+		LIB_LOG(error) << "invalid socket descriptor";
+		if (_errno != nullptr) *_errno = -1;
+		//throw std::invalid_argument("invalid socket descriptor");
+		return -1;
 	}
 
 	ssize_t c;
@@ -486,6 +485,8 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 		}
 	}
 
+	if (_errno != nullptr) *_errno = errno;
+
 	// socket not available to write
 	if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 		LIB_LOG(info) << "[IGenericServer::write] errno == EAGAIN || errno == EWOULDBLOCK";
@@ -500,7 +501,8 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size) {
 
 	} else if (c == -1) {
 		LIB_LOG(error) << "[IGenericServer::write] write error " << strerror(errno);
-		throw std::runtime_error("write error");
+		//throw std::runtime_error("write error");
+		return -1;
 	}
 
 	//LIB_LOG(trace) << "[IGenericServer::write] p-data " << (p - data);

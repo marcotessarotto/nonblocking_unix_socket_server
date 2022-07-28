@@ -105,19 +105,12 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	std::vector<char> longBuffer(bufferSize);
 
-	//longBuffer.assign(bufferSize, '*');
-	// initialize longBuffer
-	for (std::size_t i = 0; i < longBuffer.size(); ++i) {
-		longBuffer[i] = i % 10;
-	}
-
+	initialize1(longBuffer);
 
 	// calculate crc16 of data we are going to send
 	uint16_t clientCrc = crc.crc_16(
 			reinterpret_cast<const unsigned char*>(longBuffer.data()),
 			longBuffer.size());
-
-	//TEST_LOG(info) << "[client] crc16 of data sent by client = " << clientCrc;
 
 	TEST_LOG(info) << "[client] writing to socket";
 	usc.write<char>(longBuffer);
@@ -153,7 +146,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	}
 
-	TEST_LOG(info) << "[server] crc16 of data received from client = " << clientCrc;
+	TEST_LOG(info) << "[server] crc16 of data sent by client = " << clientCrc;
 	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
 
 	TEST_LOG(info) << "[client] closing socket";
