@@ -37,8 +37,11 @@ void ThreadedServer2::listenWorker() {
 	LIB_LOG(info) << "ThreadedServer2::mainLoopWorker end";
 }
 
-SocketData &ThreadedServer2::getSocketData(int fd, bool usemutex) {
-	if (usemutex) {
+SocketData &ThreadedServer2::getSocketData(int fd, bool use_mutex) {
+	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
+	// performing an insertion if such key does not already exist.
+	// https://en.cppreference.com/w/cpp/container/map/operator_at
+	if (use_mutex) {
 		std::unique_lock<std::mutex> lk(internalSocketDataMutex);
 		return internalSocketData[fd];
 	} else {
@@ -142,6 +145,7 @@ void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_t
 		LIB_LOG(error)	<< "[ThreadedServer2::start] writeQueueWorker exception: " << e.what();
 	}
 
+	// start listenWorker
 	try {
 		listenWorkerThread = std::thread{&ThreadedServer2::listenWorker, this};
 	} catch (const std::exception &e) {
@@ -308,7 +312,6 @@ void ThreadedServer2::writeQueueWorker() {
 
 	while (true) {
 
-		// wait on condition variable
 		lk.lock();
 
 		// check if thread has to stop
@@ -317,14 +320,10 @@ void ThreadedServer2::writeQueueWorker() {
 			return;
 		}
 
-		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] before readyToWriteCv.wait stopServer=" << stopServer;
-
 		// while server is running and readyToWriteSet is empty, wait on condition variable
 		while (!stopServer && readyToWriteSet.empty()) {
 			readyToWriteCv.wait(lk);
 		}
-
-		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] after readyToWriteCv.wait stopServer=" << stopServer;
 
 		// check if thread has to stop
 		if (stopServer) {
@@ -356,10 +355,11 @@ void ThreadedServer2::writeQueueWorker() {
 		sd.lock();
 
 		// get write queue
-		auto writeQueue = sd.getWriteQueue();
+		auto &writeQueue = sd.getWriteQueue();
 
 		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] fd=" << fd << " writeQueue.size()=" << writeQueue.size();
 
+		// we can work on socket data, including its write queue, because we have the lock on sd
 		while (writeQueue.size() > 0) {
 			// try to write buffer on write queue:
 

@@ -20,7 +20,7 @@
 namespace nbuss_server {
 
 /**
- * this class should implement both a dedicated thread for the listen method of server
+ * this class implements both a dedicated thread for the listen method of server
  * and a dedicated thread for managing AVAILABLE_FOR_WRITE (EPOLLOUT) events
  */
 class ThreadedServer2  : public virtual IThreadable {
@@ -51,10 +51,8 @@ protected:
 	std::map<int, SocketData> internalSocketData;
 	std::mutex internalSocketDataMutex;
 
-	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
-	// performing an insertion if such key does not already exist.
-	// https://en.cppreference.com/w/cpp/container/map/operator_at
-	SocketData & getSocketData(int fd, bool usemutex = true);
+
+	SocketData & getSocketData(int fd, bool use_mutex = true);
 
 
 	/// set of file descriptors ready to write
