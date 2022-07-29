@@ -172,6 +172,18 @@ public:
 	 */
 	void remove_from_epoll(int fd, int * _errno = nullptr) noexcept;
 
+	/**
+	 * set send buffer size of socket
+	 * return 0 if successful, -1 in case of error
+	 */
+	int setSendBufferSize(int sockfd, int send_buffer_size) noexcept;
+
+	/**
+	 * get receive and send buffer size
+	 * return 0 if successful, -1 in case of error
+	 */
+	int getBuffersSize(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept;
+
 };
 
 }

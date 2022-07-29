@@ -80,14 +80,6 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 				}
 			}
 
-			// TODO: if write returns -1 and errno == EAGAIN or EWOULDBLOCK, wait 1 ms and retry
-			// write buffer problem is solved by ThreadedServer2
-//			while (IGenericServer::write(fd, item) == -1) {
-//				struct timespec ts { 0, 1000000 };
-//
-//				nanosleep(&ts, NULL);
-//			}
-
 		}
 		break;
 

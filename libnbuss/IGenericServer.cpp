@@ -125,7 +125,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 
 	while (true) {
 
-		// skip creation of temporary object and copy of temp object (item 42)
+		// skip creation of temporary object and copy of temporary object (item 42)
 		std::vector<char> &buffer = result.emplace_back(readBufferSize);
 
 		//std::vector<char> buffer(readBufferSize);
@@ -552,6 +552,47 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int 
 
 	// return number of bytes written
 	return (ssize_t)(p - data);
+}
+
+
+int IGenericServer::getBuffersSize(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept
+{
+	socklen_t optlen;
+	int res;
+
+	optlen = sizeof(send_buffer_size);
+	//if getsockopt is successful, send_buf will hold the buffer size
+	res = getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &send_buffer_size, &optlen);
+
+	if (res == -1) {
+		LIB_LOG(error) << "getsockopt error: " << strerror(errno);
+		return -1;
+	}
+
+	optlen = sizeof(receive_buffer_size);
+	res = getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &receive_buffer_size, &optlen);
+
+	if (res == -1) {
+		LIB_LOG(error) << "getsockopt error: " << strerror(errno);
+		return -1;
+	}
+
+
+	return 0;
+}
+
+int IGenericServer::setSendBufferSize(int sockfd, int send_buffer_size) noexcept {
+
+	int res;
+
+	res = setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &send_buffer_size, sizeof(send_buffer_size));
+
+	if (res == -1) {
+		LIB_LOG(error) << "setsockopt error: " << strerror(errno);
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 

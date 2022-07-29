@@ -28,7 +28,7 @@ static Crc16 crc;
 
 /**
  * single server instance, single client instance; using tcp sockets
- * buffer size: 12 bytes
+ * buffer size: see bufferSize
  * tests:
  * TcpServer, TcpClient, ThreadDecorator
  */
@@ -55,8 +55,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 
 		TcpClient tc;
 
-		TEST_LOG(info)
-		<< "[client] connect to server";
+		TEST_LOG(info) << "[client] connect to server";
 		tc.connect("0.0.0.0", 10001);
 
 
@@ -82,16 +81,17 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 
 		while (total_bytes_read < bufferSize) {
 			// read server response
-			auto response = tc.read(1024);
+			auto response = tc.read(4096*2);
 
 			TEST_LOG(info)	<< "[client] received data size: " << response.size();
 
 			total_bytes_read += response.size();
 		}
 
+		TEST_LOG(info)	<< "[client] total received data size: " << total_bytes_read << " bytes";
 
-		TEST_LOG(info)
-		<< "[client] closing socket";
+
+		TEST_LOG(info) << "[client] closing socket";
 		tc.close();
 
 		// spin... consider using a condition variable
@@ -261,3 +261,116 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 	EXPECT_EQ(clientCrc2, clientCrc);
 
 }
+
+
+
+/**
+ * 	one server instance,
+ * 	create N threads which in parallel:
+ * 	   create a client instance,
+ * 	   connect,
+ * 	   generate random data,
+ * 	   write data,
+ * 	   read data (the server echoes it),
+ * 	   check that the received data is the same as the sent one, using crc16 to check equality
+ */
+TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest) {
+
+	const auto buffer_size = 1024*256;
+
+	TEST_LOG(info) 	<< "***TcpServerMultipleThreadClientsReadWriteTest** " << __FILE__;
+
+	const string socketName = "/tmp/mysocket_test.sock";
+
+	//UnixSocketServer uss { socketName, 10 };
+	TcpServer tss { 10001, "0.0.0.0", 10 };
+
+	ThreadedServer threadedServer(tss);
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(listener_echo_server);
+
+	std::function<void(int id)> clientThread = [socketName] (unsigned int id) {
+		TEST_LOG(info) << "thread " << id;
+
+		Crc16 crc;
+
+		//UnixSocketClient usc;
+		TcpClient tc;
+
+		tc.connect("0.0.0.0", 10001);
+		//usc.connect(socketName);
+
+		TEST_LOG(info) << "[client][ " << id << "] connect to server - client fd=" << tc.getFd();
+
+		/////
+	    const auto input = std::initializer_list<std::uint32_t>{1,2,3,4,5,id};
+
+	    // using std version of seed_seq (std::seed_seq can be used to feed a random value generator)
+	    std::seed_seq seq(input);
+	    std::vector<std::uint8_t> inputBuffer(buffer_size);
+	    seq.generate(inputBuffer.begin(), inputBuffer.end()); // fill v with seed values
+
+		uint16_t clientCrc = crc.crc_16(reinterpret_cast<const unsigned char*>(inputBuffer.data()),
+				inputBuffer.size()*sizeof(std::uint8_t));
+
+		TEST_LOG(debug) << "[client][ " << id << "] writing to socket";
+		tc.write<std::uint8_t>(inputBuffer);
+
+		TEST_LOG(debug) << "[client][ " << id << "] reading from socket";
+
+		ssize_t total_bytes_read = 0;
+		uint16_t clientCrc2 = CRC_START_16;
+
+		// client expects output_size bytes
+		while (total_bytes_read < buffer_size) {
+			// read server response
+			auto response = tc.read(4096);
+
+			TEST_LOG(debug) << "[client][ " << id << "] receiving " << response.size() << " bytes";
+
+			clientCrc2 = crc.update_crc_16(clientCrc2,
+				reinterpret_cast<const unsigned char*>(response.data()),
+				response.size());
+
+			total_bytes_read += response.size();
+		}
+
+
+		TEST_LOG(info) << "[client][ " << id << "] received data size: " << total_bytes_read;
+
+		TEST_LOG(info) << "[client][ " << id << "] crc16 of sent data: " << clientCrc;
+		TEST_LOG(info) << "[client][ " << id << "] crc16 of received data: " << clientCrc2;
+
+		EXPECT_EQ(clientCrc, clientCrc2);
+
+		TEST_LOG(info)
+		<< "[client][ " << id << "] closing socket";
+		tc.close();
+
+
+	};
+
+	const int N = 10;
+	std::thread th[N];
+
+	TEST_LOG(info) << "starting " << N << " threads, each thread opens a connection to server";
+
+	for (int i = 0; i < N; i++){
+		th[i] = std::thread{clientThread, i};
+	}
+
+	for (int i = 0; i < N; i++){
+		th[i].join();
+	}
+
+
+	// spin... consider using a condition variable
+	while (tss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	TEST_LOG(info) << "test finished!";
+}
+
