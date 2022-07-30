@@ -36,7 +36,7 @@ protected:
 	/// thread which calls listen method of IGenericServer
 	std::thread listenWorkerThread;
 
-	/// thread which runs the write queue worker
+	/// thread which runs the write queue worker (see function writeQueueWorker)
 	std::thread writerWorkerThread;
 
 	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
