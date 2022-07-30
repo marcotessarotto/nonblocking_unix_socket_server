@@ -22,7 +22,7 @@ enum job_type_t {
 	AVAILABLE_FOR_WRITE, // the associated file is available for write(2) operations.
 	NEW_SOCKET, // new connection
 	AVAILABLE_FOR_READ_AND_WRITE, // both AVAILABLE_FOR_READ and AVAILABLE_FOR_WRITE
-	SOCKET_IS_CLOSED // inform that socket has been closed for some reason
+	SOCKET_IS_CLOSED // inform that socket has been closed by the server for some reason
 };
 
 
