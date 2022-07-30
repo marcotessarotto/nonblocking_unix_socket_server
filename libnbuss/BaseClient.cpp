@@ -18,7 +18,7 @@ BaseClient::BaseClient(bool nonBlockingSocket) : nonBlockingSocket{nonBlockingSo
 }
 
 BaseClient::~BaseClient() {
-
+	close();
 }
 
 
@@ -118,7 +118,7 @@ std::vector<char> BaseClient::read(int buffer_size) {
 }
 
 void BaseClient::close() {
-	LIB_LOG(debug) << "BaseClient::close " << data_socket;
+	LIB_LOG(info) << "BaseClient::close " << data_socket;
 	if (data_socket >= 0) {
 		::close(data_socket);
 		data_socket = -1;

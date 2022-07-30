@@ -149,7 +149,7 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
 			// read all data from socket
-			auto data = IGenericServer::read(fd, 1024*16);
+			auto data = threadedServer2.read(fd, 1024*16);
 
 			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
@@ -280,9 +280,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 
 	TEST_LOG(info) 	<< "***TcpServerMultipleThreadClientsReadWriteTest** " << __FILE__;
 
-	const string socketName = "/tmp/mysocket_test.sock";
 
-	//UnixSocketServer uss { socketName, 10 };
 	TcpServer tss { 10001, "0.0.0.0", 10 };
 
 	ThreadedServer threadedServer(tss);
@@ -290,13 +288,14 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 	// when start returns, server has started listening for incoming connections
 	threadedServer.start(listener_echo_server);
 
-	std::function<void(int id)> clientThread = [socketName] (unsigned int id) {
+	std::function<void(int id)> clientThread = [] (unsigned int id) {
 		TEST_LOG(info) << "thread " << id;
 
 		Crc16 crc;
 
-		//UnixSocketClient usc;
 		TcpClient tc;
+
+		TEST_LOG(info) << "[client][ " << id << "] before connect ";
 
 		tc.connect("0.0.0.0", 10001);
 		//usc.connect(socketName);
@@ -344,8 +343,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 
 		EXPECT_EQ(clientCrc, clientCrc2);
 
-		TEST_LOG(info)
-		<< "[client][ " << id << "] closing socket";
+		TEST_LOG(info) << "[client][ " << id << "] closing socket";
 		tc.close();
 
 
@@ -374,3 +372,198 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 	TEST_LOG(info) << "test finished!";
 }
 
+
+
+TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly) {
+
+	TEST_LOG(info) 	<< "***TcpServerSameClientMultipleTimesConnectOnly** " << __FILE__;
+
+
+	TcpServer tss { 10001, "0.0.0.0", 10 };
+
+	ThreadedServer threadedServer(tss);
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(listener_echo_server);
+
+//	std::string message = "hello";
+
+	for (int i = 0; i < 100; i++) {
+
+		TcpClient tc;
+
+		TEST_LOG(info) << "[client][" << i << "] before connect ";
+
+		tc.connect("0.0.0.0", 10001);
+
+//		tc.write(message);
+//
+//		auto response = tc.read(64);
+//
+//		EXPECT_EQ(response.size(), message.size());
+
+		TEST_LOG(info) << "[client][" << i << "] closing socket";
+		//tc.close();
+
+		TEST_LOG(info) << "*** " << i;
+	}
+
+	// spin... consider using a condition variable
+	while (tss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	TEST_LOG(info) << "test finished!";
+
+}
+
+TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesSendReceive) {
+
+
+	//const auto buffer_size = 1024*256;
+
+	TEST_LOG(info) 	<< "***TcpServerSameClientMultipleTimesSendReceive** " << __FILE__;
+
+
+	TcpServer tss { 10001, "0.0.0.0", 10 };
+
+	ThreadedServer threadedServer(tss);
+
+	// when start returns, server has started listening for incoming connections
+	threadedServer.start(listener_echo_server);
+
+	std::string message = "hello";
+
+	for (int i = 0; i < 100; i++) {
+
+		TcpClient tc;
+
+		TEST_LOG(info) << "[client][" << i << "] before connect ";
+
+		tc.connect("0.0.0.0", 10001);
+
+		tc.write(message);
+
+		auto response = tc.read(64);
+
+		EXPECT_EQ(response.size(), message.size());
+
+		TEST_LOG(info) << "[client][" << i << "] closing socket";
+		//tc.close();
+
+		TEST_LOG(info) << "*** " << i;
+	}
+
+	// spin... consider using a condition variable
+	while (tss.getActiveConnections() > 0)
+		;
+
+	threadedServer.stop();
+
+	TEST_LOG(info) << "test finished!";
+
+}
+
+TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnlyWorkQueue) {
+
+	TEST_LOG(info) 	<< "***TcpServerSameClientMultipleTimesConnectOnlyWorkQueue** " << __FILE__;
+
+
+	TcpServer tss { 10001, "0.0.0.0", 100 };
+
+	ThreadedServer2 threadedServer2(tss);
+
+	WorkQueue workQueue(threadedServer2);
+
+	std::function<void(WorkQueue *, int, job_type_t)> myListener =
+	[&threadedServer2](WorkQueue *srv, int fd, enum job_type_t job_type) {
+
+		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
+
+		switch (job_type) {
+		case NEW_SOCKET:
+			TEST_LOG(info)	<< "[lambda][myListener] NEW_SOCKET " << fd;
+			break;
+		case CLOSE_SOCKET:
+
+			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
+
+			srv->close(fd);
+
+			break;
+		case SOCKET_IS_CLOSED:
+			TEST_LOG(info)	<< "[lambda][myListener] SOCKET_IS_CLOSED " << fd;
+			// do cleanup
+			break;
+		case AVAILABLE_FOR_READ:
+			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
+
+			// read all data from socket
+			auto data = threadedServer2.read(fd, 1024*16);
+
+			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
+
+			// implement an echo server
+			int counter = 0;
+			for (std::vector<char> item : data) {
+				TEST_LOG(debug)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
+
+				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
+
+				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+				threadedServer2.write<char>(fd, item);
+
+				counter++;
+			}
+
+			TEST_LOG(trace)	<< "[lambda][myListener] write complete";
+
+			break;
+		}
+
+	};
+
+
+	// when start returns, server has started listening for incoming connections
+	workQueue.start(myListener);
+
+
+//	std::string message = "hello";
+
+	for (int i = 0; i < 100; i++) {
+
+		TcpClient tc;
+
+		TEST_LOG(info) << "[client][" << i << "] before connect ";
+
+		tc.connect("0.0.0.0", 10001);
+
+		struct timespec t;
+
+		t.tv_sec = 0;  // seconds
+		t.tv_nsec = 1 * 500 * 1000; // nanoseconds
+
+		//nanosleep(&t, NULL);
+
+//		tc.write(message);
+//
+//		auto response = tc.read(64);
+//
+//		EXPECT_EQ(response.size(), message.size());
+
+		TEST_LOG(info) << "[client][" << i << "] closing socket";
+		//tc.close();
+
+		TEST_LOG(info) << "*** " << i;
+	}
+
+	// spin... consider using a condition variable
+	while (tss.getActiveConnections() > 0)
+		;
+
+	workQueue.stop();
+
+	TEST_LOG(info) << "test finished!";
+
+}

@@ -123,6 +123,8 @@ int IGenericServer::setFdNonBlocking(int fd, bool non_blocking) noexcept {
 std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize, int * _errno) noexcept {
 	std::vector<std::vector<char>> result;
 
+	set_IO(fd);
+
 	while (true) {
 
 		// skip creation of temporary object and copy of temporary object (item 42)
@@ -173,6 +175,8 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 }
 
 std::vector<char> IGenericServer::read_one(int fd, size_t buffer_size, int * _errno) noexcept {
+
+	set_IO(fd);
 
 	std::vector<char> buffer(buffer_size);
 
@@ -271,12 +275,6 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		throw std::runtime_error("[IGenericServer] error returned by listen syscall");
 	}
 
-	// change state and notify that we are now listening for incoming connections
-	std::unique_lock<std::mutex> lk(mtx);
-	is_listening = true;
-	lk.unlock();
-	cv.notify_one();
-
 	LIB_LOG(info) << "[IGenericServer] listen_sock=" << listen_sock.fd;
 
 
@@ -310,8 +308,13 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		throw std::runtime_error("epoll_ctl error");
 	}
 
-	int n, nfds, conn_sock;
+	// change state and notify that we are now listening for incoming connections
+	std::unique_lock<std::mutex> lk(mtx);
+	is_listening = true;
+	lk.unlock();
+	cv.notify_one();
 
+	int n, nfds, conn_sock;
 
 	while (!stop_server.load()) {
 
@@ -374,7 +377,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					// epoll_ctl() with EPOLL_CTL_MOD to rearm the file descriptor with a new event mask.
 
 
-					LIB_LOG(info) << "[IGenericServer] epoll_ctl EPOLL_CTL_ADD  fd=" << conn_sock;
+					LIB_LOG(info) << "[IGenericServer] epoll_ctl EPOLL_CTL_ADD  fd=" << conn_sock << " activeConnections=" << activeConnections;
 
 					ev.events = EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP | EPOLLOUT;
 					ev.data.fd = conn_sock;
@@ -386,6 +389,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 					}
 
 					activeConnections++;
+
+					unset_IO(fd);
 
 
 					callback_function(this, conn_sock, NEW_SOCKET);
@@ -424,8 +429,21 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 							<< ((events[n].events & EPOLLHUP) ? "EPOLLHUP" : "")
 							<<   " fd=" << fd;
 
-					callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+					// TBC: if socket has just been opened (i.e. no I/O has been done) then close immediately
+					// without calling callback function
 
+#ifdef USE_SMART_CLOSE
+					if (!is_IO(fd)) {
+						LIB_LOG(info) << "[IGenericServer][listen] closing immediately fd because of no IO fd=" << fd;
+						close(fd);
+
+						callback_function(this, events[n].data.fd, SOCKET_IS_CLOSED);
+					} else {
+#endif
+						callback_function(this, events[n].data.fd, CLOSE_SOCKET);
+#ifdef USE_SMART_CLOSE
+					}
+#endif
 					continue;
 				} else if (events[n].events & EPOLLERR) {
 					LIB_LOG(error) << "[IGenericServer][listen] EPOLLERR fd=" << fd;
@@ -492,8 +510,13 @@ void IGenericServer::close(int fd) noexcept {
 
 	LIB_LOG(info)  << "IGenericServer::close " << fd;
 	if (fd >= 0) {
-		::close(fd);
+		int res = ::close(fd);
+
+		LIB_LOG(debug) << "[IGenericServer::close] close returns " << res;
+
 		activeConnections--;
+
+		LIB_LOG(debug) << "[IGenericServer::close] activeConnections after close: " << activeConnections;
 	}
 }
 
@@ -509,6 +532,8 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int 
 		//throw std::invalid_argument("invalid socket descriptor");
 		return -1;
 	}
+
+	set_IO(fd);
 
 	ssize_t c;
 
@@ -593,6 +618,31 @@ int IGenericServer::setSendBufferSize(int sockfd, int send_buffer_size) noexcept
 	} else {
 		return 0;
 	}
+}
+
+void IGenericServer::set_IO(int fd) {
+#ifdef USE_SMART_CLOSE
+	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+	is_socket_IO[fd] = true;
+	lk.unlock();
+#endif
+}
+
+void IGenericServer::unset_IO(int fd) {
+#ifdef USE_SMART_CLOSE
+	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+	is_socket_IO[fd] = true;
+	lk.unlock();
+#endif
+}
+
+bool IGenericServer::is_IO(int fd) {
+#ifdef USE_SMART_CLOSE
+	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+	return is_socket_IO[fd];
+#else
+	return true;
+#endif
 }
 
 

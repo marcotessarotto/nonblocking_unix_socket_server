@@ -64,6 +64,8 @@ protected:
 	/// caller must hold lock writeQueueMutex when calling this function
 	ssize_t write2(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue);
 
+	// cleanup internal data associated to fd
+	void cleanup(int fd);
 
 public:
 	ThreadedServer2(IGenericServer &server);

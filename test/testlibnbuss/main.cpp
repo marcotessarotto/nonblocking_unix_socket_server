@@ -10,7 +10,14 @@ int main(int argc, char **argv)
 
     // TestUnixSocketThreadedServer2 TcpServerClientReadWriteTest
     // ::testing::GTEST_FLAG(filter) = "*.TestUnixSocketThreadedServer2";
-    ::testing::GTEST_FLAG(filter) = "*.TcpServerMultipleThreadClientsReadWriteTest";
+    //::testing::GTEST_FLAG(filter) = "*.TcpServerMultipleThreadClientsReadWriteTest";
+
+    //::testing::GTEST_FLAG(filter) = "*.TcpServerSameClientMultipleTimesConnectOnly";
+
+    ::testing::GTEST_FLAG(filter) = "*.TcpServerSameClientMultipleTimesConnectOnlyWorkQueue";
+
+
+
 
     int ret = RUN_ALL_TESTS();
     return ret;

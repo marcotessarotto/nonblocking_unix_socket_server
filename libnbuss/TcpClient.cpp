@@ -22,7 +22,6 @@ TcpClient::TcpClient(bool nonBlockingSocket) : hostname{""}, port{0}, BaseClient
 }
 
 TcpClient::~TcpClient() {
-	close();
 }
 
 //struct sockaddr_in getipa(const char* hostname, int port){
@@ -52,9 +51,11 @@ void TcpClient::connect(const std::string &hostname, unsigned int port) {
 		throw std::invalid_argument("missing hostname");
 	}
 
-	if (port < 0) {
+	if (port > 65535) {
 		throw std::invalid_argument("wrong port");
 	}
+
+	this->hostname = hostname;
 
 	struct protoent* tcp;
 	tcp = getprotobyname("tcp");
@@ -65,27 +66,28 @@ void TcpClient::connect(const std::string &hostname, unsigned int port) {
 		throw std::runtime_error("socket: error");
 	}
 
+	LIB_LOG(debug) << "TcpClient::connect *** 1";
 
 	struct sockaddr_in ipa;
 	ipa.sin_family = AF_INET;
 	ipa.sin_port = htons(port);
 
-	struct hostent* localhost = gethostbyname(hostname.c_str());
-	if(!localhost){
+	struct hostent* host = gethostbyname(this->hostname.c_str());
+	if(!host){
 		throw std::runtime_error("gethostbyname: error resolving hostname");
 	}
 
-	char* addr = localhost->h_addr_list[0];
+	LIB_LOG(debug) << "TcpClient::connect *** 2";
+
+	char* addr = host->h_addr_list[0];
 	memcpy(&ipa.sin_addr.s_addr, addr, sizeof addr);
 
-
+	LIB_LOG(debug) << "TcpClient::connect *** 3";
 
 	if(::connect(data_socket, (struct sockaddr*)&ipa, sizeof ipa) == -1){
 		throw std::runtime_error("connect: error connecting to server");
 	}
 
-
-	this->hostname = hostname;
 
 }
 
