@@ -116,6 +116,14 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		callback_function(this, fd, job_type);
 
 		break;
+	case SOCKET_IS_CLOSED:
+		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] SOCKET_IS_CLOSED fd=" << fd;
+
+		cleanup(fd);
+
+		callback_function(this, fd, job_type);
+
+		break;
 	}
 
 	//LIB_LOG(debug)	<< "[server][my_listener] finished - fd=" << fd;
@@ -262,7 +270,25 @@ add_to_write_queue:
 	return original_data_size;
 }
 
+void ThreadedServer2::cleanup(int fd) {
 
+	LIB_LOG(info) << "ThreadedServer2::cleanup() fd=" << fd;
+
+	std::unique_lock<std::mutex> lk0(internalSocketDataMutex);
+	// get internal data associated to the socket
+	SocketData &sd = internalSocketData[fd];
+	lk0.unlock();
+
+	// get lock on internal data associated to the socket
+	sd.lock();
+
+	// cleanup internal data associated to fd
+	sd.cleanup(false);
+
+	sd.release();
+
+	LIB_LOG(info) << "ThreadedServer2::cleanup() finished fd=" << fd;
+}
 
 // IGenericServer::close
 void ThreadedServer2::close(int fd) {
@@ -278,11 +304,15 @@ void ThreadedServer2::close(int fd) {
 	// we need to be sure that no other thread is working with fd
 	// while we remove and destroy the internal data associated to fd
 
-	// 0 - get lock on internalSocketData
-	// 1 - get and lock internal structure associated to fd
-	// 2 - while holding lock to internal structure:
-	//     get lock on readyToWriteSet and remove fd from set
-	// 3 - destroy internal structure
+	// 1 - remove fd from epoll list, so that no more events are received
+	// 2 - get lock on internalSocketDataMutex
+	// 3 - get internal structure associated to fd
+	// 4 - release lock on internalSocketDataMutex
+
+	// 5 - lock internal structure associated to fd
+	// 6 - cleanup internal structure
+	// 7 - close fd
+	// 7 - release lock on internal structure (which remains associated to fd, for reuse)
 
 	std::unique_lock<std::mutex> lk0(internalSocketDataMutex);
 	// get internal data associated to the socket

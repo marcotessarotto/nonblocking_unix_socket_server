@@ -39,7 +39,7 @@ public:
 	 * temporarily set in blocking mode for the write syscall, and when the syscall returns
 	 * the socket will be set in non blocking mode again
 	 */
-	virtual ssize_t write(const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
+	virtual ssize_t write(const char * data, ssize_t data_size, int * _errno = nullptr) noexcept override;
 
 };
 

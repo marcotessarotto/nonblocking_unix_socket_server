@@ -44,12 +44,12 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
+	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) override;
 
 	/**
 	 * terminate server instance and waits for thread to stop
 	 */
-	virtual void stop();
+	virtual void stop() override;
 };
 
 } /* namespace nbuss_server */

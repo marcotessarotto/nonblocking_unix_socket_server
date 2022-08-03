@@ -30,7 +30,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		cout << "[server my_listener] incoming data on socket " << fd << endl;
 
 		// read all data from socket
-		auto data = UnixSocketServer::read(fd);
+		auto data = srv->read(fd);
 
 		cout << "[server my_listener] number of vectors returned by read: "
 				<< data.size() << endl;
@@ -41,7 +41,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 					<< item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
 
-			UnixSocketServer::write<char>(fd, item);
+			srv->write<char>(fd, item);
 		}
 
 		cout << "[server my_listener] incoming data - finished processing\n";

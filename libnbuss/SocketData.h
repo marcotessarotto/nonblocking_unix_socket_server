@@ -55,12 +55,13 @@ public:
 	void cleanup(bool useLock = true);
 
 	/**
-	 * blocks until gets lock
+	 * get lock on instance; if locked by another thread,
+	 * blocks until lock is successful
 	 */
 	void lock();
 
 	/**
-	 * release lock
+	 * release lock on instance
 	 */
 	void release();
 

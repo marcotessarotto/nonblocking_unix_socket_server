@@ -17,7 +17,6 @@ UnixSocketClient::UnixSocketClient(bool nonBlockingSocket) : sockname{}, BaseCli
 }
 
 UnixSocketClient::~UnixSocketClient() {
-	close();
 }
 
 void UnixSocketClient::connect(const std::string &sockname) {

@@ -9,7 +9,7 @@
 #include <condition_variable>
 #include <vector>
 #include <functional>
-#include <mutex>
+#include <map>
 #include "FileDescriptor.h"
 #include "UnixPipe.h"
 
@@ -21,7 +21,8 @@ enum job_type_t {
 	CLOSE_SOCKET, // socket must be closed (and work queue cleaned for subsequent operations on fd)
 	AVAILABLE_FOR_WRITE, // the associated file is available for write(2) operations.
 	NEW_SOCKET, // new connection
-	AVAILABLE_FOR_READ_AND_WRITE // both AVAILABLE_FOR_READ and AVAILABLE_FOR_WRITE
+	AVAILABLE_FOR_READ_AND_WRITE, // both AVAILABLE_FOR_READ and AVAILABLE_FOR_WRITE
+	SOCKET_IS_CLOSED // inform that socket has been closed by the server for some reason
 };
 
 
@@ -75,6 +76,16 @@ protected:
 	/// list of open sockets
 	std::vector<int> socketList;
 
+	/// has there been I/O on socket?
+	std::map<int, bool> is_socket_IO;
+	std::mutex is_socket_IO_mutex;
+
+	void set_IO(int fd);
+
+	void unset_IO(int fd);
+
+	bool is_IO(int fd);
+
 public:
 
 	IGenericServer(unsigned int backlog = 10);
@@ -121,13 +132,13 @@ public:
 	 *
 	 *
 	 */
-	static ssize_t write(int fd, const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
+	ssize_t write(int fd, const char * data, ssize_t data_size, int * _errno = nullptr) noexcept;
 
 	/**
 	 * write data to the socket
 	 */
 	template <class T>
-	static ssize_t write(int fd, std::vector<T> &data, int * _errno = nullptr) noexcept {
+	ssize_t write(int fd, std::vector<T> &data, int * _errno = nullptr) noexcept {
 		ssize_t data_size = data.size() * sizeof(T);
 		const char * p =  reinterpret_cast<char*>(data.data());
 
@@ -140,12 +151,12 @@ public:
 	/**
 	 * read all available data from socket and return multiple buffers as a vector of vectors
 	 */
-	static std::vector<std::vector<char>> read(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
+	std::vector<std::vector<char>> read(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
 	 * read data from socket in a buffer of size readBufferSize
 	 */
-	static std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
+	std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
 	 * set socket as non blocking if non_blocking is true, else set as blocking
@@ -171,6 +182,18 @@ public:
 	 * remove socket from epoll watch list
 	 */
 	void remove_from_epoll(int fd, int * _errno = nullptr) noexcept;
+
+	/**
+	 * set send buffer size of socket
+	 * return 0 if successful, -1 in case of error
+	 */
+	int setSendBufferSize(int sockfd, int send_buffer_size) noexcept;
+
+	/**
+	 * get receive and send buffer size
+	 * return 0 if successful, -1 in case of error
+	 */
+	int getBuffersSize(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept;
 
 };
 

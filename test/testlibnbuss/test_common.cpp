@@ -51,7 +51,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_READ fd=" << fd;
 
 		// read all data from socket
-		auto data = IGenericServer::read(fd, 256);
+		auto data = srv->read(fd, 4096);
 
 		TEST_LOG(debug)
 		<< "[listener_echo_server] number of vectors returned: " << data.size();
@@ -66,7 +66,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 				int _errno;
 				int res;
 
-				res = IGenericServer::write(fd, item, &_errno);
+				res = srv->write(fd, item, &_errno);
 
 				if (res >= 0)
 					break;
@@ -80,21 +80,13 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 				}
 			}
 
-			// TODO: if write returns -1 and errno == EAGAIN or EWOULDBLOCK, wait 1 ms and retry
-			// write buffer problem is solved by ThreadedServer2
-//			while (IGenericServer::write(fd, item) == -1) {
-//				struct timespec ts { 0, 1000000 };
-//
-//				nanosleep(&ts, NULL);
-//			}
-
 		}
 		break;
 
 
 	}
 
-	TEST_LOG(debug)	<< "[listener_echo_server] ending - fd=" << fd;
+	TEST_LOG(debug)	<< "[listener_echo_server] returning - fd=" << fd;
 
 }
 

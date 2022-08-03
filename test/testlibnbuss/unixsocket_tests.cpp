@@ -67,7 +67,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
 
 		// read all data from socket
-		auto data = IGenericServer::read(fd, 256);
+		auto data = srv->read(fd, 256);
 
 		TEST_LOG(debug)
 		<< "[server][my_listener] number of vectors returned: " << data.size();
@@ -88,7 +88,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			// else copy buffer to queue
 
 			// TODO: if write returns -1, copy remaining data
-			while (IGenericServer::write(fd, item) == -1) {
+			while (srv->write(fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 
 				nanosleep(&ts, NULL);

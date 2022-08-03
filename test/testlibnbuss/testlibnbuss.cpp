@@ -148,7 +148,7 @@ static bool calcCrc = false;
 TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBufferTest) {
 
 	calcCrc = true;
-	const ssize_t bufferSize = 4096 * 16 * 16;
+	const ssize_t bufferSize = 4096 * 16 * 1;
 
 	TEST_LOG(info)
 	<< "***UnixSocketServerClientReadWriteLongBufferTest**  bufferSize=" << bufferSize << " " << __FILE__;

@@ -68,7 +68,7 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 			while (true) {
 				int _errno;
 				// read all data from socket
-				auto data = IGenericServer::read(fd, 1024*128, &_errno);
+				auto data = srv->read(fd, 1024*128, &_errno);
 
 				if ((_errno == EAGAIN || _errno == EWOULDBLOCK) && data.size() == 0) {
 					if (counter++ < 20)
