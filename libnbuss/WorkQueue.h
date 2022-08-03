@@ -37,27 +37,30 @@ public:
 	};
 
 private:
-	ThreadedServer2 &threadedServer;
-	unsigned int numberOfThreads;
+	/// instance of server (with async write support)
+	ThreadedServer2 &threaded_server;
+
+	/// number of consumer threads
+	unsigned int number_consumer_threads;
 
 	std::deque<Item> deque;
-	std::mutex dequeMutex;
-	std::condition_variable dequeCv;
+	std::mutex deque_mutex;
+	std::condition_variable deque_cv;
 
-	std::atomic<bool> stopConsumers;
+	std::atomic<bool> consumers_must_terminate;
 
-	std::vector<std::thread> consumerThreads;
+	std::vector<std::thread> consumer_threads;
 
 	std::function<void(WorkQueue *,int, enum job_type_t )> callback_function;
 
-	/// callback used as producer
-	void producerCallback(IGenericServer * srv, int fd, enum job_type_t job);
+	/// callback (invoked by threadedServer) which is the events producer
+	void producer_callback(IGenericServer * srv, int fd, enum job_type_t job);
 
 	/// consumer
 	void consumer();
 
 public:
-	WorkQueue(ThreadedServer2 & threadedServer, unsigned int numberOfThreads = 1);
+	WorkQueue(ThreadedServer2 & threadedServer, unsigned int num_consumer_threads = 1);
 	virtual ~WorkQueue();
 
 	/// start server

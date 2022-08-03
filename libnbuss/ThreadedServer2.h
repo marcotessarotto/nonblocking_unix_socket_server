@@ -80,18 +80,12 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function);
+	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) override;
 
 	/**
 	 * terminate server instance and waits for thread to stop
 	 */
-	virtual void stop();
-
-
-	/**
-	 * read all available data from socket and return vector of vectors
-	 */
-	//static std::vector<std::vector<char>> read(int fd, size_t readBufferSize = 4096);
+	virtual void stop() override;
 
 	/**
 	 * invoke the write system call; return the number of bytes written on success,

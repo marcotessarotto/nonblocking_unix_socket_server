@@ -37,7 +37,7 @@ class TcpServer :  public IGenericServer {
      *
      * @throws std::runtime_error
      */
-	virtual void setup();
+	void setup();
 
 public:
 	TcpServer(unsigned int port, const std::string &address = "0.0.0.0", unsigned int backlog = 10);

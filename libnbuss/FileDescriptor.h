@@ -9,6 +9,8 @@
 // class for making file descriptors auto-closeable; use FileDescriptor as type of local variable
 class FileDescriptor {
 public:
+
+	//TODO: consider to replace volatile with mutex and getter/setter methods
 	volatile int fd;
 
 	FileDescriptor() {

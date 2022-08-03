@@ -55,7 +55,7 @@ class UnixSocketServer : public virtual IGenericServer {
      *
      * @throws std::runtime_error
      */
-	virtual void setup();
+	void setup();
 
 public:
 	/**
