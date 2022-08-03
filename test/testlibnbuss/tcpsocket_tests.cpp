@@ -138,6 +138,9 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 		case NEW_SOCKET:
 			TEST_LOG(info)	<< "[lambda][myListener] NEW_SOCKET " << fd;
 			break;
+		case SOCKET_IS_CLOSED:
+			TEST_LOG(info)	<< "[lambda][myListener] SOCKET_IS_CLOSED " << fd;
+			break;
 		case CLOSE_SOCKET:
 
 			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
