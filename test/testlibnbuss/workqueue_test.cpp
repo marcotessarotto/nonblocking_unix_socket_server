@@ -66,16 +66,16 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 			// read all data from socket
 			auto data = threadedServer2.read(fd, 1024*16);
 
-			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
+			TEST_LOG(trace)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
 			// implement an echo server
 			int counter = 0;
 			for (std::vector<char> item : data) {
-				TEST_LOG(debug)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
+				TEST_LOG(trace)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
-				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+				TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
 
 				counter++;

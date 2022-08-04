@@ -186,10 +186,10 @@ void ThreadedServer2::stop() {
 
 	// join threads
 
-	LIB_LOG(info) << "ThreadedServer2::stop before listenWorkerThread.join()";
+	LIB_LOG(trace) << "ThreadedServer2::stop before listenWorkerThread.join()";
 	listenWorkerThread.join();
 
-	LIB_LOG(info) << "ThreadedServer2::stop before writerWorkerThread.join()";
+	LIB_LOG(trace) << "ThreadedServer2::stop before writerWorkerThread.join()";
 	writerWorkerThread.join();
 
 }
@@ -225,18 +225,18 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
-			LIB_LOG(info) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(trace) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 			// ok! all data has been written
 			return bytesWritten;
 		} else if (bytesWritten == -1) {
 			// EAGAIN or EWOULDBLOCK (fd not available to write)
-			LIB_LOG(info) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
+			LIB_LOG(trace) << "ThreadedServer2::write() write: NO data written! fd=" << fd;
 
 			goto add_to_write_queue;
 		} else if (bytesWritten < data_size) {
 			// partially successful, add data which has not been written to write queue
 
-			LIB_LOG(info) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
+			LIB_LOG(trace) << "ThreadedServer2::write() write: PARTIAL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
 
 			data += bytesWritten;
 			data_size -= bytesWritten;
@@ -265,7 +265,7 @@ add_to_write_queue:
 	// release lock on writeQueue; end of critical section
 	lk.unlock();
 
-	LIB_LOG(info) << "ThreadedServer2::write() added buffer to write queue fd=" << fd << " write queue size=" << wqsize;
+	LIB_LOG(trace) << "ThreadedServer2::write() added buffer to write queue fd=" << fd << " write queue size=" << wqsize;
 
 	return original_data_size;
 }
@@ -287,7 +287,7 @@ void ThreadedServer2::cleanup(int fd) {
 
 	sd.release();
 
-	LIB_LOG(info) << "ThreadedServer2::cleanup() finished fd=" << fd;
+	LIB_LOG(trace) << "ThreadedServer2::cleanup() finished fd=" << fd;
 }
 
 // IGenericServer::close
@@ -377,7 +377,7 @@ void ThreadedServer2::writeQueueWorker() {
 		// the write list is empty because it has been emptied by the close method.
 		// so we can proceed even if fd is closed.
 
-		LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
+		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
 
 		// get internal data associated to the socket
 		SocketData &sd = getSocketData(fd);
@@ -398,7 +398,7 @@ void ThreadedServer2::writeQueueWorker() {
 			writeQueue.pop_back(); // remove item from back of queue
 
 			// try to write buffer
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] write2 on fd=" << fd;
+			LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] write2 on fd=" << fd;
 			ssize_t res = write2(fd, sd, item, writeQueue);
 
 			// socket is no more available to write

@@ -41,6 +41,9 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 		srv->close(fd);
 
 		break;
+	case SOCKET_IS_CLOSED:
+		TEST_LOG(trace)	<< "[listener_echo_server] SOCKET_IS_CLOSED " << fd;
+		break;
 	case AVAILABLE_FOR_WRITE:
 		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_WRITE fd=" << fd;
 		// TODO: check if there are buffers to write to this socket

@@ -17,7 +17,7 @@
 namespace nbuss_client {
 
 TcpClient::TcpClient(bool nonBlockingSocket) : hostname{""}, port{0}, BaseClient(nonBlockingSocket) {
-	LIB_LOG(info) << "TcpClient::TcpClient()";
+	LIB_LOG(trace) << "TcpClient::TcpClient()";
 
 }
 

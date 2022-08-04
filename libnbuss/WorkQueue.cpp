@@ -37,7 +37,7 @@ void WorkQueue::producer_callback(IGenericServer * srv, int fd, enum job_type_t 
 	deque_cv.notify_one();
 	//producedItems++;
 
-	LIB_LOG(info) << "[WorkQueue::callback] [Producer] items in deque size=" << num;
+	LIB_LOG(trace) << "[WorkQueue::callback] [Producer] items in deque size=" << num;
 
 }
 
@@ -59,7 +59,7 @@ void WorkQueue::consumer() {
         		goto end;
         	}
 
-        	LIB_LOG(info) << "[WorkQueue::consumer] itemsInDeque=" << deque.size();
+        	LIB_LOG(trace) << "[WorkQueue::consumer] itemsInDeque=" << deque.size();
         }
 
         Item &i = deque.back();
@@ -68,7 +68,7 @@ void WorkQueue::consumer() {
 
 		lk.unlock();
 
-		LIB_LOG(info) << "[WorkQueue::consumer] processing item - fd=" << i.fd << " process=" << i.process;
+		LIB_LOG(trace) << "[WorkQueue::consumer] processing item - fd=" << i.fd << " process=" << i.process;
 
 		if (i.process) {
 			// process Item i

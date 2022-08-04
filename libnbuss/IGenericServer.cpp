@@ -210,15 +210,37 @@ std::vector<char> IGenericServer::read_one(int fd, size_t buffer_size, int * _er
 }
 
 void IGenericServer::closeSockets() {
-	// close listening socket and epoll socket
-	listen_sock.close();
-	epollfd.close();
 
-	std::unique_lock<std::mutex> lk(mtx);
-	is_listening = false;
+	std::unique_lock<std::mutex> lk(incoming_conn_fd_mtx);
+
+	for (auto const& element: incoming_conn_fd) {
+		int res = ::close(element);
+
+		if (res == -1) {
+			LIB_LOG(error) << "[IGenericServer::closeSockets] close error fd=" << element << " error: " << strerror(errno);
+		} else {
+			LIB_LOG(info) << "[IGenericServer::closeSockets] close fd=" << element;		}
+	}
+
+	incoming_conn_fd.clear();
+
 	lk.unlock();
 
-	LIB_LOG(info) << "listen cleanup finished";
+
+	// first close epoll socket
+	epollfd.close();
+	LIB_LOG(trace) << "epoll fd closed";
+
+	// then close server socket
+	listen_sock.close();
+	LIB_LOG(info) << "server fd closed";
+
+
+	std::unique_lock<std::mutex> lk2(mtx);
+	is_listening = false;
+	lk2.unlock();
+
+	LIB_LOG(info) << "closeSockets finished";
 
 	cv.notify_one();
 }
@@ -253,7 +275,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 		throw std::runtime_error("server socket is not open");
 	}
 
-	// TODO: keep a list of open sockets, so that we can close them when listen terminates
+	// keep a list of open sockets, so that we can close them when listen terminates
+	std::unique_lock<std::mutex> lk(incoming_conn_fd_mtx);
+	incoming_conn_fd.clear();
+	lk.unlock();
 
 	// this lambda will be run before returning from listen function
 	RunOnReturn runOnReturn([this]() {
@@ -302,23 +327,21 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 	ev.events = EPOLLIN; // EPOLLIN: The associated file is available for read(2) operations.
 	ev.data.fd = listen_sock.fd;
 	if (epoll_ctl(epollfd.fd, EPOLL_CTL_ADD, listen_sock.fd, &ev) == -1) {
-		//syslog(LOG_ERR, "[IGenericServer] epoll_ctl: listen_sock error (%s)", strerror(errno));
 		LIB_LOG(error) << "[IGenericServer] epoll_ctl: listen_sock error " << strerror(errno);
 
 		throw std::runtime_error("epoll_ctl error");
 	}
 
 	// change state and notify that we are now listening for incoming connections
-	std::unique_lock<std::mutex> lk(mtx);
+	std::unique_lock<std::mutex> lk2(mtx);
 	is_listening = true;
-	lk.unlock();
+	lk2.unlock();
 	cv.notify_one();
 
 	int n, nfds, conn_sock;
 
 	while (!stop_server.load()) {
 
-		LIB_LOG(trace) << "[IGenericServer] before epoll_wait";
 		// this syscall will block, waiting for events
 		nfds = epoll_wait(epollfd.fd, events, MAX_EVENTS, -1);
 
@@ -342,7 +365,7 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 			fd = events[n].data.fd;
 
-			LIB_LOG(info) << "[IGenericServer] n=" << n << " events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
+			LIB_LOG(trace) << "[IGenericServer] n=" << n << " events[n].data.fd=" << fd << " " << interpret_event(events[n].events);
 
 			if (fd == listen_sock.fd) {
 
@@ -360,6 +383,10 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 
 						throw std::runtime_error("accept error");
 					}
+
+					std::unique_lock<std::mutex> lk(incoming_conn_fd_mtx);
+					incoming_conn_fd.insert(conn_sock);
+					lk.unlock();
 
 					// test: introducing a delay (1 s) between accept4 and epoll_clt(EPOLL_CTL_ADD),
 					// then the first EPOLLIN event is delivered correctly (no events are lost)
@@ -508,15 +535,31 @@ void IGenericServer::remove_from_epoll(int fd, int * _errno) noexcept {
 
 void IGenericServer::close(int fd) noexcept {
 
-	LIB_LOG(info)  << "IGenericServer::close " << fd;
+	LIB_LOG(info)  << "[IGenericServer::close] fd=" << fd;
 	if (fd >= 0) {
+
+		// remove fd from incoming_conn_fd
+		// close fd while holding lock
+		std::unique_lock<std::mutex> lk(incoming_conn_fd_mtx);
 		int res = ::close(fd);
 
-		LIB_LOG(debug) << "[IGenericServer::close] close returns " << res;
+		incoming_conn_fd.extract(fd);
+
+		lk.unlock();
+
+		if (res == -1) {
+			LIB_LOG(error) << "[IGenericServer::close] error fd=" << fd << " " << strerror(errno);
+		} else {
+			LIB_LOG(debug) << "[IGenericServer::close] close ok fd=" << fd;
+		}
 
 		activeConnections--;
 
 		LIB_LOG(debug) << "[IGenericServer::close] activeConnections after close: " << activeConnections;
+
+
+
+
 	}
 }
 

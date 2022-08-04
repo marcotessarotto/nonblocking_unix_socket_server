@@ -77,16 +77,16 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 				}
 
 				if (counter < 20)
-				   TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
+				   TEST_LOG(trace)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
 				// implement an echo server
 				int counter = 0;
 				for (std::vector<char> item : data) {
-					TEST_LOG(info)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
+					TEST_LOG(trace)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
 
 					ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
-					TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+					TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 					threadedServer2.write<char>(fd, item);
 
 				}
@@ -139,9 +139,9 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 		auto response = usc.read(1024*32);
 
 		if (response.size() > 0)
-			TEST_LOG(info)	<< "[client] received data size: " << response.size();
+			TEST_LOG(trace)	<< "[client] received data size: " << response.size();
 
-		TEST_LOG(info) << total_bytes_received;
+		//TEST_LOG(info) << total_bytes_received;
 
 		if (response.size() == 0) {
 			// no data available, sleep for 1 ms

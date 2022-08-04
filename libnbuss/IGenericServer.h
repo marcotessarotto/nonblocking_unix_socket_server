@@ -10,6 +10,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <set>
 #include "FileDescriptor.h"
 #include "UnixPipe.h"
 
@@ -50,8 +51,14 @@ protected:
 	};
 
 	/// declared as fields so that RunOnReturn instance in listen method can operate on them
-	FileDescriptor listen_sock;
-	FileDescriptor epollfd;
+	FileDescriptor listen_sock{"listen_sock"};
+	FileDescriptor epollfd{"epollfd"};
+
+	/// set of file descriptors of incoming connections, kept updated by listen and used by closeSocket function
+	std::set<int> incoming_conn_fd;
+	/// mutex for synchronizing access to incoming_conn_fd
+	// incoming_conn_fd is accessed by listen and close functions, which run in different threads
+	std::mutex incoming_conn_fd_mtx;
 
 	/// flag used to notify that server must stop listening and close sockets
 	std::atomic<bool> stop_server;
@@ -80,11 +87,20 @@ protected:
 	std::map<int, bool> is_socket_IO;
 	std::mutex is_socket_IO_mutex;
 
+	/// register that on fd has been performed IO
 	void set_IO(int fd);
 
+	/// register that on fd has not been performed IO
 	void unset_IO(int fd);
 
+	/// has been performed IO on fd?
 	bool is_IO(int fd);
+
+	/**
+	 * close listening socket and epoll socket and set is_listening to false	 *
+	 * invoked by listen function
+	 */
+	void closeSockets();
 
 public:
 
@@ -162,11 +178,6 @@ public:
 	 * set socket as non blocking if non_blocking is true, else set as blocking
 	 */
 	static int setFdNonBlocking(int fd, bool non_blocking) noexcept;
-
-	/**
-	 * close listening socket and epoll socket
-	 */
-	void closeSockets();
 
 	/**
 	 * get number of active connections to server

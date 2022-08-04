@@ -83,7 +83,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 			// read server response
 			auto response = tc.read(4096*2);
 
-			TEST_LOG(info)	<< "[client] received data size: " << response.size();
+			TEST_LOG(trace)	<< "[client] received data size: " << response.size();
 
 			total_bytes_read += response.size();
 		}
@@ -154,7 +154,7 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 			// read all data from socket
 			auto data = threadedServer2.read(fd, 1024*16);
 
-			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
+			TEST_LOG(trace)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
 			// implement an echo server
 			int counter = 0;
@@ -163,7 +163,7 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
-				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+				TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
 
 				counter++;
@@ -514,7 +514,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
-				TEST_LOG(info)	<< "[lambda][myListener] calling srv2->write " << item.size();
+				TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
 
 				counter++;
@@ -542,12 +542,6 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 		tc.connect("0.0.0.0", 10001);
 
-		struct timespec t;
-
-		t.tv_sec = 0;  // seconds
-		t.tv_nsec = 1 * 500 * 1000; // nanoseconds
-
-		//nanosleep(&t, NULL);
 
 //		tc.write(message);
 //
@@ -567,6 +561,15 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 	workQueue.stop();
 
+
 	TEST_LOG(info) << "test finished!";
+
+	struct timespec t;
+
+	t.tv_sec = 0;  // seconds
+	t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+
+	// sleep for 1 ms to allow server socket to be closed by kernel
+	nanosleep(&t, NULL);
 
 }
