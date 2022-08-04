@@ -8,6 +8,8 @@
 #include <iterator>
 #include <functional>
 #include <iostream>
+#include <string>
+//#include <format>
 
 #include "testlibnbuss.h"
 
@@ -581,3 +583,75 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 	nanosleep(&t, NULL);
 
 }
+
+
+
+TEST(NonblockingTcpSocketServerTest, TcpSumServerSameClientMultipleTimesConnectOnlyWorkQueue) {
+
+	TEST_LOG(info) 	<< "***TcpSumServerSameClientMultipleTimesConnectOnlyWorkQueue** " << __FILE__;
+
+
+	TcpServer tss { 10001, "0.0.0.0", 100 };
+
+	ThreadedServer2 threadedServer2(tss);
+
+	WorkQueue workQueue(threadedServer2);
+
+	// when start returns, server has started listening for incoming connections
+	workQueue.start(listener_sum_server);
+
+
+
+	for (int i = 0; i < 100; i++) {
+
+		TcpClient tc;
+
+		TEST_LOG(info) << "[client][" << i << "] before connect ";
+
+		tc.connect("0.0.0.0", 10001);
+
+
+		long long ops[] = { 0x1234, 0x4321 };
+		long long result;
+
+		tc.write(reinterpret_cast<char*>(ops), sizeof(ops));
+
+		auto response = tc.read();
+		result = *reinterpret_cast<long long *>(response.data());
+
+
+		// https://stackoverflow.com/a/64048139/974287
+		// not yet implemented! check back soon!
+		// TEST_LOG(info) << "result = " << std::format("{:#x}", result);
+
+		TEST_LOG(info) << "result = 0x" << std::hex << result << std::dec;
+
+
+		EXPECT_EQ(result,ops[0] + ops[1]);
+
+
+		TEST_LOG(info) << "[client][" << i << "] closing socket";
+		tc.close();
+
+		TEST_LOG(info) << "*** " << i;
+	}
+
+	// spin... consider using a condition variable
+	while (tss.get_active_connections() > 0)
+		;
+
+	workQueue.stop();
+
+
+	TEST_LOG(info) << "test finished!";
+
+	struct timespec t;
+
+	t.tv_sec = 0;  // seconds
+	t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+
+	// sleep for 1 ms to allow server socket to be closed by kernel
+	nanosleep(&t, NULL);
+
+}
+

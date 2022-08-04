@@ -222,7 +222,7 @@ public:
 		ssize_t c;
 		char * p;
 
-		p = buffer.data();
+		p = reinterpret_cast<char*>(buffer.data());
 
 		// read from socket
 		c = ::read(fd, p, buffer_size * sizeof(N));

@@ -77,6 +77,8 @@ public:
 	 */
 	void remove_from_epoll(int fd);
 
+	ThreadedServer2 &getServer() { return threaded_server; }
+
 };
 
 } /* namespace nbuss_server */
