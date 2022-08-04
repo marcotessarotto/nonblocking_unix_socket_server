@@ -34,7 +34,7 @@ public:
 
 			return res;
 		} else {
-			LIB_LOG(warning) << "FileDescriptor::close already closed fd=" << fd << " " << fd_name;
+			LIB_LOG(trace) << "FileDescriptor::close already closed fd=" << fd << " " << fd_name;
 
 			return -1;
 		}

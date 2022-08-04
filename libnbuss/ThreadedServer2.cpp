@@ -346,8 +346,9 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
-			return;
+			goto end;
+//			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
+//			return;
 		}
 
 		// while server is running and readyToWriteSet is empty, wait on condition variable
@@ -357,8 +358,9 @@ void ThreadedServer2::writeQueueWorker() {
 
 		// check if thread has to stop
 		if (stopServer) {
-			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
-			return;
+			goto end;
+//			LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] terminated";
+//			return;
 		}
 
 		// we are still holding the lock on the set;
@@ -399,7 +401,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 			// try to write buffer
 			LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] write2 on fd=" << fd;
-			ssize_t res = write2(fd, sd, item, writeQueue);
+			ssize_t res = write_holding_lock(fd, sd, item, writeQueue);
 
 			// socket is no more available to write
 			if (res == -1) {
@@ -411,7 +413,7 @@ void ThreadedServer2::writeQueueWorker() {
 
 	}
 
-
+end:
 	LIB_LOG(info) << "ThreadedServer2::writeQueueWorker() terminated";
 }
 
@@ -422,7 +424,7 @@ void ThreadedServer2::writeQueueWorker() {
  *
  * return -1 when socket is no more available to write
  */
-ssize_t ThreadedServer2::write2(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue /*int fd, const char * data, ssize_t data_size*/) {
+ssize_t ThreadedServer2::write_holding_lock(int fd, SocketData &sd, SocketData::WriteItem &item, std::deque<SocketData::WriteItem> &writeQueue /*int fd, const char * data, ssize_t data_size*/) {
 
 
 	//    call write:
@@ -435,10 +437,11 @@ ssize_t ThreadedServer2::write2(int fd, SocketData &sd, SocketData::WriteItem &i
 
 	if (bytesWritten == item.data_size) {
 		// ok! all data has been written
+		// no need to add to write queue
 		return bytesWritten;
 	} else if (bytesWritten == -1) {
 		// EAGAIN or EWOULDBLOCK (fd not available to write)
-
+		// add buffer to write queue
 	} else if (bytesWritten < item.data_size) {
 		// partially successful, add data which has not been written to write queue
 
@@ -452,7 +455,7 @@ ssize_t ThreadedServer2::write2(int fd, SocketData &sd, SocketData::WriteItem &i
 
 	ssize_t wqsize = writeQueue.size();
 
-	LIB_LOG(info) << "ThreadedServer2::write2() added buffer to back of write queue fd=" << fd << " write queue size=" << wqsize;
+	LIB_LOG(trace) << "ThreadedServer2::write_holding_lock() added buffer to back of write queue fd=" << fd << " write queue size=" << wqsize;
 
 	return -1;
 }

@@ -240,9 +240,10 @@ void IGenericServer::closeSockets() {
 	is_listening = false;
 	lk2.unlock();
 
-	LIB_LOG(info) << "closeSockets finished";
+	LIB_LOG(info) << "[IGenericServer::closeSockets] finished";
 
 	cv.notify_one();
+
 }
 
 // this works if only one thread calls this method
@@ -462,6 +463,8 @@ void IGenericServer::listen(std::function<void(IGenericServer *,int, enum job_ty
 #ifdef USE_SMART_CLOSE
 					if (!is_IO(fd)) {
 						LIB_LOG(info) << "[IGenericServer][listen] closing immediately fd because of no IO fd=" << fd;
+
+						// invoke IGenericServer::close()
 						close(fd);
 
 						callback_function(this, events[n].data.fd, SOCKET_IS_CLOSED);
@@ -556,9 +559,6 @@ void IGenericServer::close(int fd) noexcept {
 		activeConnections--;
 
 		LIB_LOG(debug) << "[IGenericServer::close] activeConnections after close: " << activeConnections;
-
-
-
 
 	}
 }

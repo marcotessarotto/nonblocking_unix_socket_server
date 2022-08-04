@@ -419,6 +419,14 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 	TEST_LOG(info) << "test finished!";
 
+	struct timespec t;
+
+	t.tv_sec = 0;  // seconds
+	t.tv_nsec = 1 * 1000 * 1000; // nanoseconds
+
+	// sleep for 1 ms to allow server socket to be closed by kernel
+	nanosleep(&t, NULL);
+
 }
 
 TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesSendReceive) {
