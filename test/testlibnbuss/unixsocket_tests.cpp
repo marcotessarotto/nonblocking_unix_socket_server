@@ -150,7 +150,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 	usc.close();
 
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
+	while (uss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -195,7 +195,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 //		cout << "[thread] server thread ending";
 //	});
 
-	uss.waitForServerReady();
+	uss.wait_for_server_ready();
 
 	UnixSocketClient usc;
 
@@ -231,7 +231,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 
 	// spin... consider using a condition variable
 	int c = 0;
-	while (uss.getActiveConnections() > 0) {
+	while (uss.get_active_connections() > 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
 		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
 

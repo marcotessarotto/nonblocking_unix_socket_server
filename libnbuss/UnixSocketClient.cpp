@@ -69,7 +69,7 @@ ssize_t UnixSocketClient::write(const char * data, ssize_t data_size, int * _err
 
 	if (nonBlockingSocket) {
 		// set data_socket as blocking
-		res = nbuss_server::IGenericServer::setFdNonBlocking(data_socket, false);
+		res = nbuss_server::IGenericServer::set_fd_non_blocking(data_socket, false);
 		if (res == -1) {
 			// cannot set socket to blocking, fail
 			if (_errno != nullptr) *_errno = -1;
@@ -81,7 +81,7 @@ ssize_t UnixSocketClient::write(const char * data, ssize_t data_size, int * _err
 
 	if (nonBlockingSocket) {
 		// set data_socket as non blocking
-		res = nbuss_server::IGenericServer::setFdNonBlocking(data_socket, true);
+		res = nbuss_server::IGenericServer::set_fd_non_blocking(data_socket, true);
 		if (res == -1) {
 			// cannot set socket to non blocking, fail
 			if (_errno != nullptr) *_errno = -1;

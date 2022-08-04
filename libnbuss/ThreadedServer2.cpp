@@ -161,7 +161,7 @@ void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_t
 	}
 
 	// return when server is ready i.e. listening for incoming connections
-	server.waitForServerReady();
+	server.wait_for_server_ready();
 
 }
 

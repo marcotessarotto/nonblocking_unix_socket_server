@@ -131,7 +131,7 @@ public:
 	/**
 	 * wait for server to be ready i.e. listening to incoming connections
 	 */
-	void waitForServerReady();
+	void wait_for_server_ready();
 
 
 	/**
@@ -166,23 +166,26 @@ public:
 
 	/**
 	 * read all available data from socket and return multiple buffers as a vector of vectors
+	 *
+	 * buffer_size is the size in bytes of the read buffers
+     * if _errno is provided, the errno from the last read syscall will be stored in *_errno
 	 */
 	std::vector<std::vector<char>> read(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
 	 * read data from socket in a buffer of size readBufferSize
 	 */
-	std::vector<char> read_one(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
+	std::vector<char> read_one_buffer(int fd, size_t buffer_size = 4096, int * _errno = nullptr) noexcept;
 
 	/**
 	 * set socket as non blocking if non_blocking is true, else set as blocking
 	 */
-	static int setFdNonBlocking(int fd, bool non_blocking) noexcept;
+	static int set_fd_non_blocking(int fd, bool non_blocking) noexcept;
 
 	/**
 	 * get number of active connections to server
 	 */
-	int getActiveConnections() noexcept;
+	int get_active_connections() noexcept;
 
 	/**
 	 * close socket and decrease counter of active connections
@@ -198,13 +201,53 @@ public:
 	 * set send buffer size of socket
 	 * return 0 if successful, -1 in case of error
 	 */
-	int setSendBufferSize(int sockfd, int send_buffer_size) noexcept;
+	int set_send_buffer_size(int sockfd, int send_buffer_size) noexcept;
 
 	/**
 	 * get receive and send buffer size
 	 * return 0 if successful, -1 in case of error
 	 */
-	int getBuffersSize(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept;
+	int get_buffers_size(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept;
+
+	/**
+	 * read data from socket in a buffer of size readBufferSize * sizeof(N)
+	 */
+	template <typename N>
+	std::vector<N> read_one_buffer_t(int fd, size_t buffer_size = 4096, int * _errno = nullptr, ssize_t * bytes_read_p = nullptr) noexcept {
+
+		set_IO(fd);
+
+		std::vector<N> buffer(buffer_size); // size in bytes is buffer_size * sizeof(N)
+
+		ssize_t c;
+		char * p;
+
+		p = buffer.data();
+
+		// read from socket
+		c = ::read(fd, p, buffer_size * sizeof(N));
+
+		if (_errno != nullptr) *_errno = errno;
+
+		if (bytes_read_p != nullptr) *bytes_read_p = c;
+
+		if (c >= 0) {
+			// ok we received data
+			buffer.resize(c / sizeof(N));
+		} else if (c == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+			// no data available to read
+			LIB_LOG(warning) << "[IGenericServer::read_one_t] errno == EAGAIN || errno == EWOULDBLOCK";
+
+			buffer.resize(0);
+		} else if (c == -1) {
+			// some other error returned by read syscall
+			LIB_LOG(error) << "[IGenericServer::read_one_t] errno: " << strerror(errno);
+
+			buffer.resize(0);
+		}
+
+		return buffer;
+	}
 
 };
 

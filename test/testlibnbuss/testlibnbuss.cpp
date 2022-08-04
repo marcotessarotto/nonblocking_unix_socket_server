@@ -233,7 +233,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
+	while (uss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -325,7 +325,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 	}
 
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
+	while (uss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -438,7 +438,7 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 
 
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0)
+	while (uss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();

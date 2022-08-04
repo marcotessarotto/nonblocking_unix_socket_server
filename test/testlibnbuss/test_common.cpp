@@ -105,3 +105,86 @@ void initialize1(std::vector<char> & buffer) {
 	//	    std::cout << *it << "\n";
 	//	}
 }
+
+
+struct InternalSocketData {
+
+};
+
+static std::map<int, InternalSocketData> socket_data;
+
+/**
+ * implements a server which receives two 64 bit integers and produces the sum
+ */
+void listener_sum_server(IGenericServer *srv, int fd, enum job_type_t job_type) {
+
+	switch (job_type) {
+	case NEW_SOCKET:
+		TEST_LOG(info)	<< "[listener_sum_server] NEW_SOCKET " << fd;
+
+		break;
+	case CLOSE_SOCKET:
+
+		TEST_LOG(info)	<< "[listener_sum_server] CLOSE_SOCKET " << fd;
+		//close(fd);
+		srv->close(fd);
+
+		break;
+	case SOCKET_IS_CLOSED:
+		TEST_LOG(trace)	<< "[listener_sum_server] SOCKET_IS_CLOSED " << fd;
+		break;
+	case AVAILABLE_FOR_WRITE:
+		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_WRITE fd=" << fd;
+		// TODO: check if there are buffers to write to this socket
+		// implementation of write buffer is in ThreadedServer2
+		break;
+	case AVAILABLE_FOR_READ_AND_WRITE:
+	case AVAILABLE_FOR_READ:
+		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_READ fd=" << fd;
+
+		// read all data from socket
+		auto data = srv->read(fd, 4096);
+
+		for (auto &item: data) {
+
+		}
+
+
+
+		TEST_LOG(debug)
+		<< "[listener_sum_server] number of vectors returned: " << data.size();
+
+		int counter = 0;
+		for (std::vector<char> &item : data) {
+			TEST_LOG(trace)
+			<< "[listener_sum_server] buffer " << counter++ << ": "
+					<< item.size() << " bytes";
+
+			while (true) {
+				int _errno;
+				int res;
+
+				res = srv->write(fd, item, &_errno);
+
+				if (res >= 0)
+					break;
+
+				if (res == -1 && ((_errno == EAGAIN) || (_errno == EWOULDBLOCK))) {
+					struct timespec ts { 0, 1000000 };
+
+					nanosleep(&ts, NULL);
+				} else {
+					terminate();
+				}
+			}
+
+		}
+		break;
+
+
+	}
+
+	TEST_LOG(debug)	<< "[listener_sum_server] returning - fd=" << fd;
+
+}
+

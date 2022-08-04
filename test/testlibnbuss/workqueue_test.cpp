@@ -153,9 +153,9 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
-	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.getActiveConnections();
+	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.get_active_connections();
 	// spin... consider using a condition variable
-	while (uss.getActiveConnections() > 0) {
+	while (uss.get_active_connections() > 0) {
 		// TEST_LOG(info) << uss.getActiveConnections();
 
 //		struct timespec t;

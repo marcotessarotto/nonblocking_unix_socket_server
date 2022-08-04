@@ -95,7 +95,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 		tc.close();
 
 		// spin... consider using a condition variable
-		while (ts.getActiveConnections() > 0)
+		while (ts.get_active_connections() > 0)
 			;
 
 		TEST_LOG(info)
@@ -241,9 +241,9 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
-	TEST_LOG(info) << "ts.getActiveConnections() = " << ts.getActiveConnections();
+	TEST_LOG(info) << "ts.getActiveConnections() = " << ts.get_active_connections();
 	// spin... consider using a condition variable
-	while (ts.getActiveConnections() > 0) {
+	while (ts.get_active_connections() > 0) {
 		// TEST_LOG(info) << uss.getActiveConnections();
 
 //		struct timespec t;
@@ -367,7 +367,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 
 
 	// spin... consider using a condition variable
-	while (tss.getActiveConnections() > 0)
+	while (tss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -412,7 +412,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 	}
 
 	// spin... consider using a condition variable
-	while (tss.getActiveConnections() > 0)
+	while (tss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -467,7 +467,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesSendReceive
 	}
 
 	// spin... consider using a condition variable
-	while (tss.getActiveConnections() > 0)
+	while (tss.get_active_connections() > 0)
 		;
 
 	threadedServer.stop();
@@ -564,7 +564,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 	}
 
 	// spin... consider using a condition variable
-	while (tss.getActiveConnections() > 0)
+	while (tss.get_active_connections() > 0)
 		;
 
 	workQueue.stop();

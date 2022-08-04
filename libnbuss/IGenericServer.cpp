@@ -44,7 +44,7 @@ IGenericServer::~IGenericServer() {
 /**
  * wait for server starting to listen for incoming connections
  */
-void IGenericServer::waitForServerReady() {
+void IGenericServer::wait_for_server_ready() {
 	std::unique_lock<std::mutex> lk(mtx);
 	while (!is_listening)
 		cv.wait(lk);
@@ -91,7 +91,7 @@ end:
 }
 
 
-int IGenericServer::setFdNonBlocking(int fd, bool non_blocking) noexcept {
+int IGenericServer::set_fd_non_blocking(int fd, bool non_blocking) noexcept {
 	int res;
 
 	res = fcntl(fd, F_GETFL, 0);
@@ -119,8 +119,11 @@ int IGenericServer::setFdNonBlocking(int fd, bool non_blocking) noexcept {
  *
  * alternatives: return pointer to container; pass a reference to container as parameter;
  * or https://stackoverflow.com/a/1092572/974287
+ *
+ * readBufferSize is the size in bytes of the read buffers
+ * if _errno is provided, the errno from the last read syscall will be stored in *_errno
  */
-std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSize, int * _errno) noexcept {
+std::vector<std::vector<char>> IGenericServer::read(int fd, size_t buffer_size, int * _errno) noexcept {
 	std::vector<std::vector<char>> result;
 
 	set_IO(fd);
@@ -128,7 +131,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 	while (true) {
 
 		// skip creation of temporary object and copy of temporary object (item 42)
-		std::vector<char> &buffer = result.emplace_back(readBufferSize);
+		std::vector<char> &buffer = result.emplace_back(buffer_size);
 
 		//std::vector<char> buffer(readBufferSize);
 
@@ -155,7 +158,6 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 			// error returned by read syscall
 			LIB_LOG(error) <<  "read error " << strerror(errno);
 
-			//throw std::runtime_error(strerror(errno));
 			break;
 		} else if (c == 0) {
 			// eof, should not happen when using non blocking sockets
@@ -174,7 +176,7 @@ std::vector<std::vector<char>> IGenericServer::read(int fd, size_t readBufferSiz
 	return result;
 }
 
-std::vector<char> IGenericServer::read_one(int fd, size_t buffer_size, int * _errno) noexcept {
+std::vector<char> IGenericServer::read_one_buffer(int fd, size_t buffer_size, int * _errno) noexcept {
 
 	set_IO(fd);
 
@@ -544,6 +546,7 @@ void IGenericServer::close(int fd) noexcept {
 		// remove fd from incoming_conn_fd
 		// close fd while holding lock
 		std::unique_lock<std::mutex> lk(incoming_conn_fd_mtx);
+
 		int res = ::close(fd);
 
 		incoming_conn_fd.extract(fd);
@@ -564,7 +567,7 @@ void IGenericServer::close(int fd) noexcept {
 }
 
 
-int IGenericServer::getActiveConnections() noexcept {
+int IGenericServer::get_active_connections() noexcept {
 	return activeConnections.load();
 }
 
@@ -572,7 +575,6 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int 
 	if (fd == -1) {
 		LIB_LOG(error) << "invalid socket descriptor";
 		if (_errno != nullptr) *_errno = -1;
-		//throw std::invalid_argument("invalid socket descriptor");
 		return -1;
 	}
 
@@ -623,7 +625,7 @@ ssize_t IGenericServer::write(int fd, const char * data, ssize_t data_size, int 
 }
 
 
-int IGenericServer::getBuffersSize(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept
+int IGenericServer::get_buffers_size(int sockfd, int &send_buffer_size, int &receive_buffer_size) noexcept
 {
 	socklen_t optlen;
 	int res;
@@ -649,7 +651,7 @@ int IGenericServer::getBuffersSize(int sockfd, int &send_buffer_size, int &recei
 	return 0;
 }
 
-int IGenericServer::setSendBufferSize(int sockfd, int send_buffer_size) noexcept {
+int IGenericServer::set_send_buffer_size(int sockfd, int send_buffer_size) noexcept {
 
 	int res;
 

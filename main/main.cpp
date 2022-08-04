@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 		tc.close();
 
 		// spin... consider adding a condition variable
-		while (ts.getActiveConnections() > 0)
+		while (ts.get_active_connections() > 0)
 			;
 
 		cout << "[server] stopping server" << endl;

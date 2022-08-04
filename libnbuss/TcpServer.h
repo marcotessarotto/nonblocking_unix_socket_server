@@ -35,6 +35,8 @@ class TcpServer :  public IGenericServer {
     /**
      * setup server and bind socket to listening address (but do not call listen syscall)
      *
+     * setup invokes open_listening_socket and implements a retry mechanism if the server socket cannot be opened
+     *
      * @throws std::runtime_error
      */
 	void setup();
