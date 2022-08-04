@@ -53,8 +53,27 @@ TcpServer::~TcpServer() {
 
 void TcpServer::setup() {
 
-	// listen_sock will be auto closed when returning from listen
-	listen_sock.fd = open_listening_socket();
+	int counter = 5;
+
+	// implement a retry mechanism
+	while (counter--) {
+		// listen_sock will be auto closed when returning from listen
+		listen_sock.fd = open_listening_socket();
+
+		if (listen_sock.fd != -1) {
+			return;
+		}
+
+		LIB_LOG(warning) << "[TcpServer::setup] open_listening_socket failed, sleeping";
+
+		struct timespec t;
+
+		t.tv_sec = 0;  // seconds
+		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
+
+		// sleep for 100 ms in case server socket is still being closed by kernel
+		nanosleep(&t, NULL);
+	}
 
 	if (listen_sock.fd == -1) {
 		throw std::runtime_error("cannot open server socket");
