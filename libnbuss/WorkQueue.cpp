@@ -107,8 +107,8 @@ void WorkQueue::start(std::function<void(IGenericServer::ListenEvent &&listen_ev
 	threaded_server.start(f);
 
 //	threaded_server.start(
-//		[this](/*IGenericServer::ListenEvent && &&_listen_event*/) {
-//				this->producer_callback(IGenericServer::ListenEvent{nullptr, 0, SOCKET_IS_CLOSED, 0});
+//		[this](IGenericServer::ListenEvent && _listen_event) {
+//				this->producer_callback(std::forward<IGenericServer::ListenEvent &&>(_listen_event));
 //			}
 //		);
 
@@ -158,7 +158,7 @@ void WorkQueue::close(int fd) {
 }
 
 void WorkQueue::remove_from_epoll(int fd) {
-	threaded_server.remove_from_epoll(fd);
+	threaded_server.getServer().remove_from_epoll(fd);
 }
 
 

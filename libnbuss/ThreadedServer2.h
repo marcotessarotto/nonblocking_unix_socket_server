@@ -23,12 +23,13 @@ namespace nbuss_server {
  * this class implements both a dedicated thread for the listen method of server
  * and a dedicated thread for managing AVAILABLE_FOR_WRITE (EPOLLOUT) events
  */
-class ThreadedServer2  : public virtual IThreadable {
+class ThreadedServer2  /*: public virtual IThreadable*/ {
 protected:
 	IGenericServer &server;
 
 	/// if true, the server is running
 	bool running;
+	std::mutex running_mtx;
 
 	/// if true, the server must stop
 	std::atomic<bool> stopServer;
@@ -80,12 +81,12 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start(std::function<void(IGenericServer::ListenEvent && listen_event)> callback_function) override;
+	/*virtual*/ void start(std::function<void(IGenericServer::ListenEvent && listen_event)> callback_function)/* override*/;
 
 	/**
 	 * terminate server instance and waits for thread to stop
 	 */
-	virtual void stop() override;
+	/*virtual*/ void stop() /*override*/;
 
 	/**
 	 * invoke the write system call; return the number of bytes written on success,
@@ -106,12 +107,14 @@ public:
 		return write(fd, p, data_size);
 	}
 
-	// read method is inherited by IGenericServer
+	// read methods: get IGenericServer instance by using getServer() function
 
 	/**
 	 * close socket and remove internal structures
 	 */
 	void close(int fd);
+
+	IGenericServer &getServer() { return server; }
 
 };
 

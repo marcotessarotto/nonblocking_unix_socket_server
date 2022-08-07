@@ -119,6 +119,7 @@ struct InternalSocketData {
 
 static std::map<int, InternalSocketData> socket_data;
 
+
 /**
  * implements a server which receives two 64 bit integers and sends back the sum
  */
@@ -158,7 +159,7 @@ void listener_sum_server(IGenericServer::ListenEvent &&listen_event) {
 		auto &server = srv->getServer();
 
 		// read data from socket: 2 * 64bit values
-		auto d = server.read_one_buffer_t<long long>(listen_event.fd, 2);
+		auto d = server.getServer().read_one_buffer_t<long long>(listen_event.fd, 2);
 
 		auto op_a = d[0];
 		auto op_b = d[1];

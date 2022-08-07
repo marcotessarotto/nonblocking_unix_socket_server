@@ -160,7 +160,7 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
 			// read all data from socket
-			auto data = threadedServer2.read(fd, 1024*16);
+			auto data = threadedServer2.getServer().read(fd, 1024*16);
 
 			TEST_LOG(trace)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
@@ -502,8 +502,10 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 	WorkQueue workQueue(threadedServer2);
 
+	atomic<int> socket_is_closed_counter = 0;
+
 	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
-	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
+	[&threadedServer2, &socket_is_closed_counter](IGenericServer::ListenEvent &&listen_event) {
 
 		WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
 		int fd = listen_event.fd;
@@ -523,13 +525,16 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 			break;
 		case SOCKET_IS_CLOSED:
 			TEST_LOG(info)	<< "[lambda][myListener] SOCKET_IS_CLOSED " << fd;
+
+			socket_is_closed_counter++;
+
 			// do cleanup
 			break;
 		case AVAILABLE_FOR_READ:
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
 			// read all data from socket
-			auto data = threadedServer2.read(fd, 1024*16);
+			auto data = threadedServer2.getServer().read(fd, 1024*16);
 
 			TEST_LOG(info)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 
@@ -538,7 +543,7 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 			for (std::vector<char> item : data) {
 				TEST_LOG(debug)	<< "[lambda][myListener] buffer " << counter << ": " << item.size() << " bytes";
 
-				ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
+				//ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
 				TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 				threadedServer2.write<char>(fd, item);
@@ -560,7 +565,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 //	std::string message = "hello";
 
-	for (int i = 0; i < 100; i++) {
+	int N = 100;
+
+	for (int i = 0; i < N; i++) {
 
 		TcpClient tc;
 
@@ -581,12 +588,18 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 		TEST_LOG(info) << "*** " << i;
 	}
 
+	// we need to wait for server to close last connection and send SOCKET_IS_CLOSED event
+	usleep(10000);
+
 	// spin... consider using a condition variable
 	while (tss.get_active_connections() > 0) {
 		usleep(100);
 	}
 
 	workQueue.stop();
+
+	// check that N SOCKET_IS_CLOSED events have been received
+	EXPECT_EQ(socket_is_closed_counter, N);
 
 
 	TEST_LOG(info) << "test finished!";

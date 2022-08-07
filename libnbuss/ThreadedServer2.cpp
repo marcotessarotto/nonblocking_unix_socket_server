@@ -26,18 +26,16 @@ ThreadedServer2::~ThreadedServer2() {
 void ThreadedServer2::listen_worker() {
 	LIB_LOG(info) << "ThreadedServer2::listen_worker start";
 
-	// internalCallback
+//	auto f = [this](IGenericServer::ListenEvent &&x){
+//		this->internal_callback(std::forward<decltype(x)>(x));
+//	};
 
-	auto f = [this](auto&& x){
+	auto f = [this](auto &&x){
 		this->internal_callback(std::forward<decltype(x)>(x));
 	};
 
+	// listen returns when another thread calls terminate function
 	server.listen(f);
-
-	// listen returns when another thread calls terminate
-//	server.listen([this](ListenEvent &&listen_event) {
-//		this->internalCallback(listen_event);
-//	});
 
 	// thread ends
 	LIB_LOG(info) << "ThreadedServer2::listen_worker end";
@@ -139,9 +137,9 @@ void ThreadedServer2::internal_callback(IGenericServer::ListenEvent &&listen_eve
 	//LIB_LOG(debug)	<< "[server][my_listener] finished - fd=" << fd;
 }
 
-void ThreadedServer2::start(std::function<void(ListenEvent &&listen_event)> callback_function) {
+void ThreadedServer2::start(std::function<void(IGenericServer::ListenEvent &&listen_event)> callback_function) {
 
-	std::unique_lock<std::mutex> lk(mtx);
+	std::unique_lock<std::mutex> lk(running_mtx);
 	bool _running = running;
 	lk.unlock();
 
@@ -173,6 +171,10 @@ void ThreadedServer2::start(std::function<void(ListenEvent &&listen_event)> call
 	// return when server is ready i.e. listening for incoming connections
 	server.wait_for_server_ready();
 
+	lk.lock();
+	running = true;
+	lk.unlock();
+
 }
 
 void ThreadedServer2::stop() {
@@ -201,6 +203,10 @@ void ThreadedServer2::stop() {
 
 	LIB_LOG(trace) << "ThreadedServer2::stop before writerWorkerThread.join()";
 	writerWorkerThread.join();
+
+	std::unique_lock<std::mutex> lk2(running_mtx);
+	running = false;
+	lk2.unlock();
 
 }
 
@@ -232,7 +238,7 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 
 	if (isWriteQueueEmpty) {
 		// write queue is empty, let's try to write to fd
-		ssize_t bytesWritten = IGenericServer::write(fd, data, data_size);
+		ssize_t bytesWritten = server.write(fd, data, data_size);
 
 		if (bytesWritten == data_size) {
 			LIB_LOG(trace) << "ThreadedServer2::write() write: ALL data written! fd=" << fd << " bytesWritten=" << bytesWritten;
@@ -443,7 +449,7 @@ ssize_t ThreadedServer2::write_holding_lock(int fd, SocketData &sd, SocketData::
 	//      if write is not successful (EAGAIN or EWOULDBLOCK), add data to write queue; return -1;
 
 	// write queue is empty, let's try to write to fd
-	ssize_t bytesWritten = IGenericServer::write(fd, item.data, item.data_size);
+	ssize_t bytesWritten = server.write(fd, item.data, item.data_size);
 
 	if (bytesWritten == item.data_size) {
 		// ok! all data has been written

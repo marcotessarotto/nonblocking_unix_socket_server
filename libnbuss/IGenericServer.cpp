@@ -20,9 +20,10 @@
 namespace nbuss_server {
 
 
-IGenericServer::IGenericServer(unsigned int backlog) :
+IGenericServer::IGenericServer(unsigned int backlog, bool use_smart_close) :
 		stop_server{false},
 		is_listening{false},
+		use_smart_close{use_smart_close},
 		socketList{},
 		backlog{backlog},
 		activeConnections{0} {
@@ -459,23 +460,24 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 							<< ((events[n].events & EPOLLHUP) ? "EPOLLHUP" : "")
 							<<   " fd=" << fd;
 
-					// TBC: if socket has just been opened (i.e. no I/O has been done) then close immediately
+					// if socket has just been opened (i.e. no I/O has been done) then close immediately
 					// without calling callback function
 
-#ifdef USE_SMART_CLOSE
-					if (!is_IO(fd)) {
-						LIB_LOG(info) << "[IGenericServer][listen] closing immediately fd because of no IO fd=" << fd;
+					if (use_smart_close) {
+						if (!is_IO(fd)) {
+							LIB_LOG(info) << "[IGenericServer][listen] closing immediately fd because of no IO fd=" << fd;
 
-						// invoke IGenericServer::close()
-						close(fd);
+							// invoke IGenericServer::close()
+							close(fd);
 
-						callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, SOCKET_IS_CLOSED, events[n].events});
+							callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, SOCKET_IS_CLOSED, events[n].events});
+						} else {
+							callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, CLOSE_SOCKET, events[n].events});
+						}
 					} else {
-#endif
 						callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, CLOSE_SOCKET, events[n].events});
-#ifdef USE_SMART_CLOSE
 					}
-#endif
+
 					continue;
 				} else if (events[n].events & EPOLLERR) {
 					LIB_LOG(error) << "[IGenericServer][listen] EPOLLERR fd=" << fd;
@@ -666,28 +668,43 @@ int IGenericServer::set_send_buffer_size(int sockfd, int send_buffer_size) noexc
 }
 
 void IGenericServer::set_IO(int fd) {
-#ifdef USE_SMART_CLOSE
-	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
-	is_socket_IO[fd] = true;
-	lk.unlock();
-#endif
+
+
+
+	if (use_smart_close) {
+		std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+		is_socket_IO[fd] = true;
+		lk.unlock();
+
+		LIB_LOG(debug) << "***IGenericServer::set_IO " << fd << " " << is_socket_IO[fd] << " " << this;
+	}
+
 }
 
 void IGenericServer::unset_IO(int fd) {
-#ifdef USE_SMART_CLOSE
-	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
-	is_socket_IO[fd] = true;
-	lk.unlock();
-#endif
+
+
+
+	if (use_smart_close) {
+		std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+		is_socket_IO[fd] = false;
+		lk.unlock();
+
+		LIB_LOG(debug) << "***IGenericServer::unset_IO " << fd << " " << is_socket_IO[fd] << " " << this;
+	}
 }
 
 bool IGenericServer::is_IO(int fd) {
-#ifdef USE_SMART_CLOSE
-	std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
-	return is_socket_IO[fd];
-#else
-	return true;
-#endif
+	if (use_smart_close) {
+		std::unique_lock<std::mutex> lk(is_socket_IO_mutex);
+		bool result =  is_socket_IO[fd];
+
+		LIB_LOG(debug) << "***IGenericServer::is_IO " << fd << " " << result << " " << this;
+
+		return result;
+	} else {
+		return true;
+	}
 }
 
 

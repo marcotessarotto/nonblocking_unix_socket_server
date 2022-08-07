@@ -32,6 +32,8 @@ enum job_type_t {
  *
  * This allows to introduce different kind of servers i.e. non blocking unix socket server, non blocking TCP socket server ...
  *
+ * IGenericServer is not movable or copiable because it has mutex fields.
+ *
  */
 class IGenericServer {
 
@@ -102,6 +104,11 @@ protected:
 	 */
 	void closeSockets();
 
+	/** if the remote peer closes the connection after opening it, with no i/o on the socket, then
+	 the server closes the connection and then sends a SOCKET_IS_CLOSED event informing that the socket has been closed
+	 */
+	bool use_smart_close;
+
 public:
 
 	struct ListenEvent {
@@ -111,7 +118,7 @@ public:
 		uint32_t events;
 	};
 
-	IGenericServer(unsigned int backlog = 10);
+	IGenericServer(unsigned int backlog = 10, bool use_smart_close = true);
 	virtual ~IGenericServer();
 	
 	//using TServerCallback = std::function<void(IGenericServer *,int, enum job_type_t )>;

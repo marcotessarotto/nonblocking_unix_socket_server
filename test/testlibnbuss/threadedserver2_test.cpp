@@ -44,10 +44,12 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 
 	ThreadedServer2 threadedServer2(uss);
 
+	atomic<int> socket_is_closed_counter = 0;
+
 	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
 	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
-	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
+	[&threadedServer2, &socket_is_closed_counter](IGenericServer::ListenEvent &&listen_event) {
 
 		ThreadedServer2 * srv = static_cast<ThreadedServer2 *>(listen_event.srv);
 		int fd = listen_event.fd;
@@ -63,6 +65,12 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 			threadedServer2.close(fd);
 
 			break;
+		case SOCKET_IS_CLOSED:
+			TEST_LOG(info)	<< "[lambda][myListener] SOCKET_IS_CLOSED " << fd;
+
+			socket_is_closed_counter++;
+
+			break;
 		case AVAILABLE_FOR_READ:
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
@@ -70,11 +78,11 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 				int _errno;
 				// read all data from socket
 				TEST_LOG(trace)	<< "[lambda][myListener] before calling read";
-				auto data = srv->read(fd, 1024*128, &_errno);
+				auto data = srv->getServer().read(fd, 1024*128, &_errno);
 
 				if ((_errno == EAGAIN || _errno == EWOULDBLOCK) && data.size() == 0) {
 					if (counter++ < 20)
-						TEST_LOG(info) << "errno and data.size() == 0";
+						TEST_LOG(info) << "[lambda][myListener] errno and data.size() == 0";
 					break;
 				}
 
@@ -86,7 +94,7 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 				for (std::vector<char> item : data) {
 					TEST_LOG(trace)	<< "[lambda][myListener] buffer " << counter++ << ": " << item.size() << " bytes";
 
-					ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
+					//ThreadedServer2 * srv2 = reinterpret_cast<ThreadedServer2 *>(srv);
 
 					TEST_LOG(trace)	<< "[lambda][myListener] calling srv2->write " << item.size();
 					threadedServer2.write<char>(fd, item);
@@ -169,6 +177,7 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 	TEST_LOG(info) << "[client] crc16 of data received from server = " << clientCrc2;
 
 	TEST_LOG(info) << "[client] closing socket";
+
 	usc.close();
 
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
@@ -195,8 +204,9 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 
 	TEST_LOG(info) << "test finished!";
 
-	//calcCrc = false;
-
-	//EXPECT_EQ(clientCrc2, serverDataCrc16);
 	EXPECT_EQ(clientCrc2, clientCrc);
+
+	// check that no SOCKET_IS_CLOSED events have been received
+	EXPECT_EQ(socket_is_closed_counter, 0);
+
 }

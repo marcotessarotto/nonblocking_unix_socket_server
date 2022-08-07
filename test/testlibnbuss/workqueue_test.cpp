@@ -66,7 +66,7 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 			TEST_LOG(info)	<< "[lambda][myListener] AVAILABLE_FOR_READ fd=" << fd;
 
 			// read all data from socket
-			auto data = threadedServer2.read(fd, 1024*16);
+			auto data = threadedServer2.getServer().read(fd, 1024*16);
 
 			TEST_LOG(trace)	<< "[lambda][myListener] number of vectors returned: " << data.size();
 

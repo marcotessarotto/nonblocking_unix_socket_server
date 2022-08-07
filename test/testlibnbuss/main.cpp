@@ -17,6 +17,9 @@ int main(int argc, char **argv)
     //::testing::GTEST_FLAG(filter) = "*.TcpServerSameClientMultipleTimesConnectOnlyWorkQueue";
 
     //::testing::GTEST_FLAG(filter) = "*.TcpSumServerSameClientMultipleTimesConnectOnlyWorkQueue";
+    //::testing::GTEST_FLAG(filter) = "*.TestUnixSocketThreadedServer2";
+    ::testing::GTEST_FLAG(filter) = "*.TcpServerSameClientMultipleTimesConnectOnlyWorkQueue";
+
 
 
     // valgrind -s --leak-check=full --show-leak-kinds=all cmake.debug.linux.x86_64/test/testlibnbuss/testlibnbuss
