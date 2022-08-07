@@ -74,69 +74,6 @@ static Crc16 crc;
 //static uint16_t serverDataCrc16;
 static bool calcCrc = false;
 
-/**
- * listener used by most tests
- * implementation of an echo server
- */
-//static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
-//
-//	switch (job_type) {
-//	case NEW_SOCKET:
-//		TEST_LOG(info)	<< "[server][my_listener] NEW_SOCKET " << fd;
-//
-//		break;
-//	case CLOSE_SOCKET:
-//
-//		TEST_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
-//		//close(fd);
-//		srv->close(fd);
-//
-//		break;
-//	case AVAILABLE_FOR_WRITE:
-//		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_WRITE fd=" << fd;
-//		// TODO: check if there are buffers to write to this socket
-//		break;
-//	case AVAILABLE_FOR_READ_AND_WRITE:
-//	case AVAILABLE_FOR_READ:
-//		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
-//
-//		// read all data from socket
-//		auto data = IGenericServer::read(fd, 256);
-//
-//		TEST_LOG(debug)
-//		<< "[server][my_listener] number of vectors returned: " << data.size();
-//
-//		int counter = 0;
-//		for (std::vector<char> item : data) {
-//			TEST_LOG(trace)
-//			<< "[server][my_listener] buffer " << counter++ << ": "
-//					<< item.size() << " bytes";
-//
-//			if (calcCrc) {
-//				serverDataCrc16 = crc.update_crc_16(serverDataCrc16,
-//						reinterpret_cast<const unsigned char*>(item.data()),
-//						item.size());
-//			}
-//
-//			// TODO: if write queue for fd is empty, write buffer
-//			// else copy buffer to queue
-//
-//			while (IGenericServer::write(fd, item) == -1) {
-//				struct timespec ts { 0, 1000000 };
-//
-//				nanosleep(&ts, NULL);
-//			}
-//		}
-//		break;
-//
-//
-//	}
-//
-//	TEST_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
-//
-//}
-
-
 
 
 /**
@@ -233,8 +170,9 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteLongBuffe
 	//TEST_LOG(info) << "[server] long buffer crc = " << serverDataCrc16;
 
 	// spin... consider using a condition variable
-	while (uss.get_active_connections() > 0)
-		;
+	while (uss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -325,8 +263,9 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleClientsReadWrite
 	}
 
 	// spin... consider using a condition variable
-	while (uss.get_active_connections() > 0)
-		;
+	while (uss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -438,8 +377,9 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerMultipleThreadClientsRea
 
 
 	// spin... consider using a condition variable
-	while (uss.get_active_connections() > 0)
-		;
+	while (uss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 

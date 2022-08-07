@@ -157,16 +157,20 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	TEST_LOG(info) << "uss.getActiveConnections() = " << uss.get_active_connections();
 	// spin... consider using a condition variable
+//	while (uss.get_active_connections() > 0) {
+//		// TEST_LOG(info) << uss.getActiveConnections();
+//
+////		struct timespec t;
+////
+////		t.tv_sec = 0;  // seconds
+////		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
+////
+////		nanosleep(&t, NULL);
+//
+//	}
+
 	while (uss.get_active_connections() > 0) {
-		// TEST_LOG(info) << uss.getActiveConnections();
-
-//		struct timespec t;
-//
-//		t.tv_sec = 0;  // seconds
-//		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
-//
-//		nanosleep(&t, NULL);
-
+		usleep(100);
 	}
 
 	TEST_LOG(info) << "[server] stopping server";

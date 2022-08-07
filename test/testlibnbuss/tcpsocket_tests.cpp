@@ -97,8 +97,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerClientReadWriteTest) {
 		tc.close();
 
 		// spin... consider using a condition variable
-		while (ts.get_active_connections() > 0)
-			;
+		while (ts.get_active_connections() > 0) {
+			usleep(100);
+		}
 
 		TEST_LOG(info)
 		<< "[server] stopping server";
@@ -251,16 +252,20 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 	TEST_LOG(info) << "ts.getActiveConnections() = " << ts.get_active_connections();
 	// spin... consider using a condition variable
 	while (ts.get_active_connections() > 0) {
-		// TEST_LOG(info) << uss.getActiveConnections();
-
-//		struct timespec t;
-//
-//		t.tv_sec = 0;  // seconds
-//		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
-//
-//		nanosleep(&t, NULL);
-
+		usleep(100);
 	}
+
+//	while (ts.get_active_connections() > 0) {
+//		// TEST_LOG(info) << uss.getActiveConnections();
+//
+////		struct timespec t;
+////
+////		t.tv_sec = 0;  // seconds
+////		t.tv_nsec = 100 * 1000 * 1000; // nanoseconds
+////
+////		nanosleep(&t, NULL);
+//
+//	}
 
 	TEST_LOG(info) << "[server] stopping server";
 	workQueue.stop();
@@ -374,8 +379,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerMultipleThreadClientsReadWriteTest
 
 
 	// spin... consider using a condition variable
-	while (tss.get_active_connections() > 0)
-		;
+	while (tss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -419,8 +425,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 	}
 
 	// spin... consider using a condition variable
-	while (tss.get_active_connections() > 0)
-		;
+	while (tss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -474,8 +481,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesSendReceive
 	}
 
 	// spin... consider using a condition variable
-	while (tss.get_active_connections() > 0)
-		;
+	while (tss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -574,8 +582,9 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 	}
 
 	// spin... consider using a condition variable
-	while (tss.get_active_connections() > 0)
-		;
+	while (tss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	workQueue.stop();
 
@@ -645,8 +654,9 @@ TEST(NonblockingTcpSocketServerTest, TcpSumServerSameClientMultipleTimesConnectO
 	}
 
 	// spin... consider using a condition variable
-	while (tss.get_active_connections() > 0)
-		;
+	while (tss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	workQueue.stop();
 

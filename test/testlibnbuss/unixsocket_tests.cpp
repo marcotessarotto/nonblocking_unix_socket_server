@@ -152,8 +152,9 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerClientReadWriteTest) {
 	usc.close();
 
 	// spin... consider using a condition variable
-	while (uss.get_active_connections() > 0)
-		;
+	while (uss.get_active_connections() > 0) {
+		usleep(100);
+	}
 
 	threadedServer.stop();
 
@@ -227,25 +228,30 @@ TEST_F(NonblockingUnixSocketServerTest, UnixSocketServerTest) {
 	// it seems that EPOLLRDHUP EPOLLHUP events are lost, missed(???) or not delivered (?!?)
 	// or something else catches the events (?!?!??!?) or some kind of wrong interaction between gtest and valgring (!?!?!?)
 
-	struct timespec ts1, ts2;
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
-	long dt = 0;
 
-	// spin... consider using a condition variable
-	int c = 0;
 	while (uss.get_active_connections() > 0) {
-		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
-		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
-
-		c++;
-
-		if (dt > 2000000) // 2 milliseconds
-			break;
+		usleep(100);
 	}
 
-	if (dt > 0) {
-		TEST_LOG(info) << "dt = " << dt << " nanoseconds - c=" << c;
-	}
+//	struct timespec ts1, ts2;
+//	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts1);
+//	long dt = 0;
+//
+//	// spin... consider using a condition variable
+//	int c = 0;
+//	while (uss.get_active_connections() > 0) {
+//		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts2);
+//		dt = ((ts2.tv_sec - ts1.tv_sec) * 1000000000L + ts2.tv_nsec) - ts1.tv_nsec;
+//
+//		c++;
+//
+//		if (dt > 2000000) // 2 milliseconds
+//			break;
+//	}
+//
+//	if (dt > 0) {
+//		TEST_LOG(info) << "dt = " << dt << " nanoseconds - c=" << c;
+//	}
 
 	TEST_LOG(info)
 	<< "[server] calling terminate";
