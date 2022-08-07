@@ -423,7 +423,7 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 					unset_IO(fd);
 
 
-					callback_function(IGenericServer::ListenEvent(this, conn_sock, NEW_SOCKET, 0));
+					callback_function(IGenericServer::ListenEvent{this, conn_sock, NEW_SOCKET, 0});
 
 				}
 
@@ -469,10 +469,10 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 						// invoke IGenericServer::close()
 						close(fd);
 
-						callback_function(IGenericServer::ListenEvent(this, events[n].data.fd, SOCKET_IS_CLOSED, events[n].events));
+						callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, SOCKET_IS_CLOSED, events[n].events});
 					} else {
 #endif
-						callback_function(IGenericServer::ListenEvent(this, events[n].data.fd, CLOSE_SOCKET, events[n].events));
+						callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, CLOSE_SOCKET, events[n].events});
 #ifdef USE_SMART_CLOSE
 					}
 #endif
@@ -482,7 +482,7 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 					// Error condition happened on the associated file descriptor.
 					// This event is also reported for the write end of a pipe when the read end has been closed.
 
-					callback_function(IGenericServer::ListenEvent(this, events[n].data.fd, CLOSE_SOCKET, events[n].events));
+					callback_function(IGenericServer::ListenEvent{this, events[n].data.fd, CLOSE_SOCKET, events[n].events});
 
 					continue;
 				}
@@ -491,7 +491,7 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 				if ((events[n].events & EPOLLIN) && (events[n].events & EPOLLOUT) ) {
 					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLIN EPOLLOUT fd=" << fd;
 
-					callback_function(IGenericServer::ListenEvent(this, fd, AVAILABLE_FOR_READ_AND_WRITE, events[n].events));
+					callback_function(IGenericServer::ListenEvent{this, fd, AVAILABLE_FOR_READ_AND_WRITE, events[n].events});
 
 				} else if (events[n].events & EPOLLOUT) {
 					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
@@ -502,7 +502,7 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 				} else if (events[n].events & EPOLLIN) {
 					LIB_LOG(info)  << "[IGenericServer][listen] EPOLLIN fd=" << fd;
 
-					callback_function(IGenericServer::ListenEvent(this, fd, AVAILABLE_FOR_READ, events[n].events));
+					callback_function(IGenericServer::ListenEvent{this, fd, AVAILABLE_FOR_READ, events[n].events});
 					continue;
 				}
 
