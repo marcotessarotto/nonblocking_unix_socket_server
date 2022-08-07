@@ -21,7 +21,7 @@ ThreadedServer::~ThreadedServer() {
 }
 
 
-void ThreadedServer::listenWorker() {
+void ThreadedServer::listen_worker() {
 	LIB_LOG(info) << "ThreadedServer::mainLoopWorker start";
 
 	// listen returns when another thread calls terminate
@@ -47,7 +47,7 @@ void ThreadedServer::start(std::function<void(ListenEvent && listen_event)> call
 	try {
 		// std::thread is not CopyConstructible or CopyAssignable, although it is MoveConstructible and MoveAssignable.
 		// a temporary object is created and then moveAssigned to workerThread
-		workerThread = std::thread{&ThreadedServer::listenWorker, this};
+		workerThread = std::thread{&ThreadedServer::listen_worker, this};
 
 	} catch (const std::exception &e) {
 		LIB_LOG(error)	<< "[ThreadedServer::start] exception: " << e.what();

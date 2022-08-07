@@ -29,7 +29,7 @@ protected:
 
 	std::function<void(ListenEvent && listen_event)> callback_function;
 
-	void listenWorker();
+	void listen_worker();
 
 public:
 	ThreadedServer(IGenericServer &server);

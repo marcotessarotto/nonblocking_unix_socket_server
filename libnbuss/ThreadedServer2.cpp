@@ -23,13 +23,13 @@ ThreadedServer2::~ThreadedServer2() {
 	LIB_LOG(info) << "ThreadedServer2::~ThreadedServer2";
 }
 
-void ThreadedServer2::listenWorker() {
-	LIB_LOG(info) << "ThreadedServer2::mainLoopWorker start";
+void ThreadedServer2::listen_worker() {
+	LIB_LOG(info) << "ThreadedServer2::listen_worker start";
 
 	// internalCallback
 
 	auto f = [this](auto&& x){
-		this->internalCallback(std::forward<decltype(x)>(x));
+		this->internal_callback(std::forward<decltype(x)>(x));
 	};
 
 	server.listen(f);
@@ -40,10 +40,10 @@ void ThreadedServer2::listenWorker() {
 //	});
 
 	// thread ends
-	LIB_LOG(info) << "ThreadedServer2::mainLoopWorker end";
+	LIB_LOG(info) << "ThreadedServer2::listen_worker end";
 }
 
-SocketData &ThreadedServer2::getSocketData(int fd, bool use_mutex) {
+SocketData &ThreadedServer2::get_socket_data(int fd, bool use_mutex) {
 	// operator[] returns a reference to the value that is mapped to a key equivalent to key,
 	// performing an insertion if such key does not already exist.
 	// https://en.cppreference.com/w/cpp/container/map/operator_at
@@ -55,13 +55,13 @@ SocketData &ThreadedServer2::getSocketData(int fd, bool use_mutex) {
 	}
 }
 
-void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_event) {
+void ThreadedServer2::internal_callback(IGenericServer::ListenEvent &&listen_event) {
 
-
+	listen_event.srv = this;
 
 	switch (listen_event.job) {
 	case AVAILABLE_FOR_READ_AND_WRITE: {
-			LIB_LOG(info) << "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ_AND_WRITE fd=" << listen_event.fd;
+			LIB_LOG(info) << "[ThreadedServer2][internal_callback] AVAILABLE_FOR_READ_AND_WRITE fd=" << listen_event.fd;
 			// add socket to ready to write list
 
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
@@ -71,7 +71,6 @@ void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_even
 			// notify worker thread waiting on condition variable
 			readyToWriteCv.notify_one();
 
-			listen_event.srv = this;
 			listen_event.job = AVAILABLE_FOR_READ;
 
 			//LIB_LOG(info) << "[ThreadedServer2][internalCallback] callback_function";
@@ -91,7 +90,7 @@ void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_even
 
 
 			// this creates instance of SocketData, if no value is associated to key
-			getSocketData(listen_event.fd);
+			get_socket_data(listen_event.fd);
 
 			callback_function(std::forward<decltype(listen_event)>(listen_event));
 
@@ -110,7 +109,7 @@ void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_even
 		callback_function(std::forward<decltype(listen_event)>(listen_event));
 		break;
 	case AVAILABLE_FOR_WRITE: {
-			LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
+			LIB_LOG(info)	<< "[ThreadedServer2][internal_callback] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
 			// add socket to ready to write list
 
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
@@ -122,13 +121,13 @@ void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_even
 		}
 		break;
 	case AVAILABLE_FOR_READ:
-		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ fd=" << listen_event.fd;
+		LIB_LOG(info)	<< "[ThreadedServer2][internal_callback] AVAILABLE_FOR_READ fd=" << listen_event.fd;
 
 		callback_function(std::forward<decltype(listen_event)>(listen_event));
 
 		break;
 	case SOCKET_IS_CLOSED:
-		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] SOCKET_IS_CLOSED fd=" << listen_event.fd;
+		LIB_LOG(info)	<< "[ThreadedServer2][internal_callback] SOCKET_IS_CLOSED fd=" << listen_event.fd;
 
 		cleanup(listen_event.fd);
 
@@ -159,14 +158,14 @@ void ThreadedServer2::start(std::function<void(ListenEvent &&listen_event)> call
 
 	// start writeQueueWorker
 	try {
-		writerWorkerThread = std::thread{&ThreadedServer2::writeQueueWorker, this};
+		writerWorkerThread = std::thread{&ThreadedServer2::write_queue_worker, this};
 	} catch (const std::exception &e) {
 		LIB_LOG(error)	<< "[ThreadedServer2::start] writeQueueWorker exception: " << e.what();
 	}
 
 	// start listenWorker
 	try {
-		listenWorkerThread = std::thread{&ThreadedServer2::listenWorker, this};
+		listenWorkerThread = std::thread{&ThreadedServer2::listen_worker, this};
 	} catch (const std::exception &e) {
 		LIB_LOG(error)	<< "[ThreadedServer2::start] listenWorker exception: " << e.what();
 	}
@@ -218,7 +217,7 @@ ssize_t ThreadedServer2::write(int fd, const char * data, ssize_t data_size) {
 
 	ssize_t original_data_size = data_size;
 
-	SocketData &sd = getSocketData(fd);
+	SocketData &sd = get_socket_data(fd);
 
 	// get lock on write queue;
 	// all the subsequent operations on write queue are atomic thanks to the critical section
@@ -346,7 +345,7 @@ void ThreadedServer2::close(int fd) {
 
 }
 
-void ThreadedServer2::writeQueueWorker() {
+void ThreadedServer2::write_queue_worker() {
 	LIB_LOG(info) << "[ThreadedServer2::writeQueueWorker()] starting";
 
 	std::unique_lock<std::mutex> lk(readyToWriteMutex, std::defer_lock);
@@ -393,7 +392,7 @@ void ThreadedServer2::writeQueueWorker() {
 		LIB_LOG(trace) << "[ThreadedServer2::writeQueueWorker()] fd available to write: " << fd;
 
 		// get internal data associated to the socket
-		SocketData &sd = getSocketData(fd);
+		SocketData &sd = get_socket_data(fd);
 
 		sd.lock();
 

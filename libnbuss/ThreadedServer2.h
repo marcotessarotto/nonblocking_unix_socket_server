@@ -41,18 +41,18 @@ protected:
 
 	std::function<void(IGenericServer::ListenEvent &&listen_event)> callback_function;
 
-	void listenWorker();
+	void listen_worker();
 
-	void writeQueueWorker();
+	void write_queue_worker();
 
-	void internalCallback(IGenericServer::ListenEvent &&listen_event);
+	void internal_callback(IGenericServer::ListenEvent &&listen_event);
 
 
 	std::map<int, SocketData> internalSocketData;
 	std::mutex internalSocketDataMutex;
 
 
-	SocketData & getSocketData(int fd, bool use_mutex = true);
+	SocketData & get_socket_data(int fd, bool use_mutex = true);
 
 
 	/// set of file descriptors ready to write
