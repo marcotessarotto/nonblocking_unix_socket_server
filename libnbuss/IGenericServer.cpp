@@ -496,7 +496,7 @@ void IGenericServer::listen(std::function<void(ListenEvent &&listen_event)> call
 				} else if (events[n].events & EPOLLOUT) {
 					LIB_LOG(trace)  << "[IGenericServer][listen] EPOLLOUT fd=" << fd;
 
-					callback_function(IGenericServer::ListenEvent(this, fd, AVAILABLE_FOR_WRITE, events[n].events));
+					callback_function(IGenericServer::ListenEvent{this, fd, AVAILABLE_FOR_WRITE, events[n].events});
 
 					// no continue here; there can be a EPOLLIN event
 				} else if (events[n].events & EPOLLIN) {
