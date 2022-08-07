@@ -8,6 +8,7 @@
 #include <iterator>
 #include <functional>
 #include <iostream>
+//#include <boost/type_index.hpp>
 
 #include "testlibnbuss.h"
 
@@ -123,6 +124,10 @@ static std::map<int, InternalSocketData> socket_data;
  */
 void listener_sum_server(IGenericServer::ListenEvent &&listen_event) {
 
+	// pag. 49-50
+	//using boost::typeindex::type_id_with_cvr;
+	//cout << "param = " << type_id_with_cvr<decltype(listen_event)>().pretty_name() << 	'\n';
+
 	WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
 
 	switch (listen_event.job) {
@@ -152,7 +157,7 @@ void listener_sum_server(IGenericServer::ListenEvent &&listen_event) {
 		// get reference to server (instance of ThreadedServer2 class)
 		auto &server = srv->getServer();
 
-		// read data from socket
+		// read data from socket: 2 * 64bit values
 		auto d = server.read_one_buffer_t<long long>(listen_event.fd, 2);
 
 		auto op_a = d[0];
