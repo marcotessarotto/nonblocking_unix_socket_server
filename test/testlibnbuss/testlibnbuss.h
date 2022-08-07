@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "IGenericServer.h"
 #include "ThreadedServer.h"
 #include "ThreadedServer2.h"
 #include "UnixSocketClient.h"
@@ -13,8 +14,9 @@
 #include "WorkQueue.h"
 
 
-void listener_echo_server(nbuss_server::IGenericServer *srv, int fd, enum nbuss_server::job_type_t job_type);
-void listener_sum_server(nbuss_server::WorkQueue *srv, int fd, enum nbuss_server::job_type_t job_type);
+void listener_echo_server(nbuss_server::IGenericServer::ListenEvent &&listen_event);
+void listener_sum_server(nbuss_server::IGenericServer::ListenEvent &&listen_event);
+
 
 void initialize1(std::vector<char> & buffer);
 

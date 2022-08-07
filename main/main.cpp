@@ -15,22 +15,24 @@ using namespace std;
 using namespace nbuss_server;
 using namespace nbuss_client;
 
-static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
+static void my_listener(IGenericServer::ListenEvent listen_event) {
 
-	switch (job_type) {
+	IGenericServer * srv = static_cast<IGenericServer *>(listen_event.srv);
+
+	switch (listen_event.job) {
 	case CLOSE_SOCKET:
 
-		cout << "[server my_listener] closing socket " << fd << endl;
+		cout << "[server my_listener] closing socket " << listen_event.fd << endl;
 
-		srv->close(fd);
+		srv->close(listen_event.fd);
 		//close(fd);
 
 		break;
 	case AVAILABLE_FOR_READ:
-		cout << "[server my_listener] incoming data on socket " << fd << endl;
+		cout << "[server my_listener] incoming data on socket " << listen_event.fd << endl;
 
 		// read all data from socket
-		auto data = srv->read(fd);
+		auto data = srv->read(listen_event.fd);
 
 		cout << "[server my_listener] number of vectors returned by read: "
 				<< data.size() << endl;
@@ -41,7 +43,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 					<< item.size() << " bytes" << endl;
 			// cout << item.data() << endl;
 
-			srv->write<char>(fd, item);
+			srv->write<char>(listen_event.fd, item);
 		}
 
 		cout << "[server my_listener] incoming data - finished processing\n";

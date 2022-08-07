@@ -27,34 +27,36 @@ using namespace nbuss_client;
  * listener used by most tests
  * implementation of an echo server
  */
-void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type) {
+void listener_echo_server(IGenericServer::ListenEvent && listen_event) {
 
-	switch (job_type) {
+	IGenericServer * srv = static_cast<IGenericServer *>(listen_event.srv);
+
+	switch (listen_event.job) {
 	case NEW_SOCKET:
-		TEST_LOG(info)	<< "[listener_echo_server] NEW_SOCKET " << fd;
+		TEST_LOG(info)	<< "[listener_echo_server] NEW_SOCKET " << listen_event.fd;
 
 		break;
 	case CLOSE_SOCKET:
 
-		TEST_LOG(info)	<< "[listener_echo_server] CLOSE_SOCKET " << fd;
+		TEST_LOG(info)	<< "[listener_echo_server] CLOSE_SOCKET " << listen_event.fd;
 
-		srv->close(fd);
+		srv->close(listen_event.fd);
 
 		break;
 	case SOCKET_IS_CLOSED:
-		TEST_LOG(trace)	<< "[listener_echo_server] SOCKET_IS_CLOSED " << fd;
+		TEST_LOG(trace)	<< "[listener_echo_server] SOCKET_IS_CLOSED " << listen_event.fd;
 		break;
 	case AVAILABLE_FOR_WRITE:
-		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_WRITE fd=" << fd;
+		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
 
 		// implementation of write buffer is in ThreadedServer2
 		break;
 	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
-		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_READ fd=" << fd;
+		TEST_LOG(info)	<< "[listener_echo_server] AVAILABLE_FOR_READ fd=" << listen_event.fd;
 
 		// read all data from socket
-		auto data = srv->read(fd, 4096);
+		auto data = srv->read(listen_event.fd, 4096);
 
 		TEST_LOG(debug)
 		<< "[listener_echo_server] number of vectors returned: " << data.size();
@@ -69,7 +71,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 				int _errno;
 				int res;
 
-				res = srv->write(fd, item, &_errno);
+				res = srv->write(listen_event.fd, item, &_errno);
 
 				if (res >= 0)
 					break;
@@ -92,7 +94,7 @@ void listener_echo_server(IGenericServer *srv, int fd, enum job_type_t job_type)
 
 	}
 
-	TEST_LOG(debug)	<< "[listener_echo_server] returning - fd=" << fd;
+	TEST_LOG(debug)	<< "[listener_echo_server] returning - fd=" << listen_event.fd;
 
 }
 
@@ -119,37 +121,39 @@ static std::map<int, InternalSocketData> socket_data;
 /**
  * implements a server which receives two 64 bit integers and sends back the sum
  */
-void listener_sum_server(WorkQueue *srv, int fd, enum job_type_t job_type) {
+void listener_sum_server(IGenericServer::ListenEvent &&listen_event) {
 
-	switch (job_type) {
+	WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
+
+	switch (listen_event.job) {
 	case NEW_SOCKET:
-		TEST_LOG(info)	<< "[listener_sum_server] NEW_SOCKET " << fd;
+		TEST_LOG(info)	<< "[listener_sum_server] NEW_SOCKET " << listen_event.fd;
 
 		break;
 	case CLOSE_SOCKET:
 
-		TEST_LOG(info)	<< "[listener_sum_server] CLOSE_SOCKET " << fd;
+		TEST_LOG(info)	<< "[listener_sum_server] CLOSE_SOCKET " << listen_event.fd;
 
-		srv->close(fd);
+		srv->close(listen_event.fd);
 
 		break;
 	case SOCKET_IS_CLOSED:
-		TEST_LOG(trace)	<< "[listener_sum_server] SOCKET_IS_CLOSED " << fd;
+		TEST_LOG(trace)	<< "[listener_sum_server] SOCKET_IS_CLOSED " << listen_event.fd;
 		break;
 	case AVAILABLE_FOR_WRITE:
-		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_WRITE fd=" << fd;
+		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
 
 		// implementation of write buffer is in ThreadedServer2
 		break;
 	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
-		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_READ fd=" << fd;
+		TEST_LOG(info)	<< "[listener_sum_server] AVAILABLE_FOR_READ fd=" << listen_event.fd;
 
 		// get reference to server (instance of ThreadedServer2 class)
 		auto &server = srv->getServer();
 
 		// read data from socket
-		auto d = server.read_one_buffer_t<long long>(fd, 2);
+		auto d = server.read_one_buffer_t<long long>(listen_event.fd, 2);
 
 		auto op_a = d[0];
 		auto op_b = d[1];
@@ -158,7 +162,7 @@ void listener_sum_server(WorkQueue *srv, int fd, enum job_type_t job_type) {
 
 		int res;
 
-		res = server.write(fd, reinterpret_cast<char*>(&result), sizeof(result));
+		res = server.write(listen_event.fd, reinterpret_cast<char*>(&result), sizeof(result));
 
 		if (res == -1) {
 			TEST_LOG(error) << "[listener_sum_server] server.write error: " << strerror(errno);
@@ -170,7 +174,7 @@ void listener_sum_server(WorkQueue *srv, int fd, enum job_type_t job_type) {
 
 	}
 
-	TEST_LOG(debug)	<< "[listener_sum_server] returning - fd=" << fd;
+	TEST_LOG(debug)	<< "[listener_sum_server] returning - fd=" << listen_event.fd;
 
 }
 

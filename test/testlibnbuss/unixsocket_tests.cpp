@@ -45,29 +45,31 @@ TEST_F(NonblockingUnixSocketServerTest, CheckConstructorException) {
  * listener used by most tests
  * implementation of an echo server
  */
-static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
+static void my_listener(IGenericServer::ListenEvent listen_event) {
 
-	switch (job_type) {
+	IGenericServer * srv = static_cast<IGenericServer *>(listen_event.srv);
+
+	switch (listen_event.job) {
 	case NEW_SOCKET:
-		TEST_LOG(info)	<< "[server][my_listener] NEW_SOCKET " << fd;
+		TEST_LOG(info)	<< "[server][my_listener] NEW_SOCKET " << listen_event.fd;
 
 		break;
 	case CLOSE_SOCKET:
 
-		TEST_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << fd;
+		TEST_LOG(info)	<< "[server][my_listener] CLOSE_SOCKET " << listen_event.fd;
 		//close(fd);
-		srv->close(fd);
+		srv->close(listen_event.fd);
 
 		break;
 	case AVAILABLE_FOR_WRITE:
-		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_WRITE fd=" << fd;
+		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
 		break;
 	case AVAILABLE_FOR_READ_AND_WRITE:
 	case AVAILABLE_FOR_READ:
-		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << fd;
+		TEST_LOG(info)	<< "[server][my_listener] AVAILABLE_FOR_READ fd=" << listen_event.fd;
 
 		// read all data from socket
-		auto data = srv->read(fd, 256);
+		auto data = srv->read(listen_event.fd, 256);
 
 		TEST_LOG(debug)
 		<< "[server][my_listener] number of vectors returned: " << data.size();
@@ -88,7 +90,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 			// else copy buffer to queue
 
 			// TODO: if write returns -1, copy remaining data
-			while (srv->write(fd, item) == -1) {
+			while (srv->write(listen_event.fd, item) == -1) {
 				struct timespec ts { 0, 1000000 };
 
 				nanosleep(&ts, NULL);
@@ -99,7 +101,7 @@ static void my_listener(IGenericServer *srv, int fd, enum job_type_t job_type) {
 
 	}
 
-	TEST_LOG(debug)	<< "[server][my_listener] ending - fd=" << fd;
+	TEST_LOG(debug)	<< "[server][my_listener] ending - fd=" << listen_event.fd;
 
 }
 

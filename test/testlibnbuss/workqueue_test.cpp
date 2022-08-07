@@ -43,13 +43,15 @@ TEST(WorkQueueTest, TestUnixSocketWithWorkQueue) {
 
 	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
+	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
 
-	std::function<void(WorkQueue *, int, job_type_t)> myListener =
-	[&threadedServer2](WorkQueue *srv, int fd, enum job_type_t job_type) {
+		WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
+		int fd = listen_event.fd;
 
 		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
 
-		switch (job_type) {
+		switch (listen_event.job) {
 		case NEW_SOCKET:
 			TEST_LOG(info)	<< "[lambda][myListener] NEW_SOCKET " << fd;
 			break;

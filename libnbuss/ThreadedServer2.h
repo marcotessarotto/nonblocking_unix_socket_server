@@ -39,13 +39,13 @@ protected:
 	/// thread which runs the write queue worker (see function writeQueueWorker)
 	std::thread writerWorkerThread;
 
-	std::function<void(IGenericServer *,int, enum job_type_t )> callback_function;
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> callback_function;
 
 	void listenWorker();
 
 	void writeQueueWorker();
 
-	void internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type);
+	void internalCallback(IGenericServer::ListenEvent &&listen_event);
 
 
 	std::map<int, SocketData> internalSocketData;
@@ -80,7 +80,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) override;
+	virtual void start(std::function<void(IGenericServer::ListenEvent && listen_event)> callback_function) override;
 
 	/**
 	 * terminate server instance and waits for thread to stop

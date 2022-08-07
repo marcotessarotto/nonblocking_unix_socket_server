@@ -131,12 +131,17 @@ TEST(WorkQueueTest, TestTcpSocketWithWorkQueue) {
 
 	WorkQueue workQueue(threadedServer2);
 
-	std::function<void(WorkQueue *, int, job_type_t)> myListener =
-	[&threadedServer2](WorkQueue *srv, int fd, enum job_type_t job_type) {
+	// https://stackoverflow.com/questions/42799208/perfect-forwarding-in-a-lambda
+	// callback_function(std::forward<decltype(listen_event)>(listen_event));
 
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
+	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
+
+		WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
 		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
+		int fd = listen_event.fd;
 
-		switch (job_type) {
+		switch (listen_event.job) {
 		case NEW_SOCKET:
 			TEST_LOG(info)	<< "[lambda][myListener] NEW_SOCKET " << fd;
 			break;
@@ -489,12 +494,15 @@ TEST(NonblockingTcpSocketServerTest, TcpServerSameClientMultipleTimesConnectOnly
 
 	WorkQueue workQueue(threadedServer2);
 
-	std::function<void(WorkQueue *, int, job_type_t)> myListener =
-	[&threadedServer2](WorkQueue *srv, int fd, enum job_type_t job_type) {
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
+	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
+
+		WorkQueue * srv = static_cast<WorkQueue *>(listen_event.srv);
+		int fd = listen_event.fd;
 
 		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
 
-		switch (job_type) {
+		switch (listen_event.job) {
 		case NEW_SOCKET:
 			TEST_LOG(info)	<< "[lambda][myListener] NEW_SOCKET " << fd;
 			break;

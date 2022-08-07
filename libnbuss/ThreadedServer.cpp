@@ -31,7 +31,7 @@ void ThreadedServer::listenWorker() {
 	LIB_LOG(info) << "ThreadedServer::mainLoopWorker end";
 }
 
-void ThreadedServer::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
+void ThreadedServer::start(std::function<void(ListenEvent && listen_event)> callback_function) {
 
 	std::unique_lock<std::mutex> lk(mtx);
 	bool _is_listening = is_listening;

@@ -51,10 +51,10 @@ private:
 
 	std::vector<std::thread> consumer_threads;
 
-	std::function<void(WorkQueue *,int, enum job_type_t )> callback_function;
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> callback_function;
 
 	/// callback (invoked by threadedServer) which is the events producer
-	void producer_callback(IGenericServer * srv, int fd, enum job_type_t job);
+	void producer_callback(IGenericServer::ListenEvent &&listen_event);
 
 	/// consumer
 	void consumer();
@@ -64,7 +64,7 @@ public:
 	virtual ~WorkQueue();
 
 	/// start server
-	void start(std::function<void(WorkQueue *, int, enum job_type_t )> callback_function);
+	void start(std::function<void(IGenericServer::ListenEvent &&listen_event)> callback_function);
 
 	/// stop server
 	void stop();

@@ -46,15 +46,16 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 
 	// ThreadedServer2 threadedServer(UnixSocketServer("/tmp/mysocket.sock", 10));
 
+	std::function<void(IGenericServer::ListenEvent &&listen_event)> myListener =
+	[&threadedServer2](IGenericServer::ListenEvent &&listen_event) {
 
-	std::function<void(IGenericServer *, int, job_type_t)> myListener =
-	[&threadedServer2](IGenericServer *srv, int fd, enum job_type_t job_type) {
-
+		ThreadedServer2 * srv = static_cast<ThreadedServer2 *>(listen_event.srv);
+		int fd = listen_event.fd;
 		static int counter = 0;
 
 		//TEST_LOG(info) << "*** threadedServer2: " << &threadedServer2;
 
-		switch (job_type) {
+		switch (listen_event.job) {
 		case CLOSE_SOCKET:
 
 			TEST_LOG(info)	<< "[lambda][myListener] CLOSE_SOCKET " << fd;
@@ -68,6 +69,7 @@ TEST(ThreadedServer2Test, TestUnixSocketThreadedServer2) {
 			while (true) {
 				int _errno;
 				// read all data from socket
+				TEST_LOG(trace)	<< "[lambda][myListener] before calling read";
 				auto data = srv->read(fd, 1024*128, &_errno);
 
 				if ((_errno == EAGAIN || _errno == EWOULDBLOCK) && data.size() == 0) {

@@ -14,7 +14,7 @@ public:
 	IThreadable();
 	virtual ~IThreadable();
 
-	virtual void start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) = 0;
+	virtual void start(std::function<void(ListenEvent && listen_event)> callback_function) = 0;
 
 	virtual void stop() = 0;
 

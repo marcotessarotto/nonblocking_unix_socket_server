@@ -28,10 +28,16 @@ void ThreadedServer2::listenWorker() {
 
 	// internalCallback
 
+	auto f = [this](auto&& x){
+		this->internalCallback(std::forward<decltype(x)>(x));
+	};
+
+	server.listen(f);
+
 	// listen returns when another thread calls terminate
-	server.listen([this](IGenericServer * srv, int fd, enum job_type_t job_type) {
-		this->internalCallback(srv, fd, job_type);
-	});
+//	server.listen([this](ListenEvent &&listen_event) {
+//		this->internalCallback(listen_event);
+//	});
 
 	// thread ends
 	LIB_LOG(info) << "ThreadedServer2::mainLoopWorker end";
@@ -49,25 +55,30 @@ SocketData &ThreadedServer2::getSocketData(int fd, bool use_mutex) {
 	}
 }
 
+void ThreadedServer2::internalCallback(IGenericServer::ListenEvent &&listen_event) {
 
 
-void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_type_t job_type) {
 
-
-	switch (job_type) {
+	switch (listen_event.job) {
 	case AVAILABLE_FOR_READ_AND_WRITE: {
-			LIB_LOG(info) << "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ_AND_WRITE fd=" << fd;
+			LIB_LOG(info) << "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ_AND_WRITE fd=" << listen_event.fd;
 			// add socket to ready to write list
 
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
-			readyToWriteSet.insert(fd);
+			readyToWriteSet.insert(listen_event.fd);
 			lk.unlock();
 
 			// notify worker thread waiting on condition variable
 			readyToWriteCv.notify_one();
 
+			listen_event.srv = this;
+			listen_event.job = AVAILABLE_FOR_READ;
+
 			//LIB_LOG(info) << "[ThreadedServer2][internalCallback] callback_function";
-			callback_function(this, fd, AVAILABLE_FOR_READ);
+			//callback_function(IGenericServer::ListenEvent{this, listen_event.fd, AVAILABLE_FOR_READ, listen_event.events});
+
+			// https://stackoverflow.com/questions/42799208/perfect-forwarding-in-a-lambda
+			callback_function(std::forward<decltype(listen_event)>(listen_event));
 		}
 		break;
 	case NEW_SOCKET:
@@ -80,9 +91,9 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 
 
 			// this creates instance of SocketData, if no value is associated to key
-			getSocketData(fd);
+			getSocketData(listen_event.fd);
 
-			callback_function(this, fd, job_type);
+			callback_function(std::forward<decltype(listen_event)>(listen_event));
 
 //			// this works too
 //			std::unique_lock<std::mutex> lk(internalSocketDataMutex);
@@ -96,14 +107,14 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		break;
 	case CLOSE_SOCKET:
 
-		callback_function(this, fd, job_type);
+		callback_function(std::forward<decltype(listen_event)>(listen_event));
 		break;
 	case AVAILABLE_FOR_WRITE: {
-			LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_WRITE fd=" << fd;
+			LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_WRITE fd=" << listen_event.fd;
 			// add socket to ready to write list
 
 			std::unique_lock<std::mutex> lk(readyToWriteMutex);
-			readyToWriteSet.insert(fd);
+			readyToWriteSet.insert(listen_event.fd);
 			lk.unlock();
 
 			// notify worker thread waiting on condition variable
@@ -111,17 +122,17 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 		}
 		break;
 	case AVAILABLE_FOR_READ:
-		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ fd=" << fd;
+		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] AVAILABLE_FOR_READ fd=" << listen_event.fd;
 
-		callback_function(this, fd, job_type);
+		callback_function(std::forward<decltype(listen_event)>(listen_event));
 
 		break;
 	case SOCKET_IS_CLOSED:
-		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] SOCKET_IS_CLOSED fd=" << fd;
+		LIB_LOG(info)	<< "[ThreadedServer2][internalCallback] SOCKET_IS_CLOSED fd=" << listen_event.fd;
 
-		cleanup(fd);
+		cleanup(listen_event.fd);
 
-		callback_function(this, fd, job_type);
+		callback_function(std::forward<decltype(listen_event)>(listen_event));
 
 		break;
 	}
@@ -129,7 +140,7 @@ void ThreadedServer2::internalCallback(IGenericServer * srv, int fd, enum job_ty
 	//LIB_LOG(debug)	<< "[server][my_listener] finished - fd=" << fd;
 }
 
-void ThreadedServer2::start(std::function<void(IGenericServer *, int, enum job_type_t )> callback_function) {
+void ThreadedServer2::start(std::function<void(ListenEvent &&listen_event)> callback_function) {
 
 	std::unique_lock<std::mutex> lk(mtx);
 	bool _running = running;

@@ -104,6 +104,13 @@ protected:
 
 public:
 
+	struct ListenEvent {
+		void * srv; // pointer to server instance
+		int fd;
+		enum job_type_t job;
+		uint32_t events;
+	};
+
 	IGenericServer(unsigned int backlog = 10);
 	virtual ~IGenericServer();
 	
@@ -119,7 +126,7 @@ public:
      *
      * @throws std::runtime_error
      */
-	void listen(std::function<void(IGenericServer *,int, enum job_type_t )> callback_function);
+	void listen(std::function<void(ListenEvent &&listen_event)> callback_function);
 
 
     /**
